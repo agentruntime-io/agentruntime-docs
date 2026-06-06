@@ -1,0 +1,114 @@
+---
+title: ActiveCampaign connector
+description: Manage contacts, lists, tags, and accounts in ActiveCampaign from AgentRuntime workflows.
+---
+
+The **activecampaign** MCP adapter wraps [ActiveCampaign API v3](https://developers.activecampaign.com/reference/overview). Use it to sync contacts, manage list subscriptions, and update CRM records from agent workflows.
+
+## Prerequisites
+
+- An ActiveCampaign account with API access
+- API URL and token from **Settings → Developer → API** in ActiveCampaign
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Get API credentials">
+    In ActiveCampaign, go to **Settings → Developer → API**. Copy your API URL (e.g. `https://youraccount.api-us1.com`) and API token.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections**, click **New custom connection**, and select ActiveCampaign (or generic API key), and paste your API URL and token.
+  </Step>
+  <Step title="Add activecampaign MCP instance">
+    Go to **MCP**, click **Add instance** for **activecampaign**, wire your connection on **Instance config**, and set the profile **active**.
+  </Step>
+  <Step title="Verify with get_users_me">
+    Run a test workflow with an **mcp_call** to `activecampaign_get_users_me` to confirm authentication.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Lead capture** — Form webhook → `activecampaign_create_contact` → subscribe to nurture list.
+- **Tag-based routing** — `activecampaign_add_tag_to_contact` after LLM scores lead intent from chat transcript.
+- **Account sync** — `activecampaign_create_account` + `activecampaign_add_contact_to_account` when a deal closes in your CRM sheet.
+- **Health check** — Scheduled `activecampaign_get_users_me` + `activecampaign_list_contacts` count for monitoring dashboards.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `activecampaign_get_users_me` | Validate API credentials |
+| `activecampaign_create_contact` | Create a new contact |
+| `activecampaign_update_contact` | Update an existing contact |
+| `activecampaign_list_contacts` | List contacts with filters |
+| `activecampaign_subscribe_or_unsubscribe_contact_from_list` | Add or remove a contact from a list |
+| `activecampaign_add_tag_to_contact` | Tag a contact |
+| `activecampaign_add_contact_to_account` | Link a contact to an account |
+| `activecampaign_create_account` | Create an account |
+| `activecampaign_update_account` | Update an account |
+
+## Custom fields
+
+Pass custom contact fields as a JSON array in `field_values_json`:
+
+```json
+[
+  {"field": "1", "value": "Enterprise"},
+  {"field": "2", "value": "2026-06-01"}
+]
+```
+
+Account custom fields use `fields_json`:
+
+```json
+[
+  {"customFieldId": 1, "fieldValue": "West region"}
+]
+```
+
+## Example
+
+Sync a new lead from a form submission:
+
+```json
+{
+  "id": "create-lead",
+  "type": "mcp_call",
+  "name": "Create ActiveCampaign contact",
+  "tool_name": "activecampaign_create_contact",
+  "tool_args": {
+    "email": "{{input.email}}",
+    "first_name": "{{input.first_name}}",
+    "last_name": "{{input.last_name}}",
+    "field_values_json": "[{\"field\":\"1\",\"value\":\"{{input.source}}\"}]"
+  },
+  "timeout_s": 30
+}
+```
+
+Follow with `activecampaign_subscribe_or_unsubscribe_contact_from_list` to add the contact to a marketing list.
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `activecampaign_api_url` | Yes | Base URL without trailing slash |
+| `activecampaign_api_token` | Yes | API token from Developer settings |
+| `activecampaign_http_timeout_second` | No | HTTP timeout (default 45s) |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401 Unauthorized` | Regenerate API token; update connection |
+| Wrong API region | Use the exact URL from your ActiveCampaign account (`api-us1`, `api-eu1`, etc.) |
+| Custom field errors | Confirm field IDs match your account's custom field definitions |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Shopify connector](/connectors/shopify) — sync customers after purchase
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

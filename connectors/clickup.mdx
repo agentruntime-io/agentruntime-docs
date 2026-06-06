@@ -1,0 +1,99 @@
+---
+title: ClickUp connector
+description: Manage ClickUp workspaces, lists, tasks, and comments from AgentRuntime workflows.
+---
+
+The **clickup** MCP adapter connects to the [ClickUp API](https://clickup.com/api). List workspaces and spaces, create and update tasks, read comments, and keep project management in sync with automation — ideal for ticket routing, status updates, and agent-driven task creation.
+
+## Prerequisites
+
+- A ClickUp account with access to the target workspaces
+- A ClickUp **personal API token** (`pk_...`) from **Settings → Apps**
+- List and task IDs from ClickUp URLs or discovery tools
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a ClickUp API token">
+    In ClickUp, go to **Settings → Apps** and generate a personal API token. Copy the `pk_...` value.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  </Step>
+  <Step title="Add clickup MCP instance">
+    Go to **MCP**, click **Add instance** for **clickup**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Discover IDs">
+    Run **mcp_call** → `clickup_get_workspaces`, then `clickup_get_spaces` and `clickup_get_list` to map workspace → list IDs before hard-coding them in workflows.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Support → task** — Form submission or chat escalation → `clickup_create_task` in the support list with priority and assignees.
+- **Status sync** — GitLab issue closed → `clickup_update_task` to move ClickUp status to Done.
+- **Daily standup digest** — `clickup_get_tasks` on a sprint list → LLM summarizes blockers.
+- **Comment trail** — Agent adds context with `clickup_create_comment`; humans reply in ClickUp UI.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `clickup_get_workspaces` | List workspaces accessible to the token |
+| `clickup_get_spaces` | List non-archived spaces in a workspace |
+| `clickup_get_list` | Get list metadata by list ID |
+| `clickup_get_tasks` | List open tasks in a list (paginated) |
+| `clickup_get_task` | Get a task by task ID |
+| `clickup_create_task` | Create a task with name, description, status, priority, assignees, due date |
+| `clickup_update_task` | Update task fields and assignees |
+| `clickup_delete_task` | Delete a task by ID |
+| `clickup_get_comments` | List comments on a task |
+| `clickup_create_comment` | Post a comment on a task |
+
+## Example
+
+Create a task from a workflow trigger:
+
+```json
+{
+  "id": "clickup-task",
+  "type": "mcp_call",
+  "name": "Create ClickUp task",
+  "tool_name": "clickup_create_task",
+  "tool_args": {
+    "list_id": "{{input.list_id}}",
+    "name": "{{input.title}}",
+    "description": "{{steps.llm-draft.result.body}}",
+    "priority": 2,
+    "status": "to do"
+  },
+  "depends_on": ["llm-draft"],
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | ClickUp personal API token (`pk_...`) |
+| `APIBase` | No | ClickUp API base URL |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401 Unauthorized` | Regenerate token; personal tokens do not expire but can be revoked |
+| Invalid status name | Status labels are list-specific; copy exact names from ClickUp UI |
+| Task not visible | Confirm list ID and workspace access for the token owner |
+| Pagination gaps | Use `page` on `clickup_get_tasks` (100 tasks per page, starting at 0) |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Wrike connector](/connectors/wrike) — alternative project management
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

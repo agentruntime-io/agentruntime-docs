@@ -1,45 +1,63 @@
 ---
-title: Quickstart
+title: Integrations quickstart
 sidebarTitle: Quickstart
-description: Connect your first integration in under 10 minutes.
+description: Connect your first MCP tool in AgentRuntime — connections, instances, and workflow steps.
 ---
 
-This guide walks through connecting a pre-built integration from the connector catalog. The steps are the same for most connector types—only the authentication method varies.
+This guide walks through the three-layer integration model in AgentRuntime: **connections** (credentials), **MCP instances** (deployed tool servers), and **workflow steps** (runtime tool calls).
+
+<Info>
+  **Docs structure:** Pages in **Integration setup** cover the shared model (connections, instances, auth). **Connectors** lists one page per MCP adapter (`connectors/{slug}`) with tools and config only for that adapter.
+</Info>
 
 ## Before you begin
 
-- Admin or Member role in your workspace
-- Credentials for the tool you want to connect (API key, OAuth app client ID and secret, or service account)
+- **Project contributor** role in your workspace
+- Credentials for the tool you want to connect (Google account, API key, or WhatsApp business account)
+
+## The integration model
+
+```mermaid
+flowchart LR
+  Conn[Connection credentials] --> Inst[MCP instance]
+  Inst --> Step[Workflow mcp_call step]
+```
+
+1. **Connection** — Stores OAuth tokens or API keys
+2. **MCP instance** — Installs a catalog server in your project and binds a connection
+3. **Workflow step** — Calls a tool on that instance at runtime
 
 ## Steps
 
 <Steps>
-  <Step title="Find your integration">
-    Go to **Integrations → Catalog** and search for or browse to the tool you want to connect. Each connector card shows the authentication method and sync capabilities.
-  </Step>
-  <Step title="Authenticate">
-    Click **Connect** on the connector. Depending on the authentication method:
+  <Step title="Create a connection">
+    Go to **Connections** (`/connections`) and connect your tool:
 
-    - **API key** — Paste the key into the provided field.
-    - **OAuth 2.0** — Click **Authorize** to be redirected to the tool's authorization page. Sign in and grant access, then you'll be returned automatically.
-    - **Service account** — Upload the credentials file (usually a JSON key file) and enter any required fields.
+    - **Google account** card — OAuth for Workspace MCP adapters (Gmail, Drive, Sheets, …)
+    - **Connect WhatsApp** — Embedded signup or manual token entry
+    - **New custom connection** — API keys, tokens, DSNs (Resend, GitHub, Postgres, …)
 
-    See [Authentication methods](/integrations/authentication) for details on each approach.
+    See [Connections](/integrations/connections).
   </Step>
-  <Step title="Configure field mapping">
-    Map fields from the connected tool to your workspace's data model. Default mappings are pre-filled for common fields—review them and adjust as needed. Required fields are marked with an asterisk.
+  <Step title="Install an MCP instance">
+    Go to **MCP** (`/mcp`), find a server in the platform catalog (for example, `gmail`, `postgres`, or `shopify`), and click **Add instance**.
   </Step>
-  <Step title="Test the connection">
-    Click **Test connection** to trigger a sample sync. The test pulls a small number of records and displays them for review. If the test fails, an error message explains the cause.
+  <Step title="Wire credentials on the instance">
+    Open **Instance config** (`/mcp/instances/{id}`). Pick a config profile, wire your connection, and set the profile **active**.
+  </Step>
+  <Step title="Validate (recommended)">
+    Run **MCP validation** at `/mcp/{server_id}/validate` or test with a single-tool workflow run before production traffic.
+  </Step>
+  <Step title="Add an MCP step to a workflow">
+    In Workflow Studio, add an **mcp_call** step. Select your instance, pick a tool, and configure `tool_args`. Reference upstream data with template variables.
+  </Step>
+  <Step title="Validate and run">
+    Dry-run validate the workflow, publish, and start a run. Check the event log for tool responses.
   </Step>
 </Steps>
 
-<Note>
-  Some connectors require the platform's outbound IP addresses to be allowlisted on your end. Check the connector's setup notes for IP requirements before testing.
-</Note>
-
 ## Next steps
 
-- Review [authentication methods](/integrations/authentication) to understand when to rotate credentials.
-- Explore [connectors](/integrations/connectors) for category-specific setup details.
-- Set up [webhooks](/integrations/webhooks/configure) if you need event-driven automation.
+- [MCP instances](/integrations/mcp-instances) — config profiles and binding details
+- [Connector catalog](/integrations/connector-catalog) — full list of available adapters
+- [Authentication methods](/integrations/authentication) — OAuth vs API keys

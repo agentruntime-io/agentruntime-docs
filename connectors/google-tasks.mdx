@@ -1,0 +1,90 @@
+---
+title: Google Tasks connector
+description: Manage task lists and to-dos from AgentRuntime workflows.
+---
+
+The **google-tasks** MCP adapter wraps the [Google Tasks API](https://developers.google.com/tasks/reference/rest). Use it in workflow **mcp_call** steps to create follow-ups from form submissions, list open tasks for digests, mark items complete after approvals, and organize work across multiple task lists — lightweight task tracking without a full project-management tool.
+
+## Prerequisites
+
+- A Google account with Google Tasks access
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Tasks">
+    On your Google connection, enable the **Tasks** service so the account exposes Tasks API scopes.
+  </Step>
+  <Step title="Add google-tasks MCP instance">
+    Go to **MCP**, click **Add instance** for **google-tasks**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_tasklists` before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Support ticket follow-up** — Zendesk or webhook payload → `create_task` in "Support queue" list with due date → **gmail** assignee notification.
+- **Daily task digest** — Morning schedule → `list_tasks` with `show_completed: false` → LLM priority summary → **slack** post to team channel.
+- **Form-to-action** — **google-form** new response → `create_task` with respondent notes → `update_task` when **human_task** resolves the case.
+- **Sprint cleanup** — End of sprint cron → `list_tasks` filtered by `completed_min` → archive notes to **google-sheets** → `clear_completed_tasks` on the list.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `update_tasklist` | Rename an existing Google task list. |
+| `get_task` | Get a Google task by task ID. |
+| `create_task` | Create a task in a Google task list. |
+| `delete_task` | Delete a task from a Google task list. |
+| `move_task` | Move a task to a new parent or position within its list. |
+| `clear_completed_tasks` | Clear completed tasks from a Google task list. |
+| `create_tasklist` | Create a Google task list. |
+| `delete_tasklist` | Delete a Google task list and all of its tasks. |
+| `list_tasks` | List tasks in a Google task list, with optional filters. |
+| `update_task` | Update an existing Google task. |
+| `list_tasklists` | List the authenticated user's Google task lists. |
+| `get_tasklist` | Get a Google task list by task list ID. |
+
+## Example
+
+Create a follow-up task when a high-priority form response arrives:
+
+```json
+{
+  "id": "create-followup",
+  "type": "mcp_call",
+  "name": "Create support follow-up",
+  "tool_name": "create_task",
+  "tool_args": {
+    "task_list_id": "{{input.support_task_list_id}}",
+    "title": "Follow up: {{input.respondent_email}}",
+    "notes": "Form response ID: {{input.response_id}}\n\n{{input.summary}}",
+    "due": "{{input.due_date}}"
+  },
+  "depends_on": [],
+  "timeout_s": 30
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Tasks scopes may have been revoked |
+| Task list not found | Run `list_tasklists` to resolve the correct `task_list_id` — titles are not IDs |
+| Subtask positioning wrong | Pass `parent` for subtasks and `previous` sibling ID for ordering |
+| Completed tasks still listed | Set `show_completed: false` on `list_tasks`, or run `clear_completed_tasks` after archival |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

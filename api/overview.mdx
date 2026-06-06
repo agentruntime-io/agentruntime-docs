@@ -1,0 +1,95 @@
+---
+title: API overview
+description: REST API surface for workflows, runs, integrations, and billing at api.agentruntime.io.
+---
+
+The AgentRuntime **BFF API** is the public integration surface for all programmatic access. Base URL:
+
+| Environment | URL |
+|-------------|-----|
+| Production | `https://api.agentruntime.io` |
+| Development | `https://api-dev.agentruntime.io` |
+
+Authenticate with a session cookie (browser) or [personal access token](/api/authentication) (scripts and services).
+
+For copy-paste curl and JSON samples, see [API examples](/api/examples).
+
+## Request context
+
+Tenant- and project-scoped requests include context headers:
+
+| Header | Description |
+|--------|-------------|
+| `X-Tenant-Id` | Workspace (tenant) identifier |
+| `X-Project-Id` | Project scope for workflow and integration operations |
+
+The Console sets these automatically. API clients must send them on scoped endpoints.
+
+## Major endpoint groups
+
+### Workflows and runs
+
+| Area | Base path | Notes |
+|------|-----------|-------|
+| Workflows | `/v1/workflows` | CRUD, versions, validate, connection overrides |
+| Run commands | `/v1/workflows/{id}/command` | `start`, `pause`, `resume`, `stop` |
+| Runs feed | `/v1/runs` | Tenant-wide run list |
+| Events | `/v1/workflows/{id}/runs/{runID}/events` | Step log |
+| Stream | `/v1/workflows/{id}/stream` | WebSocket live events |
+| Human tasks | `/v1/tasks/pending`, `/v1/workflows/.../tasks/...` | HITL inbox |
+
+Requires **project_viewer** (read) or **project_contributor** (write/run).
+
+### Integrations
+
+| Area | Base path |
+|------|-----------|
+| Connections | `/v1/connections` |
+| MCP servers & instances | `/v1/mcp/*` |
+| Inbound webhooks | `/v1/inbound-webhooks` |
+
+### AI and chat
+
+| Area | Base path |
+|------|-----------|
+| Autopilot | `/v1/autopilot/*` |
+| Chat proxy | `/v1/chat/*` |
+| Memory | `/v1/memory/*` |
+| LLM catalog | `/v1/llm-*` |
+
+### Platform
+
+| Area | Base path |
+|------|-----------|
+| Auth | `/v1/auth/*` |
+| Billing | `/v1/billing/*` |
+| Analytics | `/v1/analytics/*` |
+| PATs | `/v1/pats` |
+| Onboarding | `/v1/onboarding/*` |
+
+## Example: start a workflow run
+
+```bash
+curl -X POST "https://api.agentruntime.io/v1/workflows/{workflow_id}/command" \
+  -H "Authorization: Bearer YOUR_PAT" \
+  -H "X-Tenant-Id: your-tenant" \
+  -H "X-Project-Id: your-project" \
+  -H "Content-Type: application/json" \
+  -d '{"command": "start", "params": {"customer_id": "123"}}'
+```
+
+## Platform MCP
+
+For IDE integrations, use **Platform MCP** at `https://mcp.agentruntime.io/mcp` with a PAT. It exposes Console operations as MCP tools rather than raw REST.
+
+## Internal services
+
+Control-service, agentruntime workflow engine, and chat-service are **internal**. Customer integrations should always go through the BFF — not direct internal URLs.
+
+## Rate limits and errors
+
+The API returns standard HTTP status codes. `401` and `403` indicate auth or role failures. `422` often signals validation errors from dry-run or graph checks. Retry idempotent reads on `5xx` with exponential backoff.
+
+See the full [API reference](/api/reference) and [Platform MCP](/api/platform-mcp) for endpoint tables and IDE integration.
+
+Contact [support@agentruntime.io](mailto:support@agentruntime.io) for enterprise rate limits and SLA details.

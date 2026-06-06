@@ -1,0 +1,345 @@
+---
+title: API reference
+description: REST endpoints, request shapes, and interactive API explorer for AgentRuntime.
+---
+
+The AgentRuntime public API is served by the BFF at **`https://api.agentruntime.io`**. All customer integrations should use this base URL.
+
+For request/response samples, see [API examples](/api/examples).
+
+## Interactive explorer
+
+Browse a subset of workflow and run endpoints in the marketing site's Scalar UI:
+
+**[agentruntime.io/api-reference](https://agentruntime.io/api-reference)**
+
+<Note>
+  The marketing OpenAPI spec covers core workflow surfaces. It may lag behind the full BFF route catalog. Cross-check with the tables below or test against `api.agentruntime.io`.
+</Note>
+
+## OpenAPI specifications
+
+Hand-authored OpenAPI 3.1 specs in the monorepo (not auto-generated from handlers):
+
+| Spec | Coverage |
+|------|----------|
+| Billing API | `/v1/config/stripe`, `/v1/billing/*` |
+| Onboarding API | `/v1/onboarding/*`, `/v1/setup/*` |
+
+There is no single full-BFF OpenAPI file today. Use this page and product guides for workflows, integrations, and auth.
+
+## Authentication
+
+All authenticated requests use either:
+
+- **Session cookie** — Browser sessions from the Console
+- **Bearer PAT** — `Authorization: Bearer pat_...` for programmatic access
+
+Scoped requests also require:
+
+```
+X-Tenant-Id: your-workspace-slug
+X-Project-Id: your-project-id
+```
+
+See [API authentication](/api/authentication).
+
+Role shorthand in tables: **viewer+** = `project_viewer` or higher, **contributor+** = `project_contributor` or higher, **tenant_admin** = workspace billing admin.
+
+---
+
+## Workflows
+
+Base path: `/v1/workflows`
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/workflows` | viewer+ | List workflows |
+| `POST` | `/v1/workflows` | contributor+ | Create workflow |
+| `GET` | `/v1/workflows/{id}` | viewer+ | Get workflow |
+| `PATCH` | `/v1/workflows/{id}` | contributor+ | Update draft graph |
+| `DELETE` | `/v1/workflows/{id}` | contributor+ | Archive workflow |
+| `POST` | `/v1/workflows/{id}/versions` | contributor+ | Publish version |
+| `GET` | `/v1/workflows/{id}/versions` | viewer+ | List versions |
+| `POST` | `/v1/workflows/{id}/validate` | contributor+ | Dry-run graph validation |
+| `POST` | `/v1/workflows/{id}/command` | contributor+ | Run control (see below) |
+| `GET` | `/v1/workflows/{id}/runs` | viewer+ | List runs for workflow |
+| `GET` | `/v1/workflows/{id}/stream` | viewer+ | WebSocket event stream |
+
+### Start, pause, resume, stop
+
+`POST /v1/workflows/{id}/command`
+
+```json
+{
+  "command": "start",
+  "params": {
+    "owner": "your-org",
+    "repo": "your-repo",
+    "pr_number": 42
+  }
+}
+```
+
+`params` become workflow **input** (`{{input.*}}` in steps).
+
+| `command` | `params` | Effect |
+|-----------|----------|--------|
+| `start` | Trigger fields | Start a new run |
+| `pause` | `run_id` | Pause scheduling |
+| `resume` | `run_id` | Resume paused run |
+| `stop` | `run_id`, optional `mode` | Stop run (`immediate` default, or `graceful`) |
+
+### Workflow connection overrides
+
+**API only** — no Console panel yet. See [Feature availability](/platform/feature-availability).
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/workflows/{id}/connection-overrides` | viewer+ | List overrides |
+| `PUT` | `/v1/workflows/{id}/connection-overrides` | contributor+ | Replace override map |
+
+### Runs and human tasks
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/runs` | viewer+ | Tenant-wide run feed (Command Center data source) |
+| `GET` | `/v1/workflows/{id}/runs/{runID}/events` | viewer+ | Step event log |
+| `GET` | `/v1/workflows/{id}/runs/{runID}/context` | viewer+ | Run variables and step results |
+| `GET` | `/v1/tasks/pending` | viewer+ | Pending human tasks (tenant inbox) |
+| `GET` | `/v1/workflows/{id}/runs/{runID}/tasks/pending` | contributor+ | Pending tasks for one run |
+| `POST` | `/v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` | contributor+ | Approve or reject human task |
+
+Complete task body:
+
+```json
+{
+  "approved": true,
+  "result": {
+    "comment_body": "Optional fields merged into step result"
+  }
+}
+```
+
+The human task step result always includes `approved`. The Console Approve/Reject buttons send only `{ "approved": true|false }`. See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
+
+---
+
+## Inbound webhooks
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/v1/inbound-webhooks` | contributor+ | Create subscription |
+| `GET` | `/v1/inbound-webhooks` | contributor+ | List subscriptions |
+| `DELETE` | `/v1/inbound-webhooks/{id}` | contributor+ | Delete subscription |
+| `POST` | `/v1/inbound-webhooks/{subscription_id}` | HMAC + Bearer PAT | **Public ingress** — starts run |
+
+Create subscription:
+
+```json
+{
+  "workflow_id": "workflow-uuid",
+  "name": "form-leads",
+  "automation_pat_id": "optional-stored-pat-id",
+  "automation_bearer": "pat_…"
+}
+```
+
+Response includes `ingress_url`, `signing_secret` (once), and `subscription`.
+
+Ingress request headers:
+
+- `Authorization: Bearer pat_…`
+- `X-Agentruntime-Signature: sha256=<hmac-sha256 of raw body>`
+- `Content-Type: application/json`
+
+See [Inbound webhooks](/integrations/inbound-webhooks).
+
+---
+
+## Connections
+
+Base path: `/v1/connections` — **project_contributor**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/connections` | List workspace connections |
+| `POST` | `/v1/connections` | Create custom connection |
+| `PATCH` | `/v1/connections/{id}` | Update connection |
+| `DELETE` | `/v1/connections/{id}` | Delete connection |
+| `GET` | `/v1/connections/{id}/credentials` | Reveal credential metadata (not full secrets) |
+
+### Google OAuth
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/connections/google/config` | Whether Google connect is enabled |
+| `POST` | `/v1/connections/google/oauth-url` | Start OAuth |
+| `POST` | `/v1/connections/google/complete` | Complete OAuth callback |
+| `GET` | `/v1/connections/google/accounts/{connectionId}` | Account + enabled services |
+| `PATCH` | `/v1/connections/google/accounts/{connectionId}/services` | Enable/disable services |
+
+### WhatsApp
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/connections/whatsapp/config` | Whether WhatsApp connect is enabled |
+| `POST` | `/v1/connections/whatsapp/complete` | Complete embedded signup |
+| `POST` | `/v1/connections/whatsapp/manual` | Manual WABA credentials |
+
+---
+
+## MCP
+
+Base path: `/v1/mcp` — **project_contributor** unless noted.
+
+### Servers and catalog
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/mcp/platform-catalog` | Platform adapter catalog |
+| `GET` | `/v1/mcp/tools` | Tool catalog |
+| `GET` | `/v1/mcp/servers` | Tenant MCP servers |
+| `POST` | `/v1/mcp/servers` | Register tenant server |
+| `GET` | `/v1/mcp/servers/{id}` | Server detail |
+| `POST` | `/v1/mcp/servers/{id}/validate` | Run validation checks |
+| `POST` | `/v1/mcp/servers/{id}/connections/{connection_id}/validate` | Validate connection binding |
+
+### Instances and config profiles
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/mcp/instances` | List instances |
+| `POST` | `/v1/mcp/instances` | Create instance |
+| `POST` | `/v1/mcp/instances/resolve` | Resolve instances for workflow |
+| `GET` | `/v1/mcp/instances/{id}/config-profiles` | List profiles |
+| `POST` | `/v1/mcp/instances/{id}/config-profiles` | Create profile |
+| `PATCH` | `/v1/mcp/instances/{id}/config-profiles/{profile_id}` | Update profile wiring |
+| `POST` | `/v1/mcp/instances/{id}/config-profiles/{profile_id}/set-active` | Set active profile |
+
+Duplicate connection CRUD also exists under `/v1/mcp/connections` for legacy clients.
+
+---
+
+## AI, chat, and memory
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `POST` | `/v1/autopilot/chat` | viewer+ | Autopilot message |
+| `GET` | `/v1/autopilot/stream` | viewer+ | Streaming response |
+| `GET/POST` | `/v1/chat/*` | viewer+ | Chat service proxy |
+| `GET` | `/v1/llm-provider-keys/catalog` | viewer+ | LLM model catalog |
+| `POST` | `/v1/llm/resolve` | contributor+ | Resolve model ref |
+
+### Memory (preview)
+
+<Note>
+  Memory routes require memory kernel configuration. Console Memory UI may be off in production — see [Feature availability](/platform/feature-availability).
+</Note>
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/memory/search` | Semantic search |
+| `POST` | `/v1/memory/index-conversation` | Index chat episode |
+| `POST` | `/v1/memory/index-file` | Index work file |
+| `POST` | `/v1/memory/extract/batch` | Batch extract jobs |
+| `GET` | `/v1/memory/extract/{jobId}` | Extract job status |
+| `POST` | `/v1/memory/tools/call` | Agent memory tool call |
+
+---
+
+## Billing endpoints
+
+Base path: `/v1/billing`
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/billing/summary` | contributor+ | Tenant/project summary |
+| `GET` | `/v1/billing/plans` | contributor+ | Plan catalog (Stripe-synced) |
+| `GET` | `/v1/billing/status` | contributor+ | Subscription and trial status |
+| `GET` | `/v1/billing/usage` | contributor+ | Credit balances (microcredits) |
+| `GET` | `/v1/billing/usage-dimensions` | viewer+ | Usage breakdown dimensions |
+| `GET` | `/v1/billing/usage-history` | contributor+ | Metered usage ledger |
+| `GET` | `/v1/billing/payment-history` | contributor+ | Payments and top-ups |
+| `GET` | `/v1/billing/action-pricing` | contributor+ | Resolved per-action prices |
+| `POST` | `/v1/billing/topups/payg/intent` | contributor+ | PAYG top-up Stripe intent |
+| `POST` | `/v1/billing/trial` | tenant_admin | Start trial |
+| `POST` | `/v1/billing/subscription` | tenant_admin | Activate subscription |
+| `POST` | `/v1/billing/subscription/change-plan` | tenant_admin | Change plan |
+| `POST` | `/v1/billing/subscription/cancel` | tenant_admin | Cancel at period end (default) |
+| `POST` | `/v1/billing/subscription/convert-trial-now` | tenant_admin | End trial early |
+| `POST` | `/v1/billing/codes/apply` | tenant_admin | Apply billing code |
+| `POST` | `/v1/billing/discounts/validate` | tenant_admin | Validate discount |
+
+`GET /v1/config/stripe` — publishable Stripe config for Console checkout.
+
+See [Billing and credits](/platform/billing-and-credits).
+
+---
+
+## Agents
+
+Base path: `/v1/agents` — **project_viewer** (read), **project_contributor** (write). Requires `enableAgents` in your deployment.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/agents` | List agents |
+| `POST` | `/v1/agents` | Create agent |
+| `GET` | `/v1/agents/{id}` | Get agent |
+| `PATCH` | `/v1/agents/{id}` | Update agent |
+| `DELETE` | `/v1/agents/{id}` | Delete agent |
+
+---
+
+## Analytics
+
+Base path: `/v1/analytics` — **project_contributor**
+
+| Endpoint | Metric |
+|----------|--------|
+| `/v1/analytics/live-runs` | Currently running workflows |
+| `/v1/analytics/success-rate` | Run success percentage |
+| `/v1/analytics/execution-duration` | Wall-clock execution time |
+| `/v1/analytics/runs-count` | Runs in selected window |
+| `/v1/analytics/steps-executed` | Metered workflow steps |
+| `/v1/analytics/credits-consumed` | Credits used in window |
+| `/v1/analytics/steps-summary` | Step-type breakdown and latency |
+| `/v1/analytics/runs-timeseries` | Run count over time |
+| `/v1/analytics/usage-timeseries` | Usage over time |
+
+Query `window=month|week|all` or bounded `from` / `to` with optional granularity on timeseries endpoints. See [Analytics](/platform/analytics).
+
+---
+
+## Personal access tokens
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/pats` | contributor+ | List tokens |
+| `POST` | `/v1/pats` | contributor+ | Create token |
+| `GET` | `/v1/pats/{id}/reveal` | viewer+ | Reveal token (once) |
+| `DELETE` | `/v1/pats/{id}` | contributor+ | Revoke token |
+
+Console **Settings → API keys** manages the same keys for inbound webhook automation.
+
+---
+
+## Error codes
+
+| Status | Meaning |
+|--------|---------|
+| `401` | Missing or invalid authentication |
+| `403` | Insufficient project role or PAT scope |
+| `404` | Resource not found |
+| `422` | Validation error (graph, bindings, billing) |
+| `429` | Rate limited |
+| `5xx` | Server error — retry with backoff |
+
+---
+
+## SDKs and collections
+
+- **Postman collections** — monorepo `docs/api/`
+- **Platform MCP** — [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp); see [Platform MCP](/api/platform-mcp)
+
+Contact [support@agentruntime.io](mailto:support@agentruntime.io) for enterprise API SLAs.

@@ -1,0 +1,90 @@
+---
+title: Google Calendar connector
+description: Schedule meetings, check availability, and manage events from AgentRuntime workflows.
+---
+
+The **google-calendar** MCP adapter wraps the [Google Calendar API](https://developers.google.com/calendar/api/v3/reference). Use it in workflow **mcp_call** steps to read upcoming events, find free time across calendars, create meetings with Google Meet links, and update or cancel bookings after human approval. Events can be created from structured fields or natural-language quick-add text.
+
+## Prerequisites
+
+- A Google account with Calendar access (personal Gmail or Google Workspace)
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Calendar">
+    On your Google connection, enable the **Calendar** service so the account exposes Calendar API scopes.
+  </Step>
+  <Step title="Add google-calendar MCP instance">
+    Go to **MCP**, click **Add instance** for **google-calendar**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `get_events` on `calendar_id: primary` before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Meeting scheduler** — Inbound booking request → `find_busy_free_periods` across team calendars → LLM picks a slot → `create_event` with Meet link and attendees.
+- **Daily standup digest** — Schedule trigger → `get_events` for today on `primary` → LLM summary → **gmail** send to the team channel alias.
+- **Post-approval booking** — **human_task** approves time and attendees → `create_event` with `send_notifications: all` → **google-sheets** log confirmation row.
+- **Conflict resolver** — Webhook with proposed time → `find_busy_free_periods` → if busy, `create_quick_event` alternative via LLM-suggested text → notify requester.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_events` | List Google Calendar events with optional search, date range, and event-type filters. |
+| `get_event_by_id` | Get a single Google Calendar event by event ID. |
+| `find_busy_free_periods` | Find busy and free periods across one or more Google Calendars in a time range. |
+| `create_event` | Create a Google Calendar event, with optional attendees, location, color, and Meet link. |
+| `create_quick_event` | Create a Google Calendar event from natural-language text using quickAdd. |
+| `update_event` | Update an existing Google Calendar event. |
+| `delete_event` | Delete a Google Calendar event. |
+| `add_attendees_to_event` | Add attendees to an existing Google Calendar event. |
+| `add_calendar_to_list` | Add an existing calendar to the authenticated user's calendar list. |
+
+## Example
+
+Create a client meeting after a human approves the time slot:
+
+```json
+{
+  "id": "book-meeting",
+  "type": "mcp_call",
+  "name": "Create calendar event",
+  "tool_name": "create_event",
+  "tool_args": {
+    "calendar_id": "primary",
+    "title": "{{steps.human-approve.result.meeting_title}}",
+    "start_date_time": "{{steps.human-approve.result.start_time}}",
+    "end_date_time": "{{steps.human-approve.result.end_time}}",
+    "attendees": ["{{input.client_email}}", "{{input.owner_email}}"],
+    "create_meet_link": true,
+    "send_notifications": "all"
+  },
+  "depends_on": ["human-approve"],
+  "timeout_s": 45
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Calendar scopes may have been revoked |
+| `403` or calendar not found | Confirm `calendar_id` — use `primary` for the signed-in user's main calendar |
+| Attendees not receiving invites | Set `send_notifications` to `all` on create or update |
+| `find_busy_free_periods` shows unexpected busy blocks | Include all relevant `calendar_ids`; check shared calendars the account can read |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

@@ -1,0 +1,112 @@
+---
+title: MongoDB connector
+description: Query, aggregate, and update MongoDB collections from AgentRuntime workflow steps.
+---
+
+The **mongodb** MCP adapter connects with a MongoDB URI (`mongodb://` or `mongodb+srv://`) and a default database name. It provides document reads, writes, counts, and aggregation pipelines using Extended JSON filters. Use it for operational data sync, event enrichment, analytics pipelines, webhook ingestion, and document-backed agents — complementary to [Firestore](/connectors/firestore) on Google Cloud or [Postgres](/connectors/postgres) for relational reporting.
+
+## Prerequisites
+
+- A MongoDB deployment (self-hosted, Atlas, or compatible) reachable from AgentRuntime
+- A connection URI with credentials (`mongodb://` or `mongodb+srv://`)
+- A default database name for collection operations
+- Database user with `read` for reporting; `readWrite` only on collections workflows must modify
+- Atlas IP allowlist or VPC peering configured if the cluster is network-restricted
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create a database connection with your MongoDB URI and default database:
+
+    ```
+    mongodb+srv://user:password@cluster.example.mongodb.net/?retryWrites=true&w=majority
+    ```
+
+    Set `URI` to the connection string and `Database` to the default database name (e.g. `production`). Include `authSource` in the URI when credentials live in the `admin` database.
+  </Step>
+  <Step title="Add mongodb MCP instance">
+    Go to **MCP**, click **Add instance** for **mongodb**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Test with a document count">
+    Add a workflow with **mcp_call** → `mongodb_count_documents` on a known collection. Run it to confirm connectivity before production reads or writes.
+  </Step>
+  <Step title="Inspect a sample document (optional)">
+    Run **mcp_call** → `mongodb_find_one` with an empty `filter_json` on a test collection to verify collection access and field shapes.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Lead enrichment** — Webhook payload → `mongodb_find_one` existing contact → merge external API data → `mongodb_update_one`.
+- **Usage analytics** — `mongodb_aggregate` pipeline on events → LLM narrative → scheduled Resend digest.
+- **Ticket triage** — `mongodb_find` open tickets → LLM priority scoring → `mongodb_update_many` to set status.
+- **Approval-gated deletes** — **human_task** before `mongodb_delete_many` on production collections.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `mongodb_update_many` | Update many documents in a MongoDB collection |
+| `mongodb_count_documents` | Count documents in a MongoDB collection with an optional filter |
+| `mongodb_aggregate` | Run an aggregation pipeline on a MongoDB collection |
+| `mongodb_delete_one` | Delete one document from a MongoDB collection |
+| `mongodb_delete_many` | Delete many documents from a MongoDB collection |
+| `mongodb_find` | Find documents in a MongoDB collection with an optional filter and limit |
+| `mongodb_find_one` | Find one document in a MongoDB collection with an optional filter |
+| `mongodb_insert_one` | Insert one document into a MongoDB collection |
+| `mongodb_update_one` | Update one document in a MongoDB collection |
+
+## Example
+
+Find recent signups for a welcome workflow:
+
+```json
+{
+  "id": "recent-signups",
+  "type": "mcp_call",
+  "name": "Fetch recent signups",
+  "tool_name": "mongodb_find",
+  "tool_args": {
+    "collection": "users",
+    "filter_json": "{\"created_at\": {\"$gte\": {\"$date\": \"2026-06-01T00:00:00Z\"}}}",
+    "limit": 50
+  },
+  "timeout_s": 30
+}
+```
+
+Reference documents in a downstream step:
+
+```
+{{steps.recent-signups.result.documents}}
+```
+
+## Configuration
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `mongodb_uri` | Yes | — | MongoDB connection URI (`mongodb://` or `mongodb+srv://`) |
+| `mongodb_database` | Yes | — | Default database name for collection operations |
+| `mongodb_request_timeout_seconds` | No | `30` | Per-operation timeout in seconds for queries and writes |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Connection refused / timeout | Check URI host, Atlas IP allowlist, and VPC peering or network path |
+| `Authentication failed` | Verify username, password, and `authSource` in the URI |
+| `filter_json` parse errors | Use Extended JSON syntax; escape quotes in workflow templates |
+| Write rejected | Confirm the DB user has `readWrite` on the target collection |
+| Aggregation limit exceeded | Default pipeline limit is 200 (max 1000); add `$limit` stages in `pipeline_json` |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Firestore connector](/connectors/firestore) — document store on Google Cloud
+- [Postgres connector](/connectors/postgres) — relational alternative for structured reporting
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

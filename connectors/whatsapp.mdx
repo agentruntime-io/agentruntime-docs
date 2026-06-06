@@ -1,0 +1,137 @@
+---
+title: WhatsApp connector
+description: Connect WhatsApp Business and send messages from AgentRuntime workflows.
+---
+
+The **whatsapp** MCP adapter sends messages through Meta's WhatsApp Cloud API — text, media, and pre-approved templates.
+
+## Prerequisites
+
+- A Meta developer account and Business app with the **WhatsApp** product enabled
+- A **WhatsApp Business Account (WABA)** linked to the app
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+AgentRuntime supports two connection paths:
+
+### Embedded signup (recommended)
+
+<Steps>
+  <Step title="Open Connections">
+    On **Connections**, click **Connect WhatsApp** in the [Console](https://console.agentruntime.io).
+  </Step>
+  <Step title="Start embedded signup">
+    Click **Connect** and complete Meta's embedded signup flow. You authorize the app and select your business phone number.
+  </Step>
+  <Step title="Complete registration">
+    The Console exchanges the OAuth code server-side and stores `access_token`, `business_account_id`, and `phone_number_id`. Tokens never appear in the browser.
+  </Step>
+  <Step title="Install the MCP instance">
+    Go to **MCP**, click **Add instance** for **whatsapp**, wire your WhatsApp connection on **Instance config**, and set the profile **active**.
+  </Step>
+</Steps>
+
+### Manual credentials
+
+If you already have a System User token and IDs from Meta Business Manager:
+
+<Steps>
+  <Step title="Gather credentials">
+    From Meta Business Settings, collect:
+
+    - **Access token** — System User token with `whatsapp_business_messaging` and `whatsapp_business_management`
+    - **WhatsApp Business Account ID (WABA)**
+    - **Phone number ID**
+  </Step>
+  <Step title="Enter manually">
+    In the **Connect WhatsApp** flow, choose manual entry and paste the three values.
+  </Step>
+  <Step title="Wire MCP instance">
+    Go to **MCP**, click **Add instance** for **whatsapp**, and wire the connection on **Instance config**.
+  </Step>
+</Steps>
+
+<Note>
+  Embedded signup for onboarding customers outside your Business Manager requires Meta's **Tech Provider** programme. Until approved, embedded signup works for accounts you administer in dev mode. Manual tokens work for production messaging on your own WABA.
+</Note>
+
+## What you can build
+
+- **Order updates** — Shopify `get_shopify_order` → `send_message` or `send_template_message` when status changes.
+- **Appointment reminders** — Schedule workflow → template message with date/time parameters (24h+ outbound requires approved templates).
+- **Support handoff** — Inbound webhook message → LLM draft → **human_task** → `send_message` reply.
+- **Ops alerts** — Workflow failure → `send_message` to on-call number with run summary.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `send_message` | Send a text message |
+| `send_media` | Send image, audio, document, sticker, or video |
+| `send_template_message` | Send a pre-approved template with parameters |
+| `list_phone_numbers` | List phone numbers on the WABA |
+| `list_message_templates` | List message templates (optionally filter by status) |
+
+All send tools accept an optional per-call `phone_number_id` override. Otherwise the connector uses the ID from your connection.
+
+## Example
+
+Send a notification after a workflow step completes:
+
+```json
+{
+  "id": "notify-customer",
+  "type": "mcp_call",
+  "name": "WhatsApp notification",
+  "tool_name": "send_message",
+  "tool_args": {
+    "to": "{{input.customer_phone}}",
+    "body": "Your order {{input.order_id}} is ready for pickup."
+  },
+  "depends_on": ["validate-order"],
+  "timeout_s": 30
+}
+```
+
+For marketing or outbound messages to users who have not messaged you in 24 hours, use `send_template_message` with an approved template.
+
+## Templates
+
+WhatsApp requires pre-approved templates for most outbound business messaging:
+
+1. Call `list_message_templates` to find an approved template name and language
+2. Use `send_template_message` with header, body, and button parameters
+
+While your Meta app is in **development mode**, add recipient test numbers under WhatsApp → API setup.
+
+## Configuration
+
+Stored in your connection / MCP instance profile:
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `access_token` | Yes | System User or exchanged OAuth token |
+| `business_account_id` | Yes | WABA ID |
+| `phone_number_id` | Recommended | Default sender phone number |
+| `api_base` | No | Default `https://graph.facebook.com` |
+| `api_version` | No | Default `v20.0` |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401` / token errors | Regenerate System User token; update connection |
+| Message not delivered (dev mode) | Add recipient as a test number in Meta API setup |
+| Template rejected | Use only `APPROVED` templates from `list_message_templates` |
+| Wrong sender | Pass `phone_number_id` explicitly or update connection default |
+
+See [Troubleshooting](/platform/troubleshooting) for MCP binding and OAuth issues.
+
+## Related
+
+- [Connections overview](/integrations/connections)
+- [Gmail connector](/connectors/gmail)
+- [Workflow patterns](/workflows/patterns)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

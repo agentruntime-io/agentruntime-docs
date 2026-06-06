@@ -1,0 +1,28 @@
+---
+title: ¿Qué es AgentRuntime?
+description: Un runtime orientado a API para flujos de trabajo de agentes de IA en producción — orquestación, herramientas MCP, aprobaciones humanas y observabilidad.
+---
+
+AgentRuntime es una plataforma de orquestación para **agentes de IA en producción**. Diseñas flujos de trabajo de varios pasos en la Consola, conectas herramientas de terceros mediante MCP (Model Context Protocol), ejecutas cargas con reintentos y trazas, y gobiernas el acceso entre inquilinos y proyectos.
+
+Piensa en ello como **Airflow para IA**: ejecución de flujos orientada a eventos con integración nativa de herramientas, no una interfaz de chat genérica.
+
+## Qué puedes hacer
+
+- **Diseñar flujos** en Workflow Studio — grafos dirigidos de llamadas MCP, pasos LLM, scripts Lua, bucles y aprobaciones humanas
+- **Conectar herramientas** mediante más de 40 conectores MCP (Google Workspace, bases de datos, Shopify, GitHub y más)
+- **Ejecutar con fiabilidad** con validación en dry-run, versionado, pausa/reanudación, reintentos y transmisiones de eventos en vivo
+- **Aprobar en el bucle** — las tareas humanas aparecen en Command Center para revisión antes de continuar una ejecución
+- **Observar el uso** — ejecuciones en vivo, tasas de éxito, trazas de pasos y consumo de créditos en Analytics
+- **Automatizar vía API** — endpoints REST y tokens de acceso personal para CI, scripts e integraciones en el IDE
+
+## Componentes principales
+
+| Componente | Función |
+|-----------|---------|
+| **Consola** | Interfaz web en [console.agentruntime.io](https://console.agentruntime.io) — Workflow Studio, Command Center, Conexiones, MCP, Proveedores, Chat |
+| **API BFF** | API pública en [api.agentruntime.io](https://api.agentruntime.io) — autenticación, flujos, ejecuciones, facturación, integraciones |
+| **Runtime de flujos** | Ejecuta grafos de flujos, gestiona paralelismo, reintentos y pausas con humano en el bucle |
+| **Capa MCP** | Catálogo de servidores de herramientas; **instancias** por inquilino con perfiles de configuración y enlaces de conexión |
+| **Servicio de agentes** | Ejecuta turnos de agentes integrados en chat y salas de canal |
+| **MCP de plataforma** | Expone las APIs de la Consola como herramientas MCP para IDEs en [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp) |

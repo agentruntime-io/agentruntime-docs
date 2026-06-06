@@ -1,0 +1,105 @@
+---
+title: SQLite connector
+description: Query and manage SQLite database files from AgentRuntime workflow steps.
+---
+
+The **sqlite** MCP adapter reads and writes local `.db` files on the connector host. It provides read-only queries, optional mutating SQL (when `allow_write` is enabled), schema introspection, and row sampling. Use it for local analytics, embedded app data, prototyping, lightweight ETL, and schema exploration before promoting logic to [Postgres](/connectors/postgres) or [MySQL](/connectors/mysql).
+
+## Prerequisites
+
+- A SQLite database file (`.db`) accessible to the connector runtime
+- Read access for reporting workflows; write access only when `allow_write` is enabled
+- `database_path` must resolve under `data_root` when that constraint is configured
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Configure the database path">
+    On **Connections**, click **New custom connection** (or edit the MCP instance profile) and set:
+
+    - `default_database_path` — absolute or relative path to your `.db` file (e.g. `/data/app/metrics.db`)
+    - `data_root` — optional root directory; all `database_path` values must resolve under it
+    - `allow_write` — set to `true` only if workflows need `sqlite_execute` or `sqlite_execute_sql`
+  </Step>
+  <Step title="Add sqlite MCP instance">
+    Go to **MCP**, click **Add instance** for **sqlite**, set path and write settings on **Instance config**, then set the profile **active**.
+  </Step>
+  <Step title="Test with database info">
+    Add a workflow with **mcp_call** → `sqlite_get_database_info`. Run it to confirm the file path and SQLite version before queries.
+  </Step>
+  <Step title="Explore schema (optional)">
+    Run **mcp_call** → `sqlite_list_tables` and `sqlite_describe_table` on a known table to verify schema access.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **CSV ingest pipeline** — Parse uploaded CSV → `sqlite_execute` bulk INSERT → `sqlite_query` validation report.
+- **Local dashboard feed** — Scheduled `sqlite_query` on metrics tables → LLM summary → Slack notification.
+- **Schema exploration** — `sqlite_list_tables` + `sqlite_describe_table` → Autopilot answers questions with grounded SQL.
+- **Prototype ETL** — `sqlite_query` extract → transform in Lua → `sqlite_execute` load into staging tables.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `sqlite_get_database_info` | Return basic SQLite database metadata |
+| `sqlite_query` | Run a read-only SQLite query and return columns and rows as JSON |
+| `sqlite_list_views` | List all views in the SQLite database |
+| `sqlite_get_table_schema` | Return detailed SQLite schema, including columns and indexes, for a table |
+| `sqlite_list_indexes` | List SQLite indexes on a table using PRAGMA index_list |
+| `sqlite_execute` | Execute SQLite SQL that may modify data |
+| `sqlite_execute_sql` | Execute mutating SQLite SQL; alias of execute_sql |
+| `sqlite_list_tables` | List all user tables in the SQLite database |
+| `sqlite_describe_table` | Show SQLite column schema for a table using PRAGMA table_info |
+| `sqlite_sample_table_rows` | Preview rows from a SQLite table |
+
+## Example
+
+Run a read-only report query:
+
+```json
+{
+  "id": "daily-sales",
+  "type": "mcp_call",
+  "name": "Daily sales total",
+  "tool_name": "sqlite_query",
+  "tool_args": {
+    "sql": "SELECT date(created_at) AS day, SUM(amount) AS total FROM orders GROUP BY day ORDER BY day DESC LIMIT 7"
+  },
+  "timeout_s": 30
+}
+```
+
+Omit `database_path` to use `sqlite_default_database_path` from configuration.
+
+## Configuration
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `sqlite_data_root` | No | — | Root directory; `database_path` must resolve under this path when set |
+| `sqlite_default_database_path` | No | — | Default `.db` file path when a tool omits `database_path` |
+| `sqlite_query_timeout_seconds` | No | `30` | Per-query timeout in seconds |
+| `sqlite_max_rows` | No | `1000` | Maximum rows returned per read query |
+| `sqlite_allow_write` | No | `false` | Set to `true` to enable `sqlite_execute` and `sqlite_execute_sql` |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Database file not found | Verify `default_database_path` and that the file exists on the connector host |
+| Path outside `data_root` | Move the file under `data_root` or adjust the configured root directory |
+| Write rejected | Set `sqlite_allow_write` to `true` on the MCP instance profile |
+| `database is locked` | Ensure no other process holds a long write lock; retry with backoff |
+| Row limit exceeded | Adjust `sqlite_max_rows` or add `LIMIT` to read queries |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Postgres connector](/connectors/postgres) — production-grade SQL for hosted databases
+- [MySQL connector](/connectors/mysql) — similar SQL patterns for MySQL
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

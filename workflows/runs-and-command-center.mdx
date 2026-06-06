@@ -1,0 +1,73 @@
+---
+title: Runs and Command Center
+description: Start, control, and observe workflow runs. Manage approvals from Command Center.
+---
+
+A **run** is one execution of a published workflow version. This guide covers run lifecycle, controls, observability, and the Command Center inbox.
+
+## Starting a run
+
+Start runs from:
+
+- **Workflow Studio** — Run button on a published workflow
+- **REST API** — `POST /v1/workflows/{id}/command` with command `start`
+- **Inbound webhooks** — Signed external triggers (see [Inbound webhooks](/integrations/inbound-webhooks))
+- **Autopilot** — Chat command to run a workflow by name
+
+Runs inherit the workflow's published graph, connection overrides, and input `params`.
+
+## Run controls
+
+Send commands via the API or Studio run panel:
+
+| Command | Effect |
+|---------|--------|
+| `start` | Begin a new run |
+| `pause` | Pause scheduling; in-flight steps may complete |
+| `resume` | Continue a paused run |
+| `stop` | Halt the run. Use `params.mode`: `immediate` (default) or `graceful` (drain in-flight work) |
+
+Stopping immediately cancels in-flight MCP tool calls. LLM calls are best-effort cancelled.
+
+## Observing runs
+
+### Workflow Studio
+
+The run panel shows a live event log: step started, tool result, LLM output, failures, and pauses. Subscribe via WebSocket for sub-second updates.
+
+### Analytics
+
+The **Analytics** page (`/analytics`) shows workspace-level metrics:
+
+- Live and recent runs
+- Success rate
+- Steps executed
+- Credits consumed
+- Usage timeseries
+
+Project contributors can access analytics APIs at `/v1/analytics/*`.
+
+### Run APIs
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /v1/runs` | Tenant-wide run feed |
+| `GET /v1/workflows/{id}/runs` | Runs for one workflow |
+| `GET /v1/workflows/{id}/runs/{runID}/events` | Step event log |
+| `GET /v1/workflows/{id}/runs/{runID}/context` | Step state and variables |
+
+## Command Center
+
+**Command Center** (`/command-center`) is your workspace-wide run inbox for approvals, active runs, and recent failures.
+
+See the dedicated [Command Center guide](/workflows/command-center) for daily operator workflows, run controls, and what to do when a run looks stuck.
+
+## Failure handling
+
+When a step fails after exhausting `retry_count`, the run marks the step failed. Downstream steps that depend on the failed step are skipped unless the graph defines alternate paths.
+
+Review the event log for error messages and tool responses. Fix the workflow or connection binding, publish a new version, and start a new run.
+
+## Credits and metering
+
+Each action (LLM tokens, MCP tool calls, workflow steps) consumes credits according to your plan's action pricing. Usage appears in Analytics and on the billing usage page.

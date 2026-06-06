@@ -1,0 +1,86 @@
+---
+title: Google Docs connector
+description: Create, read, and fill Google Docs from AgentRuntime workflows.
+---
+
+The **google-docs** MCP adapter wraps the [Google Docs API](https://developers.google.com/docs/api/reference/rest) and Drive search. Use it in workflow **mcp_call** steps to read document text, append LLM-generated sections, find docs by name, and produce filled copies from templates with placeholder replacement. Documents are addressed by Drive file ID.
+
+## Prerequisites
+
+- A Google account with Google Docs and Drive access
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Docs">
+    On your Google connection, enable the **Docs** service so the account exposes Docs and Drive API scopes.
+  </Step>
+  <Step title="Add google-docs MCP instance">
+    Go to **MCP**, click **Add instance** for **google-docs**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `find_document` or `read_document` on a known doc before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Contract from template** — CRM webhook with deal fields → `create_document_based_on_template` replacing `[ClientName]` placeholders → **google-drive** `add_permission` for the signer.
+- **Meeting notes append** — **google-calendar** event ends → LLM summary from transcript → `find_document` by meeting title → `append_text` with dated section.
+- **Weekly report draft** — Postgres metrics query → LLM narrative → `create_document` with title and body → **gmail** link in status email.
+- **Onboarding packet** — New hire row in **google-sheets** → `create_document_based_on_template` with role-specific values → move to HR folder via **google-drive**.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `read_document` | Read a Google Doc by document ID and return both the full resource and flattened plain text. |
+| `append_text` | Append text to the end of an existing Google Doc. |
+| `find_document` | Find a Google Doc by name in Drive, with optional create-if-missing behavior. |
+| `create_document_based_on_template` | Create a Google Doc from a template by replacing placeholders with values and images. |
+| `create_document` | Create a Google Doc with a title and optional initial body content. |
+
+## Example
+
+Fill a proposal template after an LLM extracts fields from a brief:
+
+```json
+{
+  "id": "fill-proposal",
+  "type": "mcp_call",
+  "name": "Generate proposal doc",
+  "tool_name": "create_document_based_on_template",
+  "tool_args": {
+    "template": "{{input.proposal_template_id}}",
+    "placeholder_format": "square_brackets",
+    "values": {
+      "ClientName": "{{input.client_name}}",
+      "ProjectScope": "{{steps.llm-scope.result.summary}}",
+      "EstimatedCost": "{{input.budget}}"
+    }
+  },
+  "depends_on": ["llm-scope"],
+  "timeout_s": 60
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Docs and Drive scopes may have been revoked |
+| Placeholders not replaced | Match `placeholder_format` to your template (`square_brackets`, `curly_braces`, etc.) |
+| `find_document` returns multiple matches | Scope with `folder_id` or use an exact template ID instead of name search |
+| `append_text` lands in wrong doc | Pass the `document_id` from `find_document` or `create_document`, not the URL slug alone |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

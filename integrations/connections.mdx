@@ -1,0 +1,93 @@
+---
+title: Connections
+description: Save Google, WhatsApp, and API key credentials for MCP connectors in AgentRuntime.
+---
+
+**Connections** store Vault-backed credentials MCP tools use at runtime. Manage them from **Connections** (`/connections`) in the [Console](https://console.agentruntime.io).
+
+Connections are separate from workflow graphs. You **wire** them to MCP instances through **config profiles** on each instance (`/mcp/instances/{instance_id}`), then reference `instance_id` in workflow **mcp_call** steps.
+
+<Info>
+  This page covers **shared connection flows** only. Per-adapter tools and config live on each [connector page](/integrations/connector-catalog).
+</Info>
+
+## Console layout
+
+The Connections page shows:
+
+- **Google account** card (when Google connect is enabled) — OAuth once, enable per-service (Gmail, Drive, Sheets, …)
+- **Connect WhatsApp** — opens the WhatsApp connection modal (when enabled)
+- **New custom connection** — API keys, tokens, DSNs, and template-based connectors
+- A searchable list of saved connections with usage hints
+
+Page description in the Console: *"Vault-backed credentials for your workspace. Attach them from each MCP connector's config profile."*
+
+## Google Workspace
+
+Google connections use OAuth 2.0. One Google account can authorize multiple Workspace services (Gmail, Drive, Sheets, Calendar, and more).
+
+<Steps>
+  <Step title="Connect Google account">
+    On **Connections**, use the **Google account** card and complete OAuth.
+  </Step>
+  <Step title="Enable services">
+    On the connected account card, enable the services you need (for example **Gmail** and **Sheets**).
+  </Step>
+  <Step title="Wire to MCP instances">
+    Open **MCP** → your instance → **Instance config** (`/mcp/instances/{id}`). Pick or create a config profile and select the Google connection in the profile's credential wiring.
+  </Step>
+</Steps>
+
+See the full [Google Workspace guide](/integrations/google-workspace).
+
+## WhatsApp
+
+WhatsApp connections support embedded signup (Meta business flow) or manual credential entry for existing business accounts.
+
+On **Connections**, click **Connect WhatsApp** (when the feature is enabled for your environment).
+
+See the [WhatsApp connector guide](/connectors/whatsapp) for embedded signup, tools, and templates.
+
+## Custom connections (API keys and DSNs)
+
+Many connectors authenticate with API keys, personal access tokens, or connection strings.
+
+<Steps>
+  <Step title="Create a connection">
+    Click **New custom connection** and choose a template (when listed) or enter a display name and credential fields.
+  </Step>
+  <Step title="Save credentials">
+    Paste the API key, token, or DSN. Secrets are stored in Vault — they are not echoed back in the UI after save.
+  </Step>
+  <Step title="Wire to an MCP instance">
+    Go to **MCP** → open the instance → **Instance config**. Activate a profile wired to this connection (or use the quick-apply connection picker on the profile panel).
+  </Step>
+  <Step title="Validate (optional)">
+    Run **MCP validation** for the server at `/mcp/{server_id}/validate`, or validate a specific server–connection binding via the API (`POST /v1/mcp/servers/{id}/connections/{connection_id}/validate`).
+  </Step>
+</Steps>
+
+Examples: Resend, GitHub, Shopify, Postgres DSN, Notion integration token.
+
+## Managing connections
+
+| Action | How |
+|--------|-----|
+| **View usage** | Click a connection row to open the detail sheet — see which MCP instances reference it |
+| **Update credentials** | Edit the connection and save a new key or re-authorize OAuth |
+| **Rotate keys** | Add the new key, update instance profiles, then revoke the old key in the external service |
+| **Delete** | Remove the connection only after unwiring it from all MCP config profiles |
+
+<Warning>
+  Deleting a connection breaks MCP instances whose active profile still references it. Rewire profiles first.
+</Warning>
+
+## Per-workflow connection overrides
+
+The API supports workflow-level connection overrides (`GET/PUT /v1/workflows/{id}/connection-overrides`) so one graph can target sandbox vs production credentials without duplicating the workflow. The Console does not expose a dedicated overrides panel today — use the API or Platform MCP if you need per-workflow credential routing.
+
+## Related
+
+- [MCP instances](/integrations/mcp-instances) — install connectors and config profiles
+- [Integrations quickstart](/integrations/quickstart)
+- [Authentication](/integrations/authentication)

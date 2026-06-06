@@ -1,0 +1,68 @@
+---
+title: MCP instances
+description: Install platform MCP servers, configure profiles, and bind connections in your project.
+---
+
+An **MCP instance** is your project's deployment of an MCP server from the platform catalog (or a custom server you register). Instances make tools available to workflow **mcp_call** steps.
+
+Manage them from **MCP** (`/mcp`) in the [Console](https://console.agentruntime.io). The page title is **MCP connectors**.
+
+## Catalog vs instance
+
+| Term | Meaning |
+|------|---------|
+| **MCP server (catalog)** | Platform-wide definition — adapter slug, tool list, config schema |
+| **MCP instance** | Your project's installed copy with config profiles, env, and connection wiring |
+
+The catalog lists 40+ Go adapters (Gmail, Postgres, Shopify, GitHub, …). See the [connector catalog](/integrations/connector-catalog).
+
+## Installing an instance
+
+<Steps>
+  <Step title="Open MCP connectors">
+    Go to **MCP** in the sidebar (`/mcp`). Browse **Platform catalog** servers or your installed instances.
+  </Step>
+  <Step title="Add an instance">
+    On a catalog server row, click **Add instance** (or open the platform marketplace modal). First-party platform servers create a workspace instance you own.
+  </Step>
+  <Step title="Open instance config">
+    Open **Instance config** (`/mcp/instances/{instance_id}`). Description: *"Pick a profile, connect credentials, then save. Workflows use the profile you mark active."*
+  </Step>
+  <Step title="Wire a connection">
+    On the active config profile, select a [connection](/integrations/connections) in the credential / `source_spec` wiring. For Google and WhatsApp, use the embedded connect flows when offered.
+  </Step>
+  <Step title="Set active profile">
+    Mark the profile **active** so runtime resolution uses it for this instance.
+  </Step>
+  <Step title="Validate">
+    Optionally run **MCP validation** at `/mcp/{server_id}/validate` to check server-level health, or validate a connection binding via API.
+  </Step>
+</Steps>
+
+## Using instances in workflows
+
+In **Workflow Studio** (`/workflow/{id}`), add an **mcp_call** step and select:
+
+- The **instance** (resolved to `server_url` / `instance_id` at runtime)
+- The **tool name** from the instance's tool catalog
+- **tool_args** — static values or template variables (`{{input.*}}`, `{{steps.step-id.result.*}}`)
+
+At runtime, the workflow engine calls the MCP tool with credentials from the instance's active config profile.
+
+## Connection overrides (API)
+
+Workflow-level overrides (`PUT /v1/workflows/{id}/connection-overrides`) let one graph target different credentials per environment. Configure via API today; see [API reference](/api/reference#workflow-connection-overrides).
+
+## Custom MCP servers
+
+Register tenant-owned MCP servers you operate (**MCP → Add connectors → Add connector**) and deploy instances the same way as catalog adapters. See the [Custom MCP servers](/integrations/custom-mcp-servers) guide for the full wizard, API flow, and troubleshooting.
+
+## Platform MCP (IDE integration)
+
+Separate from project instances, **Platform MCP** at [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp) exposes Console APIs as tools for IDEs and assistants. Authenticate with a PAT. Use it to list workflows, start runs, and manage resources from Cursor or other MCP clients.
+
+## Related
+
+- [Connections](/integrations/connections)
+- [Integrations quickstart](/integrations/quickstart)
+- [Connector catalog](/integrations/connector-catalog)

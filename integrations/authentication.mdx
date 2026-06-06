@@ -1,48 +1,75 @@
 ---
-title: Authentication methods
-description: API key, OAuth 2.0, and service account options for connecting integrations.
+title: Integration authentication
+description: OAuth, API keys, and connection strings for AgentRuntime MCP connectors.
 ---
 
-Different integrations use different authentication methods. Choosing the right method—and managing credentials properly—affects both security and reliability.
+Connectors use different authentication methods. AgentRuntime stores credentials in **connections** and injects them at runtime through **MCP instance bindings** — never embed secrets in workflow graphs.
 
-## API keys
+## OAuth 2.0 (Google, LinkedIn)
 
-API keys are long-lived tokens issued by the external service. They are the simplest authentication method and work well for server-to-server connections where OAuth is not available.
+OAuth lets users authorize AgentRuntime without sharing passwords. The platform stores access and refresh tokens and refreshes them automatically.
 
-**When to use:** Services that issue personal access tokens or API keys (most developer tools, data APIs).
+**Supported in Console today:**
 
-**How to rotate:**
+- **Google Workspace** — Gmail, Drive, Sheets, Calendar, and related adapters
+- **LinkedIn** — Marketing APIs (via API key connection in most setups)
 
-1. Generate a new key in the external service.
-2. Go to **Integrations → [Integration name] → Credentials**.
-3. Paste the new key and click **Save**.
-4. Verify the connection still works, then revoke the old key in the external service.
+<Steps>
+  <Step title="Connect">
+    Go to **Connections**, start the OAuth flow, and sign in to the external service.
+  </Step>
+  <Step title="Grant scopes">
+    Approve the requested permissions. Scopes determine which MCP tools work.
+  </Step>
+  <Step title="Bind">
+    Select the connection when installing or editing an MCP instance.
+  </Step>
+</Steps>
+
+If refresh fails (user revoked access), the connection shows **Reconnect**. Re-authorize before running workflows that depend on it.
+
+## API keys and personal access tokens
+
+API keys are the most common method for developer tools, email providers, and search APIs.
+
+**Examples:** Resend, Exa, GitHub (PAT), Shopify, ActiveCampaign, ClickUp, Notion
+
+<Steps>
+  <Step title="Generate a key">
+    Create an API key or PAT in the external service with the minimum required scopes.
+  </Step>
+  <Step title="Save in Connections">
+    Create a connection in the Console and paste the key. Keys are encrypted at rest.
+  </Step>
+  <Step title="Rotate safely">
+    Save a new key, validate bound MCP instances, verify a test run, then revoke the old key in the external service.
+  </Step>
+</Steps>
 
 <Warning>
-  Rotating a key while the old one is still in use causes a brief period of failed syncs. Minimize this by saving the new key first and revoking the old key only after verifying the connection.
+  Rotating a key before updating the connection causes failed tool calls in active runs. Always update the connection first.
 </Warning>
 
-## OAuth 2.0
+## Database connection strings
 
-OAuth 2.0 lets users authorize the platform to act on their behalf without sharing a password. The platform handles the token refresh cycle automatically.
+Database adapters (`postgres`, `mysql`, `mongodb`, `redis`, `neo4j`, `sqlite`, `firestore`) use connection strings or service account JSON stored as connections.
 
-**When to use:** SaaS tools that support OAuth (CRMs, productivity tools, communication platforms).
+- Use read-only credentials where possible
+- Restrict network access to AgentRuntime egress IPs if your database requires allowlisting
+- Prefer separate connections per environment (sandbox vs production)
 
-**How it works:**
+## WhatsApp
 
-1. Click **Authorize** on the connector setup page.
-2. You're redirected to the service's authorization screen.
-3. Sign in and approve the requested permissions.
-4. The platform stores the access token and refresh token securely.
+WhatsApp uses Meta business credentials — either through embedded signup (recommended) or manual entry of phone number ID, business account ID, and access token.
 
-OAuth tokens expire regularly. The platform refreshes them automatically before expiry. If the refresh fails (for example, because permissions were revoked), the integration shows a **Reconnect** prompt.
+## Workflow and API authentication
 
-## Service accounts
+Connector auth is separate from **how you authenticate to AgentRuntime**:
 
-Service accounts are non-personal identities created in the external system specifically for machine-to-machine access. Common with Google Cloud, AWS, and enterprise SaaS platforms.
+| Method | Use for |
+|--------|---------|
+| Console session | Browser UI |
+| Personal access token | Scripts, CI, Platform MCP |
+| Inbound webhook signature | External triggers into workflows |
 
-**When to use:** Situations where access must not be tied to an individual user (avoids disruption if an employee leaves), or where the service does not support OAuth.
-
-**Setup:** Upload the credentials file (usually a JSON key or certificate) in the connector setup dialog. The platform stores it encrypted and uses it to authenticate all requests.
-
-**Rotation:** Generate a new service account key in the external service, upload it to the connector, verify the connection, then deactivate the old key.
+See [API authentication](/api/authentication).

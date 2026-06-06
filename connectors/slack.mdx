@@ -1,0 +1,111 @@
+---
+title: Slack connector
+description: Slack integration for AgentRuntime — catalog placeholder with bot token setup guidance.
+---
+
+The **slack** MCP adapter is listed in the AgentRuntime connector catalog to reserve Slack messaging integration. The adapter shell accepts a bot token connection, but **no tools are registered in the current staging build** — install it to prepare connections; messaging tools will ship in a future release.
+
+<Warning>
+**Catalog placeholder** — See [Feature availability](/platform/feature-availability). Staging shows **zero registered tools** for the `slack` adapter. You can create a connection and MCP instance today, but workflows cannot call Slack APIs until messaging tools (e.g. post message, list channels) ship.
+</Warning>
+
+## Prerequisites
+
+- A Slack workspace where you can create apps
+- **project_contributor** access in AgentRuntime
+- Patience for upcoming tool releases — bind credentials now if you want early validation only
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a Slack app">
+    Go to [api.slack.com/apps](https://api.slack.com/apps) and create an app **From scratch**. Choose your workspace.
+  </Step>
+  <Step title="Add bot scopes">
+    Under **OAuth & Permissions**, add Bot Token Scopes you expect to need for future tools, for example:
+    - `chat:write` — post messages as the bot
+    - `channels:read` — list public channels
+    - `channels:history` — read public channel history (if read tools ship)
+    - `users:read` — resolve user IDs for mentions
+  </Step>
+  <Step title="Install to workspace">
+    Click **Install to Workspace** and copy the **Bot User OAuth Token** (`xoxb-...`). Store it securely.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create a connection with `APIToken` set to your `xoxb-` bot token.
+  </Step>
+  <Step title="Add slack MCP instance">
+    Go to **MCP**, click **Add instance** for **slack**, wire your connection on **Instance config**, set the profile **active**, and save. Validation confirms token binding only — no tools are callable yet.
+  </Step>
+  <Step title="Invite the bot">
+    In Slack, invite the bot to channels where you plan to post once tools are available (`/invite @YourBot`).
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+Once messaging tools ship, typical patterns will include:
+
+- **Alert routing** — Workflow failure or metric threshold → post formatted message to `#ops-alerts`.
+- **Human task notifications** — **human_task** assigned → Slack DM or channel ping with approve link.
+- **Daily digests** — RSS or Brave news step → LLM summary → morning post to `#team-news`.
+- **Two-way triage** — Incoming Slack events (future) → create ClickUp or GitLab tasks from thread context.
+
+Until tools land, use other connectors (email, webhooks, or project tools) for outbound notifications.
+
+## Tools
+
+_No tools are registered in the current adapter build._
+
+Planned first-wave tools (subject to change):
+
+| Tool (planned) | Description |
+|----------------|-------------|
+| `slack_post_message` | Post a message to a channel or thread |
+| `slack_list_channels` | List channels the bot can access |
+| `slack_get_channel_history` | Read recent messages for context |
+| `slack_update_message` | Edit a bot message |
+| `slack_add_reaction` | Add an emoji reaction to a message |
+
+## Example
+
+Future workflow step (not available until tools ship):
+
+```json
+{
+  "id": "slack-notify",
+  "type": "mcp_call",
+  "name": "Notify Slack channel",
+  "tool_name": "slack_post_message",
+  "tool_args": {
+    "channel": "#deployments",
+    "text": "Deploy {{input.version}} completed successfully."
+  },
+  "timeout_s": 15
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIToken` | Yes | Slack bot OAuth token (`xoxb-...`) with scopes for channels and methods you use |
+
+User tokens (`xoxp-...`) are supported by the schema but bot tokens are recommended for automation.
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| No tools in catalog | Expected — adapter is a placeholder until messaging tools are registered |
+| Instance config saves but tool calls fail | No callable tools yet; wait for adapter update or use another notification channel |
+| `not_in_channel` (future) | Invite the bot to the target channel before posting |
+| Invalid token | Regenerate bot token after reinstalling the Slack app to the workspace |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

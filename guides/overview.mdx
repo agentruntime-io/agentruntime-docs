@@ -1,0 +1,60 @@
+---
+title: End-to-end guides
+description: Full workflow recipes that chain connectors — from webhook to database to notification.
+---
+
+These guides walk through **complete workflows** you can build in the Console. Each one connects multiple MCP adapters, shows per-step JSON, includes a **full workflow graph** for copy-paste, and links to connector setup pages.
+
+Connector pages document individual tools. These guides show how to **combine** them into production outcomes.
+
+## Pick a guide
+
+<CardGroup cols={2}>
+  <Card title="Form webhook → Postgres → Resend digest" icon="webhook" href="/guides/form-webhook-postgres-resend-digest">
+    Capture form submissions, store them, and email a daily summary to your team.
+  </Card>
+  <Card title="Shopify order → WhatsApp template" icon="shopping-bag" href="/guides/shopify-order-whatsapp">
+    Notify customers when an order ships using an approved WhatsApp template.
+  </Card>
+  <Card title="GitHub PR → LLM review → comment" icon="git-pull-request" href="/guides/github-pr-review">
+    Summarize a pull request with an LLM, get human approval, and post the review on GitHub.
+  </Card>
+  <Card title="Scheduled Postgres → Gmail report" icon="calendar-clock" href="/guides/scheduled-postgres-gmail-report">
+    Run a weekly SQL report, generate a narrative with an LLM, and email stakeholders.
+  </Card>
+  <Card title="Lead webhook → ActiveCampaign + Notion" icon="user-plus" href="/guides/lead-sync-activecampaign-notion">
+    Sync inbound leads to your CRM and log every submission in a Notion database.
+  </Card>
+</CardGroup>
+
+## What you need first
+
+<Steps>
+  <Step title="Integrations quickstart">
+    Understand [connections](/integrations/connections), [MCP instances](/integrations/mcp-instances), and how **mcp_call** steps bind to instances.
+  </Step>
+  <Step title="Install connectors">
+    Each guide lists required adapters. Install them from **MCP** (**Add instance**), wire connections on **Instance config**, then build the workflow.
+  </Step>
+  <Step title="Workflow Studio">
+    Author graphs in [Workflow Studio](/workflows/studio). Use the [JSON cookbook](/workflows/json-schema-cookbook) if you prefer editing raw JSON.
+  </Step>
+</Steps>
+
+## Patterns behind these guides
+
+| Pattern | Guides using it |
+|---------|-----------------|
+| Webhook → store → notify | Form digest, lead sync |
+| External event → lookup → message | Shopify → WhatsApp |
+| Fetch → LLM → human → action | GitHub PR review |
+| Schedule → query → summarize → email | Postgres weekly report |
+
+See also [Workflow patterns](/workflows/patterns) for approve-then-send, retries, and `for_each` fan-out.
+
+## Related
+
+- [Feature availability](/platform/feature-availability) — preview, API-only, and placeholder features
+- [Connector catalog](/integrations/connector-catalog) — all adapters and common patterns
+- [Inbound webhooks](/integrations/inbound-webhooks) — trigger runs from external systems
+- [Command Center](/workflows/command-center) — complete human tasks in multi-step guides

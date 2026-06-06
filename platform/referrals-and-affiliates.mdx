@@ -1,0 +1,101 @@
+---
+title: Referrals and affiliates
+description: Share referral codes, earn commissions, and understand workspace vs platform referral programs.
+---
+
+AgentRuntime runs **two related programs**:
+
+1. **Referrals** (`/referrals`) — Self-service for promoters who share codes with friends
+2. **Friend referral credits** — Bonus workspace credits when a new workspace is created with a code at signup
+3. **Affiliates (Settings)** — Maintainer-only ops for platform operators (feature-flagged)
+
+<Note>
+  **Referrals** nav requires `enablePlatformReferrals`. **Settings → Affiliates** requires `enableSettingsAffiliates`. If you do not see these items, the program is off for your deployment — see [Feature availability](/platform/feature-availability).
+</Note>
+
+## Referrals (promoter self-service)
+
+Open **Referrals** in the Console sidebar (`/referrals`).
+
+### Join the program
+
+If you are not registered yet, click **Get my referral code**. This creates your promoter profile once.
+
+### Share your code
+
+After joining you receive:
+
+| Asset | Usage |
+|-------|-------|
+| **Referral code** | Friends enter at **checkout** when paying for AgentRuntime |
+| **Signup link** | Optional `…/auth?referral_code=YOUR_CODE` — stores code for onboarding when supported |
+
+<Warning>
+  Referral codes are for **new workspaces**, not team invites. Friends must sign up and create their **own** workspace — not accept an invite to yours.
+</Warning>
+
+Copy hint shown in the Console: *Friends enter referral code "YOUR_CODE" at checkout when paying for AgentRuntime.*
+
+### Earnings dashboard
+
+The **Referrals** page shows:
+
+- **Pending** and **total earned** (USD minor units / cents until payout)
+- **Confirmed commissions** and **paid out** totals
+- **Recent commissions** table — filter by `pending`, `confirmed`, `paid`, `cancelled`
+
+Cash commissions apply when referred customers complete **qualifying Stripe payments** with your code on the payment intent.
+
+## Friend referral credits (workspace creation)
+
+Separate from cash commissions, a referral code can grant **bonus credits** to both parties when a friend creates a new workspace:
+
+1. Friend opens signup with your code (link or manual entry during onboarding)
+2. After workspace creation, the platform redeems the friend referral
+3. Both referee and referrer receive bonus workspace credits (amounts depend on current program policy)
+
+If redemption fails, workspace creation still succeeds — only the bonus credits are skipped.
+
+## Affiliates (Settings — operators)
+
+**Settings → Affiliates** is for **platform maintainers**, not everyday promoters:
+
+- Review affiliate status, commission rates, and payout policy
+- Set affiliate status (`active`, `suspended`, `revoked`)
+- Create **payout batches** and view batch history
+
+Promoters should use **Referrals** in the sidebar. Platform-wide ledger operations live in sysadmin tooling.
+
+<Note>
+  This tab is labeled maintainer-only in the Console. Tenant admins see it only when `enableSettingsAffiliates` is on.
+</Note>
+
+## Billing integration
+
+| Event | What happens |
+|-------|--------------|
+| Friend creates workspace with code | Credit redemption via friend-referral API |
+| Referred customer pays with code at checkout | Commission row created; appears on **Referrals** dashboard |
+| Payout batch run (operators) | Commissions move to paid per platform policy |
+
+Referral bonuses and commissions are independent — a friend can receive signup credits while your cash commission accrues only on their later payments.
+
+## API (automation)
+
+Affiliate endpoints are primarily for Console and sysadmin clients. Promoters interact through `/referrals`. For custom integrations, contact support for current API access.
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---------|--------------|
+| No **Referrals** in sidebar | `enablePlatformReferrals` off |
+| **Get my referral code** fails | Program not enabled for your account or region |
+| Friend did not get credits | Code not applied at signup, or redeem failed after workspace create |
+| No commissions yet | Referred user has not completed a qualifying payment with your code on the payment intent |
+| **Affiliates** tab missing | `enableSettingsAffiliates` off, or you are not a maintainer |
+
+## Related
+
+- [Billing and credits](/platform/billing-and-credits)
+- [Workspace settings](/platform/settings)
+- [Feature availability](/platform/feature-availability)

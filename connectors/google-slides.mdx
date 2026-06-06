@@ -1,0 +1,90 @@
+---
+title: Google Slides connector
+description: Generate and update presentations from AgentRuntime workflows.
+---
+
+The **google-slides** MCP adapter wraps the [Google Slides API](https://developers.google.com/slides/api/reference/rest) and Drive search. Use it in workflow **mcp_call** steps to create decks, fill template placeholders, add slides with standard layouts, and refresh embedded Sheets charts — ideal for sales proposals, QBR decks, and automated reporting slides.
+
+## Prerequisites
+
+- A Google account with Google Slides and Drive access
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Slides">
+    On your Google connection, enable the **Slides** service so the account exposes Slides and Drive API scopes.
+  </Step>
+  <Step title="Add google-slides MCP instance">
+    Go to **MCP**, click **Add instance** for **google-slides**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `find_presentations` or `get_presentation` on a known deck before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **QBR deck from metrics** — **google-sheets** export → LLM bullet points → `generate_from_template` with `{{Quarter}}` placeholders → `refresh_sheets_charts` for live charts.
+- **Sales proposal pack** — CRM webhook → `generate_from_template` from master deck → **google-drive** `add_permission` for AE → **gmail** send `presentation_url`.
+- **Training slide append** — New module content from CMS → `get_presentation` → `add_slide` with `TITLE_AND_BODY` → `replace_text` for section title.
+- **Brand refresh sweep** — `find_presentations` by folder query → `replace_text` old product name → log updated IDs in **google-sheets**.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `create_presentation` | Create a Google Slides presentation with a title. |
+| `get_presentation` | Get a Google Slides presentation by ID, including title and per-slide plain text. |
+| `add_slide` | Add a slide to a presentation using a predefined Slides layout. |
+| `replace_text` | Replace text across all slides in a presentation. |
+| `find_presentations` | Find Google Slides presentations in Drive by title or raw Drive query. |
+| `generate_from_template` | Generate a presentation from a template by replacing placeholder tokens. |
+| `refresh_sheets_charts` | Refresh embedded Google Sheets charts in a presentation. |
+
+## Example
+
+Generate a client QBR deck from a template after metrics are ready:
+
+```json
+{
+  "id": "build-qbr",
+  "type": "mcp_call",
+  "name": "Generate QBR presentation",
+  "tool_name": "generate_from_template",
+  "tool_args": {
+    "template_presentation_id": "{{input.qbr_template_id}}",
+    "new_title": "QBR — {{input.client_name}} — {{input.quarter}}",
+    "placeholder_format": "curly_braces",
+    "replacements": {
+      "ClientName": "{{input.client_name}}",
+      "Quarter": "{{input.quarter}}",
+      "RevenueSummary": "{{steps.llm-metrics.result.summary}}"
+    },
+    "match_case": false
+  },
+  "depends_on": ["llm-metrics"],
+  "timeout_s": 90
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Slides and Drive scopes may have been revoked |
+| Placeholders not replaced | Match `placeholder_format` to tokens in the template (`curly_braces`, `square_brackets`, etc.) |
+| Charts show stale data | Call `refresh_sheets_charts` after updating source **google-sheets** ranges |
+| `find_presentations` misses files | Set `include_trashed: false` and scope with a raw Drive `query` if needed |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

@@ -1,0 +1,89 @@
+---
+title: Google Search connector
+description: Query your Vertex AI Search app from AgentRuntime workflows for grounded retrieval.
+---
+
+The **google-search** MCP adapter calls [Vertex AI Search](https://cloud.google.com/generative-ai-app-builder/docs/enterprise-search-introduction) (Discovery Engine) via `searchLite`. Use it in workflow **mcp_call** steps to retrieve indexed content from your own data stores and feed ranked results into LLM steps for RAG-style answers. Unlike web search, results come only from content you have indexed in your Vertex AI Search app.
+
+## Prerequisites
+
+- A Google Cloud project with Vertex AI Search (Discovery Engine) configured and an indexed search app
+- A Google Cloud API key authorized for Discovery Engine
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**) or a connection profile with search credentials
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth if your deployment binds search through Workspace. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Search">
+    On your Google connection, enable the **Search** service, or create a connection profile with your Vertex AI Search API key, project ID, and app ID.
+  </Step>
+  <Step title="Add google-search MCP instance">
+    Go to **MCP**, click **Add instance** for **google-search**. Open **Instance config**, wire your connection, and set `ProjectID`, `AppID`, and `APIKey` in the instance config if not inherited from the connection.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with a simple `search` query before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Support knowledge lookup** — Customer question in webhook → `search` against your help-center index → LLM answer with citations from `results`.
+- **Internal doc assistant** — User prompt → `search` with `user_pseudo_id` for personalization → rank and summarize top hits for a chat response.
+- **Compliance check** — Policy change draft → `search` for related procedures → LLM gap analysis → **human_task** for legal review.
+- **Product catalog Q&A** — **google-sheets** SKU sync to search index → `search` by feature or part number → return matching product snippets to the caller.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `search` | Run a query against Vertex AI Search using Discovery Engine searchLite. |
+
+## Example
+
+Retrieve relevant documentation before an LLM summarizes an answer:
+
+```json
+{
+  "id": "search-kb",
+  "type": "mcp_call",
+  "name": "Search knowledge base",
+  "tool_name": "search",
+  "tool_args": {
+    "query": "{{input.user_question}}",
+    "user_pseudo_id": "{{input.session_id}}"
+  },
+  "depends_on": [],
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+Beyond OAuth, the adapter requires Vertex AI Search identifiers:
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | Google Cloud API key authorized for Vertex AI Search |
+| `ProjectID` | Yes | Google Cloud project ID that owns the search app |
+| `AppID` | Yes | Vertex AI Search engine (app) ID used as the collection engine name |
+| `APIBase` | No | Discovery Engine API base URL override |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `403` API key not authorized | Enable Discovery Engine API and restrict the key to the correct project |
+| Empty `results` | Confirm the search app index is built and the query matches indexed content |
+| Wrong tenant or project | Verify `ProjectID` and `AppID` match the engine in Google Cloud Console |
+| Pagination needed | Use `next_page_token` from the response in a follow-up call if your workflow supports paging |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

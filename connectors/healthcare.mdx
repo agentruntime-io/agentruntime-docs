@@ -1,0 +1,98 @@
+---
+title: Healthcare connector
+description: Mock FHIR-style clinical tools for prototyping healthcare agent workflows — not for production PHI.
+---
+
+The **healthcare** MCP adapter provides **mock, demo-only** tools that simulate FHIR-style clinical workflows: patient lookup, diagnosis analysis, medication checks, scheduling, and notifications. Use it to prototype agent orchestration, demo Command Center flows, and test error handling — **not** to process real protected health information (PHI).
+
+<Warning>
+**Preview / demo only** — See [Feature availability](/platform/feature-availability). This adapter returns synthetic patient data and simulated clinical outcomes. It is **not** HIPAA-compliant, **not** connected to real EHR systems, and **must not** be used with production PHI or live clinical decision-making.
+</Warning>
+
+## Prerequisites
+
+- **project_contributor** access in AgentRuntime
+- No external credentials, EHR integration, or HIPAA BAA required — all data is in-memory mock content
+- Clear internal policy that workflows using this adapter stay in dev, demo, or training environments
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Confirm environment">
+    Use this adapter only in non-production projects. Do not bind real patient identifiers or upload PHI into workflow inputs.
+  </Step>
+  <Step title="Add healthcare MCP instance">
+    Go to **MCP**, click **Add instance** for **healthcare**. No connection secrets are required.
+  </Step>
+  <Step title="Explore mock patients">
+    Run **mcp_call** → `patient.lookup` with sample IDs such as `PT-001` to see synthetic records.
+  </Step>
+  <Step title="Walk through a demo flow">
+    Chain `patient.lookup` → `diagnosis.analyze` → `scheduling.find_slot` → `scheduling.book` in Workflow Studio to validate orchestration patterns before integrating a real FHIR backend.
+  </Step>
+</Steps>
+
+See [Integrations quickstart](/integrations/quickstart) for MCP installation patterns.
+
+## What you can build
+
+- **Clinical agent demos** — Chat Autopilot walks through intake → mock diagnosis → appointment booking for sales or training.
+- **Workflow testing** — Use `_fail` and `_latency_ms` inputs to simulate slow EHR responses and retry logic.
+- **Human-in-the-loop prototypes** — **human_task** approval before `medication.prescribe` in a sandbox UI flow.
+- **Integration blueprint** — Replace mock tool calls with real FHIR connectors later while keeping the same workflow graph structure.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `patient.lookup` | Mock patient demographics, allergies, and emergency contact by ID |
+| `patient.history` | Mock chronological clinical history entries |
+| `diagnosis.analyze` | Mock differential diagnosis from symptoms and history |
+| `medication.check` | Mock drug interaction and allergy conflict check |
+| `medication.prescribe` | Mock prescription record creation |
+| `scheduling.find_slot` | Mock available appointment slots by provider and department |
+| `scheduling.book` | Mock appointment booking for a selected slot |
+| `notification.send` | Mock patient or provider notification (email, SMS, push) |
+| `generate_summary` | Mock visit summary from clinical notes |
+
+All tools accept optional `_latency_ms` (simulate delay) and `_fail` (force error) for testing.
+
+## Example
+
+Demo intake and scheduling flow:
+
+```json
+{
+  "id": "healthcare-book",
+  "type": "mcp_call",
+  "name": "Book mock appointment",
+  "tool_name": "scheduling.book",
+  "tool_args": {
+    "slot_id": "{{steps.find-slot.result.slots[0].id}}",
+    "patient_id": "PT-001",
+    "reason": "Follow-up visit"
+  },
+  "depends_on": ["find-slot"],
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+This adapter has no required connection keys. Mock data is served locally by the connector runtime.
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Patient not found | Use demo IDs like `PT-001`; only synthetic records exist |
+| Unexpected diagnosis output | Results are deterministic mock data, not clinical advice |
+| Testing failure paths | Set `_fail: true` on any tool to verify workflow error handling |
+| Moving to production | Replace with a real FHIR/EHR integration; do not enable this adapter for live PHI |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Human tasks](/workflows/human-tasks) — approval in clinical-style flows
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

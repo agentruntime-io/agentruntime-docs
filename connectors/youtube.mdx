@@ -1,0 +1,111 @@
+---
+title: YouTube connector
+description: Search videos, read channels and playlists, manage comments and subscriptions via the YouTube Data API.
+---
+
+The **youtube** MCP adapter connects to the [YouTube Data API v3](https://developers.google.com/youtube/v3). Search and list videos, resolve channel IDs, read RSS feeds without quota, manage comments and subscriptions, and call raw API endpoints — for content monitoring, publishing workflows, and media research.
+
+## Prerequisites
+
+- A Google Cloud project with **YouTube Data API v3** enabled
+- For authenticated tools (comments, subscriptions, ratings): OAuth **access token** with appropriate scopes
+- For public read-only tools (`youtube_list_channel_videos_rss`, `youtube_resolve_channel_id`): no token required
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Enable YouTube Data API">
+    In [Google Cloud Console](https://console.cloud.google.com/), enable YouTube Data API v3 for your project.
+  </Step>
+  <Step title="Obtain credentials">
+    For public RSS and search tools, you may omit `AccessToken`. For write operations and authenticated reads, complete OAuth and store a refreshable access token.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection**. Add `AccessToken` when using authenticated tools. Optionally set `APIBase`, `UserAgent`, and `TimeoutSec`.
+  </Step>
+  <Step title="Add youtube MCP instance">
+    Go to **MCP**, click **Add instance** for **youtube**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Test public access">
+    Run **mcp_call** → `youtube_list_channel_videos_rss` with a channel handle to verify without OAuth.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+<Note>
+  `youtube_list_channel_videos_rss` uses the public RSS feed and does not consume YouTube Data API quota. Prefer it for simple "latest videos" monitoring when OAuth is not configured.
+</Note>
+
+## What you can build
+
+- **Channel digest** — `youtube_list_channel_videos_rss` on competitor channels → LLM weekly summary → email or Notion.
+- **Comment moderation** — `youtube_get_comment_threads` → LLM flags spam → **human_task** → `youtube_reply_comment` or hide via custom API call.
+- **Playlist curation** — `youtube_search` → filter → add items to internal tracking sheet.
+- **Subscription sync** — `youtube_subscriptions_list` → compare to CRM list → `youtube_subscriptions_insert` for new channels.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `youtube_resolve_channel_id` | Resolve channel ID from ID, @handle, or URL (no Data API) |
+| `youtube_list_channel_videos_rss` | Recent videos via public RSS feed (no Data API quota) |
+| `youtube_get_channel` | Channel by ID, username, or `mine=true` |
+| `youtube_get_video` | Single video by ID |
+| `youtube_list_videos` | Multiple videos by ID (up to 50) |
+| `youtube_search` | Search videos, channels, or playlists |
+| `youtube_list_channel_videos` | Channel videos via search.list |
+| `youtube_list_playlists` | Playlists for a channel or authenticated user |
+| `youtube_list_playlist_items` | Entries in a playlist |
+| `youtube_get_comment_threads` | Comment threads on a video or channel |
+| `youtube_insert_comment` | Top-level comment on a video |
+| `youtube_reply_comment` | Reply to an existing comment |
+| `youtube_subscriptions_list` | List subscriptions |
+| `youtube_subscriptions_insert` | Subscribe to a channel |
+| `youtube_subscriptions_delete` | Unsubscribe by subscription ID |
+| `youtube_rate_video` | Like, dislike, or clear rating |
+| `youtube_custom_api_call` | Raw YouTube Data API v3 request |
+
+## Example
+
+Fetch the latest videos from a channel via RSS:
+
+```json
+{
+  "id": "youtube-rss",
+  "type": "mcp_call",
+  "name": "Latest channel videos",
+  "tool_name": "youtube_list_channel_videos_rss",
+  "tool_args": {
+    "channel_identifier": "@GoogleDevelopers",
+    "limit": 5
+  },
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `AccessToken` | No | OAuth access token; required for authenticated tools only |
+| `APIBase` | No | YouTube Data API base URL |
+| `UserAgent` | No | HTTP User-Agent for RSS and fetch helpers |
+| `TimeoutSec` | No | HTTP timeout in seconds |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Quota exceeded | Prefer RSS tool for latest videos; cache results; request quota increase in Google Cloud |
+| `403` on comments | Token needs `youtube.force-ssl` scope; channel must allow comments |
+| Channel not resolved | Try `@handle`, full channel URL, or UC... channel ID |
+| Empty search results | Check `type`, `order`, and query encoding; verify API key or token |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [RSS connector](/connectors/rss) — generic feed parsing
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

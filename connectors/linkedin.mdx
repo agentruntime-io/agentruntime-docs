@@ -1,0 +1,101 @@
+---
+title: LinkedIn connector
+description: Publish posts, manage company updates, and read organization data from AgentRuntime workflows.
+---
+
+The **linkedin** MCP adapter connects to the [LinkedIn Marketing / Community Management APIs](https://learn.microsoft.com/en-us/linkedin/). Use it to draft and publish posts, upload images, and list organizations you administer — often after **human_task** approval in Workflow Studio.
+
+## Prerequisites
+
+- A LinkedIn Developer application with approved products (e.g. **Share on LinkedIn**, **Sign In with LinkedIn**, **Community Management** as required for your use case)
+- OAuth **client ID**, **client secret**, and a **refresh token** (recommended) or short-lived access token for testing
+- Admin access to any **company pages** you post to
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Configure the LinkedIn app">
+    In the [LinkedIn Developer Portal](https://www.linkedin.com/developers/), note your Client ID and Client Secret. Complete OAuth for the member who will post content and store the refresh token securely.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create a connection with `ClientID`, `ClientSecret`, and `RefreshToken` (or `AccessToken` for local testing only).
+  </Step>
+  <Step title="Add linkedin MCP instance">
+    Go to **MCP**, click **Add instance** for **linkedin**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Verify identity">
+    Run **mcp_call** → `linkedin_get_userinfo` and `linkedin_list_organizations` before scheduling posts.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Approved social posts** — LLM drafts copy from a blog RSS item → **human_task** → `linkedin_create_share_update` or `linkedin_create_company_update`.
+- **Campaign recap** — Postgres metrics query → LLM summary → `linkedin_upload_image` for chart → company post with link to report.
+- **Content calendar sync** — Google Sheets row with status "Ready" → post → update sheet status via `google-sheets` adapter.
+- **Post audit** — `linkedin_list_posts` by author URN → archive underperformers with `linkedin_delete_post` after review.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `linkedin_get_userinfo` | Authenticated member profile (OpenID userinfo) |
+| `linkedin_list_organizations` | Organizations the member can administer |
+| `linkedin_create_share_update` | Personal feed post |
+| `linkedin_create_company_update` | Company page post |
+| `linkedin_upload_image` | Upload image; returns asset URN for posts |
+| `linkedin_list_posts` | List posts by author URN |
+| `linkedin_get_post` | Get post by URN |
+| `linkedin_delete_post` | Delete post by URN |
+| `linkedin_custom_api_call` | Raw LinkedIn API request |
+
+## Example
+
+Publish a company update after approval:
+
+```json
+{
+  "id": "linkedin-post",
+  "type": "mcp_call",
+  "name": "Publish company post",
+  "tool_name": "linkedin_create_company_update",
+  "tool_args": {
+    "organization_id": "{{input.org_id}}",
+    "text": "{{steps.human-approve.result.approved_text}}",
+    "link": "https://example.com/blog/new-feature",
+    "link_title": "New feature launch"
+  },
+  "depends_on": ["human-approve"],
+  "timeout_s": 60
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `ClientID` | For OAuth refresh | LinkedIn OAuth client ID |
+| `ClientSecret` | For OAuth refresh | LinkedIn OAuth client secret |
+| `RefreshToken` | Recommended | Long-lived refresh token |
+| `AccessToken` | Testing only | Direct access token (expires quickly) |
+| `LinkedInVersion` | No | LinkedIn-Version header (`YYYYMM`) |
+| `APIBase` | No | API base URL |
+| `TokenURL` | No | OAuth token endpoint |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401` / token expired | Use refresh token flow; avoid long-running workflows with a one-time access token |
+| Cannot post to company page | Caller must admin the organization; confirm with `linkedin_list_organizations` |
+| Image upload fails | Call `linkedin_upload_image` first; pass returned URN as `image_asset_id` |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Human tasks](/workflows/human-tasks) — approval before publishing
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

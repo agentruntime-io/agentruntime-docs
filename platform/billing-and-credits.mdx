@@ -1,0 +1,173 @@
+---
+title: Billing and credits
+description: Plans, trials, credit buckets, usage metering, and PAYG top-ups in AgentRuntime.
+---
+
+AgentRuntime meters usage in **credits**. Workflows, memory indexing, and other billable actions debit your workspace balance. Manage billing from **Settings** (`/settings`) in the [Console](https://console.agentruntime.io):
+
+- **Billing Overview** — subscription status, payment method, top-up entry points
+- **Plans** — plan catalog and checkout
+- **Usage & History** — credit balances, metered usage, payment history
+
+## Plans
+
+Self-serve plan codes (monthly and annual variants):
+
+| Plan | Best for | Trial | Notes |
+|------|----------|-------|-------|
+| **free** | PAYG-only usage | No | Buy credits as needed; up to 3 members |
+| **pro** | Teams getting started | **14 days, 5 credits** | Default plan in onboarding; card optional for trial |
+| **plus** | Higher-volume teams | No | Paid subscription required |
+| **max** | Power users | No | Paid subscription required |
+| **enterprise** | Custom contracts | Sales-provisioned | Contact sales — not self-serve checkout |
+
+Annual plans (`pro_annual`, `plus_annual`, etc.) follow the same tier rules with yearly Stripe billing.
+
+View live plan details and prices in the Console **Plans** tab — catalog syncs from Stripe.
+
+## How credits work
+
+**1 credit = 1,000,000 microcredits.** The Console displays credits; APIs and ledgers often use microcredits internally.
+
+### Credit buckets
+
+Usage draws from buckets in this order:
+
+1. **Trial** — Granted during an active trial (for example, 5 credits on **pro**)
+2. **Included** — Credits bundled with your subscription
+3. **PAYG** — Pay-as-you-go balance from top-ups
+
+PAYG balance **persists** across plan changes, trial expiry, and subscription cancellation.
+
+### When credits are required
+
+Most platform actions require a positive balance. Workflows fail to start when credits are exhausted unless your plan allows overdraft (disabled by default).
+
+Check balance and breakdown at **Settings → Usage & History** or `GET /v1/billing/usage`:
+
+```json
+{
+  "trial_remaining": 2000000,
+  "included_remaining": 0,
+  "payg_remaining": 15000000
+}
+```
+
+(values in microcredits)
+
+## What consumes credits
+
+| Action | Typical cost | Notes |
+|--------|--------------|-------|
+| `workflow.step.execute` | ~5 credits per step | Charged when a workflow run executes steps |
+| `memory_extract_interactive` | ~10 credits per job | Interactive memory extraction |
+| `memory_extract_bulk` | ~2 credits per job | Bulk memory indexing |
+| `memory_index_file_mb` | ~1 credit per MiB | File indexing |
+
+Resolved prices for your tenant are at `GET /v1/billing/action-pricing`. Enterprise tenants may have custom pricing overrides.
+
+<Note>
+  LLM token and per-MCP-call metering are on the roadmap. Today, LLM costs may also flow through your provider API keys directly.
+</Note>
+
+## Trials
+
+New workspaces on **pro** can receive an automatic 14-day trial with 5 credits. Card is optional during trial signup.
+
+**Tenant admins** can also start trials via the API:
+
+```
+POST /v1/billing/trial
+```
+
+Convert trial to paid early:
+
+```
+POST /v1/billing/subscription/convert-trial-now
+```
+
+When a trial ends, unused trial credits are revoked per plan policy. PAYG balance is preserved.
+
+## Subscriptions
+
+**Tenant admins** manage subscriptions:
+
+| Action | Endpoint |
+|--------|----------|
+| Activate paid plan | `POST /v1/billing/subscription` |
+| Change plan | `POST /v1/billing/subscription/change-plan` |
+| Cancel | `POST /v1/billing/subscription/cancel` |
+
+Cancellation defaults to **period end** — you keep access until the billing period closes. Upgrades apply **immediately**; downgrades apply at period end.
+
+## PAYG top-ups
+
+When included or trial credits run low, buy more credits without changing plans.
+
+<Steps>
+  <Step title="Open billing">
+    Go to **Settings → Billing Overview** and select **Top up** (or use the PAYG flow on **Usage & History**).
+  </Step>
+  <Step title="Choose amount">
+    Select a credit package. Payment processes through Stripe.
+  </Step>
+  <Step title="Confirm balance">
+    PAYG credits appear in your usage breakdown immediately after payment succeeds.
+  </Step>
+</Steps>
+
+API alternative for automation:
+
+```
+POST /v1/billing/topups/payg/intent
+```
+
+Body includes `amount_cents`, `microcredits`, `currency`, and an `idempotency_key`.
+
+## Usage history
+
+Review metered events at **Settings → Usage & History** or:
+
+```
+GET /v1/billing/usage-history
+GET /v1/billing/payment-history
+```
+
+**Analytics** (`/analytics`) also shows credits consumed alongside run metrics.
+
+## Discount codes
+
+Tenant admins can apply billing or discount codes:
+
+```
+POST /v1/billing/codes/apply
+POST /v1/billing/discounts/validate
+```
+
+## Roles
+
+| Action | Required role |
+|--------|---------------|
+| View usage and plans | **project_contributor** |
+| View usage dimensions | **project_viewer** |
+| Change plan, top up, apply codes | **tenant_admin** |
+
+## Multi-product catalog (upcoming)
+
+AgentRuntime is extending the billing catalog so plans and Stripe prices can be scoped by **product** (for example, Console vs future product lines). Today, each workspace has a single plan and credit balance.
+
+When multi-product billing ships:
+
+- Plan codes may include a `product_code` dimension in API responses
+- Self-serve checkout in **Settings → Plans** will filter to the active product for your Console deployment
+- Existing workspaces keep their current plan during migration — no action required
+
+Until then, treat **Settings → Plans** and `GET /v1/billing/plans` as the source of truth for your workspace.
+
+## Related resources
+
+- [Pricing](https://agentruntime.io/pricing) — marketing overview (plan names in Console are authoritative)
+- [Analytics](/platform/analytics) — run volume and credits consumed over time
+- [Referrals and affiliates](/platform/referrals-and-affiliates) — promoter codes and commissions
+- [API billing reference](/api/reference#billing-endpoints) — REST endpoints
+- Legal policy: [Billing and Credits Policy](https://agentruntime.io/legal/billing)

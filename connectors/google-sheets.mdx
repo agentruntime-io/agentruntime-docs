@@ -1,0 +1,115 @@
+---
+title: Google Sheets connector
+description: Read, write, and format spreadsheet data from AgentRuntime workflows.
+---
+
+The **google-sheets** MCP adapter wraps the [Google Sheets API](https://developers.google.com/sheets/api/reference/rest) and Drive search APIs. Use it in workflow **mcp_call** steps to sync CRM rows, build operational dashboards, bulk-import CSV data, and keep spreadsheets updated from webhooks, schedules, and LLM outputs. Rows can be addressed by header name or positional values.
+
+## Prerequisites
+
+- A Google account with Google Sheets and Drive access
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Sheets">
+    On your Google connection, enable the **Sheets** service so the account exposes Sheets and Drive API scopes.
+  </Step>
+  <Step title="Add google-sheets MCP instance">
+    Go to **MCP**, click **Add instance** for **google-sheets**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `find_spreadsheets` or `get_many_rows` on a known sheet before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Lead intake log** — Webhook from a form → `find_spreadsheets` → `insert_row` with mapped fields → **gmail** notify sales when status is `hot`.
+- **Ops dashboard refresh** — Postgres query → `insert_multiple_rows` with `input_type: json` → `format_row` to highlight overdue rows.
+- **Monthly report export** — `get_many_rows` from a summary tab → `export_sheet` as CSV → **google-drive** `upload_file` to an archive folder.
+- **Inventory sync** — ERP webhook → `find_rows` by SKU → `update_row` if found else `insert_row` → `clear_sheet` on staging tab after validation.
+
+## Tools
+
+### Read & search
+
+| Tool | Description |
+|------|-------------|
+| `find_row_by_num` | Get a worksheet row by row number. |
+| `find_spreadsheets` | Find spreadsheets in Drive by name. |
+| `export_sheet` | Export a worksheet as CSV or TSV text. |
+| `find_worksheet` | Find worksheets in a spreadsheet by title. |
+| `get_rows` | Get a paginated slice of worksheet rows starting from a row number. |
+| `get_many_rows` | Get all rows from a worksheet, excluding the header row. |
+| `find_rows` | Find worksheet rows where a column matches a value. |
+
+### Write & update
+
+| Tool | Description |
+|------|-------------|
+| `insert_multiple_rows` | Append multiple rows to a worksheet from column_names, JSON, or CSV input. |
+| `update_row` | Update a single worksheet row by row number. |
+| `clear_sheet` | Clear worksheet values, with optional header preservation. |
+| `create_column` | Insert a worksheet column with a header label at a chosen position. |
+| `update_multiple_rows` | Update multiple worksheet rows in one batchUpdate request. |
+| `delete_row` | Delete a worksheet row by row number. |
+| `insert_row` | Append a single row to a worksheet. |
+| `format_row` | Format one or more worksheet rows. |
+
+### Spreadsheets & worksheets
+
+| Tool | Description |
+|------|-------------|
+| `delete_worksheet` | Delete a worksheet from a spreadsheet. |
+| `copy_worksheet` | Copy a worksheet into another spreadsheet. |
+| `create_spreadsheet` | Create a blank Google Sheets spreadsheet, optionally inside a Drive folder. |
+| `create_worksheet` | Create a worksheet tab in an existing spreadsheet, with optional header values. |
+| `rename_worksheet` | Rename a worksheet in a spreadsheet. |
+
+## Example
+
+Append a new lead row after a webhook submission:
+
+```json
+{
+  "id": "log-lead",
+  "type": "mcp_call",
+  "name": "Insert lead row",
+  "tool_name": "insert_row",
+  "tool_args": {
+    "spreadsheet_id": "{{input.crm_spreadsheet_id}}",
+    "sheet_id": 0,
+    "header_row": 1,
+    "values_by_header": {
+      "Name": "{{input.name}}",
+      "Email": "{{input.email}}",
+      "Source": "{{input.utm_source}}",
+      "Status": "new"
+    }
+  },
+  "depends_on": [],
+  "timeout_s": 30
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Sheets and Drive scopes may have been revoked |
+| `find_rows` returns no matches | Check `column_name` matches the header row exactly; try `exact_match: false` |
+| Wrong data shape in output | Set `use_header_names: true` and confirm `header_row` points to your labels |
+| `sheet_id` confusion | Use `find_worksheet` to resolve the numeric tab ID — it differs from the tab title |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

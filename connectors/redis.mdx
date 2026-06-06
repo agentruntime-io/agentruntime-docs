@@ -1,0 +1,106 @@
+---
+title: Redis connector
+description: Read, write, and run Redis commands from AgentRuntime workflow steps.
+---
+
+The **redis** MCP adapter connects to Redis with an address (`host:port`), optional ACL username/password, and a logical database index. It provides key-value helpers (`GET`, `SET`, `INCR`, TTL management) plus a generic `redis_run_command` escape hatch for any Redis command. Use it for caching, rate limiting, session state, distributed counters, idempotency guards, and lightweight coordination alongside [Postgres](/connectors/postgres) or [MySQL](/connectors/mysql) backends.
+
+## Prerequisites
+
+- A Redis server (standalone, Sentinel, or managed — ElastiCache, Memorystore, etc.) reachable from AgentRuntime
+- Connection address as `host:port` and optional ACL username/password
+- Logical database index if not using the default (`0`)
+- TLS requirements understood if your provider requires encrypted connections (configure at the network/proxy layer)
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create a connection with your Redis settings:
+
+    - `Addr` — server address as `host:port` (e.g. `redis.example.com:6379`)
+    - `Password` — Redis password or ACL secret (omit for unauthenticated Redis)
+    - `Username` — ACL username when required (omit for password-only auth)
+    - `DB` — logical database index (default `0`)
+  </Step>
+  <Step title="Add redis MCP instance">
+    Go to **MCP**, click **Add instance** for **redis**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Test connectivity">
+    Add a workflow with **mcp_call** → `redis_run_command` with `command: "PING"`. Run it to confirm the server responds before production use.
+  </Step>
+  <Step title="Verify key operations (optional)">
+    Run **mcp_call** → `redis_set` with a test key and short TTL, then `redis_get` to confirm read/write access on the selected `DB` index.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Rate-limited API calls** — `redis_incr` on a per-tenant key → branch workflow when count exceeds threshold.
+- **Idempotency guard** — `redis_exists` on a webhook event ID → skip duplicate processing with `redis_set` + TTL.
+- **Cache warming** — Scheduled fetch from [Postgres](/connectors/postgres) → `redis_set` with `ttl_seconds` for fast Autopilot lookups.
+- **Distributed counter** — `redis_incr` / `redis_decr` for usage metering → sync totals to billing on interval.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `redis_run_command` | Run any Redis command with arguments |
+| `redis_ttl` | Get the remaining TTL for a Redis key in seconds |
+| `redis_decr` | Decrement an integer value at a Redis key by 1 |
+| `redis_get` | Get the string value stored at a Redis key |
+| `redis_set` | Store a string value at a Redis key, with an optional TTL |
+| `redis_del` | Delete one or more Redis keys |
+| `redis_exists` | Check whether a Redis key exists |
+| `redis_expire` | Set a Redis key TTL in seconds |
+| `redis_incr` | Increment an integer value at a Redis key by 1 |
+
+## Example
+
+Cache an API response for one hour:
+
+```json
+{
+  "id": "cache-result",
+  "type": "mcp_call",
+  "name": "Cache API response",
+  "tool_name": "redis_set",
+  "tool_args": {
+    "key": "cache:weather:{{input.city}}",
+    "value": "{{steps.fetch-weather.result.body}}",
+    "ttl_seconds": 3600
+  },
+  "depends_on": ["fetch-weather"],
+  "timeout_s": 10
+}
+```
+
+## Configuration
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `redis_addr` | No | `127.0.0.1:6379` | Redis server address as `host:port` |
+| `redis_username` | No | — | ACL username when Redis AUTH requires it |
+| `redis_password` | No | — | Redis password or ACL secret |
+| `redis_db` | No | `0` | Logical database index (0–15 on default Redis) |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Connection refused | Verify `Addr`, TLS requirements, and firewall rules |
+| `NOAUTH` / `WRONGPASS` | Set `Password` and `Username` to match ACL or legacy AUTH config |
+| Key not found on `redis_get` | Check `found` in the response; keys may have expired (use `redis_ttl`) |
+| `redis_incr` on non-integer | Ensure the key holds an integer string or delete and recreate it |
+| Wrong data returned | Confirm `DB` index matches the namespace your app uses |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Postgres connector](/connectors/postgres) — durable relational storage alongside Redis cache
+- [MySQL connector](/connectors/mysql) — SQL backend for data that outlives cache TTLs
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

@@ -1,0 +1,108 @@
+---
+title: Wrike connector
+description: Manage Wrike folders, projects, tasks, attachments, and comments from AgentRuntime workflows.
+---
+
+The **wrike** MCP adapter connects to the [Wrike API v4](https://developers.wrike.com/). Create projects and tasks, search folders, upload attachments, post comments, and call raw API endpoints — suitable for enterprise work management automation and cross-tool sync.
+
+## Prerequisites
+
+- A Wrike account with access to the target spaces and folders
+- A Wrike **OAuth 2.0 access token** or **permanent API token** (Bearer)
+- Folder and task IDs from Wrike URLs or discovery tools
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Obtain a Wrike access token">
+    Create a Wrike OAuth app or permanent token with scopes for folders, tasks, and comments. Copy the Bearer token.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create a connection with `AccessToken`. Set `APIBase` if you use a non-default host (must include `/api/v4`).
+  </Step>
+  <Step title="Add wrike MCP instance">
+    Go to **MCP**, click **Add instance** for **wrike**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Validate and discover">
+    Run **mcp_call** → `wrike_list_contacts` and `wrike_list_spaces` to confirm access before creating tasks.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Intake → project** — Form or CRM trigger → `wrike_create_project` with owners and dates → `wrike_create_task` for kickoff items.
+- **Document handoff** — Generate report → base64 encode → `wrike_upload_attachment` on the client folder.
+- **Status automation** — External event → `wrike_update_task` to Completed with custom fields via `custom_fields_json`.
+- **Folder navigation** — `wrike_list_spaces` → `wrike_list_folder_subfolders` → agent picks target `folder_id`.
+- **Advanced integrations** — `wrike_custom_api_call` for timelogs, approvals, or workflows not in first-class tools.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `wrike_list_spaces` | List Wrike spaces |
+| `wrike_list_contacts` | List contacts (useful for validation and assignee IDs) |
+| `wrike_get_folder` | Folder or project metadata by ID |
+| `wrike_find_folder` | Get folder by ID or search by title and filters |
+| `wrike_list_folder_subfolders` | Direct child folders under a parent |
+| `wrike_create_folder` | Create a folder, optionally as a project |
+| `wrike_create_project` | Create a project with schedule and sharing |
+| `wrike_create_task` | Create a task with status, importance, dates, assignees, custom fields |
+| `wrike_get_task` | Get task by ID |
+| `wrike_find_task` | Get or search tasks with filters |
+| `wrike_search_tasks` | Search tasks by title substring |
+| `wrike_list_folder_tasks` | List tasks in a folder (optional descendants) |
+| `wrike_update_task` | Update task fields or raw patch JSON |
+| `wrike_delete_task` | Permanently delete a task |
+| `wrike_add_comment` | Comment on a task or folder |
+| `wrike_upload_attachment` | Upload base64 file to a task or folder |
+| `wrike_custom_api_call` | Raw Wrike API v4 request |
+
+## Example
+
+Create a task when a workflow completes:
+
+```json
+{
+  "id": "wrike-task",
+  "type": "mcp_call",
+  "name": "Create Wrike task",
+  "tool_name": "wrike_create_task",
+  "tool_args": {
+    "folder_id": "{{input.folder_id}}",
+    "title": "Review run {{input.run_id}}",
+    "description": "{{steps.summary.result.text}}",
+    "importance": "High",
+    "due_date": "{{input.due_date}}"
+  },
+  "depends_on": ["summary"],
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `AccessToken` | Yes | OAuth access token or permanent API token |
+| `APIBase` | No | Wrike API base URL including `/api/v4` |
+| `HTTPTimeout` | No | HTTP client timeout in seconds |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401 Unauthorized` | Refresh OAuth token or verify permanent token is active |
+| Custom field errors | Use `custom_fields_json` with correct `field_id` values from Wrike admin |
+| Empty search results | Scope `wrike_find_task` with `folder_id` or narrower title filter |
+| Attachment too large | Check Wrike file size limits; compress before base64 encoding |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [ClickUp connector](/connectors/clickup) — alternative task management
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

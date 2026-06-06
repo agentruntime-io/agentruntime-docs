@@ -1,0 +1,166 @@
+---
+title: Troubleshooting
+description: Fix failed runs, MCP binding errors, credit exhaustion, OAuth reconnects, and API auth issues.
+---
+
+This guide covers the most common operator issues in AgentRuntime. Start from [Command Center](/workflows/command-center) for run-level triage, then use the sections below by symptom.
+
+## Failed runs
+
+### Find the error
+
+1. Open **Command Center → Failed recently** (last 24 hours)
+2. Click **Open run** to view the event log in Workflow Studio
+3. Find the first step with `failed` status and read the error message
+
+### Failure codes
+
+| Code | Meaning | What to do |
+|------|---------|------------|
+| `MCP_TOOL_FAILED` | MCP tool returned an error | Check tool args, connection binding, external API status |
+| `LLM_REQUEST_FAILED` | LLM call failed | Verify provider key in **Providers**; confirm model ID |
+| `INSUFFICIENT_CREDITS` | Out of credits | Top up PAYG or upgrade plan — see [Billing](/platform/billing-and-credits) |
+| `RUN_STALLED_OR_TIMED_OUT` | No progress within timeout | Increase `timeout_s`; check for hung external API |
+| `DRAIN_TIMEOUT` | Graceful stop took too long | Use immediate stop; investigate slow in-flight step |
+| `RUN_STOPPED` | Operator stopped the run | Expected — start a new run if needed |
+| `HUMAN_TASK_FAILED` | Human task step error | Check task payload; re-run with fixed graph |
+| `UPSTREAM_ERROR` | Internal service unavailable | Retry later; contact support if persistent |
+| `DEPENDENCY_UNAVAILABLE` | Could not reach workflow service | Check platform status; retry |
+
+### Retry after fixing
+
+Failed runs are terminal. After fixing the root cause:
+
+1. Publish a new workflow version if the graph changed
+2. Start a **new run** — do not expect the old run to resume
+
+For transient API errors, add `retry_count` on flaky steps. See [Workflow patterns](/workflows/patterns).
+
+## Run appears stuck
+
+| Symptom | Likely cause | Action |
+|---------|--------------|--------|
+| Status `paused` | Operator paused or awaiting resume | Click **Resume** in Command Center |
+| Pending approval | `human_task` waiting | Approve or reject in Command Center |
+| Status `draining` | Graceful stop in progress | Wait, or escalate to immediate stop |
+| Step `running` for a long time | Slow MCP/LLM call | Check external API; increase timeout; stop if needed |
+| Status `queued` / `starting` | Startup delay | Wait 30s; check credits and validation errors |
+
+A run waiting on human approval is **working as designed**, not stuck.
+
+## MCP binding errors
+
+Symptoms: `MCP_TOOL_FAILED` on the first tool step, validation errors mentioning bindings, or "instance not resolved" in dry-run.
+
+<Steps>
+  <Step title="Validate the instance">
+    Go to **MCP**, open **Instance config** for the instance, confirm the connection is wired and the profile is **active**. Optionally run **MCP validation** at `/mcp/{server_id}/validate`.
+  </Step>
+  <Step title="Check the connection">
+    Confirm the bound connection exists and credentials are current. OAuth connections showing **Reconnect** need re-authorization.
+  </Step>
+  <Step title="Check workflow overrides">
+    If the workflow uses connection overrides, confirm the override points to a valid connection for this environment.
+  </Step>
+  <Step title="Dry-run validate">
+    In Workflow Studio, click **Validate** to surface binding errors before running.
+  </Step>
+</Steps>
+
+### Per-connector guides
+
+- [Google Workspace](/integrations/google-workspace) — OAuth reconnect and scopes
+- [WhatsApp](/connectors/whatsapp) — token and WABA IDs
+- [Gmail](/connectors/gmail) — send permissions
+- [Postgres](/connectors/postgres) — DSN and network access
+
+## Credit exhaustion
+
+Symptoms: `INSUFFICIENT_CREDITS` failure code, runs fail to start, billing warnings in Console.
+
+<Steps>
+  <Step title="Check balance">
+    Go to **Settings → Billing → Usage** or `GET /v1/billing/usage`.
+  </Step>
+  <Step title="Identify spend">
+    Review **Analytics** credits consumed and usage history for heavy workflows.
+  </Step>
+  <Step title="Add credits">
+    **PAYG top-up** from Billing, or upgrade plan if included credits are insufficient.
+  </Step>
+</Steps>
+
+Credit spend order: **trial → included → PAYG**. See [Billing and credits](/platform/billing-and-credits).
+
+## OAuth reconnect
+
+Symptoms: **Reconnect** banner on a connection, `401`/`403` from Google or LinkedIn MCP tools, token refresh failures.
+
+<Steps>
+  <Step title="Reconnect">
+    On **Connections**, open the **Google account** card (or the relevant provider) and **Reconnect** / re-authorize.
+  </Step>
+  <Step title="Re-validate MCP instances">
+    Validate all instances bound to that connection.
+  </Step>
+  <Step title="Check admin policy">
+    For Google Workspace, confirm your admin allows third-party app access and required scopes.
+  </Step>
+</Steps>
+
+Rotating credentials does not retroactively fix failed runs — start new runs after reconnect.
+
+## API 401 and 403 errors
+
+### 401 Unauthorized
+
+| Cause | Fix |
+|-------|-----|
+| Missing `Authorization` header | Add `Bearer pat_...` or session cookie |
+| Expired session | Re-login to Console; refresh token |
+| Revoked PAT | Create a new PAT |
+
+### 403 Forbidden
+
+| Cause | Fix |
+|-------|-----|
+| Insufficient project role | Need **project_contributor** for writes; **project_viewer** for reads only |
+| Missing PAT scope | Add `workflow:run` or `mcp:execute` to the token |
+| Wrong tenant/project context | Send `X-Tenant-Id` and `X-Project-Id` headers |
+| Tenant admin action as contributor | Billing mutations need **tenant_admin** |
+
+See [API authentication](/api/authentication) and [Roles and permissions](/platform/roles-permissions).
+
+## Validation errors (422)
+
+Dry-run validation (`POST /v1/workflows/{id}/validate`) catches issues before execution:
+
+| Error | Fix |
+|-------|-----|
+| Dependency cycle | Remove circular `depends_on` |
+| Missing `tool_name` / `server_url` | Complete MCP step configuration |
+| Lua syntax error | Fix `script` in `lua_script` steps |
+| Unknown MCP instance | Install instance or fix instance reference |
+| Invalid template | Check `{{steps.id.result}}` references exist |
+
+See [Feature availability](/platform/feature-availability) for preview vs GA features.
+
+## Memory errors (preview)
+
+| Error | Fix |
+|-------|-----|
+| `memory kernel not configured` | Memory not enabled in this environment |
+| `queue unavailable` | Extract infrastructure down — contact support |
+| Empty search results | Confirm index job completed — see [Memory](/ai/memory) |
+
+## Still blocked?
+
+1. Gather: workflow ID, run ID, failure code, step ID, timestamp
+2. Check [Command Center](/workflows/command-center) and the run event log
+3. Email [support@agentruntime.io](mailto:support@agentruntime.io) with the details
+
+## Related docs
+
+- [Command Center](/workflows/command-center) — daily operator inbox
+- [Workflow patterns](/workflows/patterns) — retries and error handling
+- [Connections](/integrations/connections) — credential management

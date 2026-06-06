@@ -1,0 +1,131 @@
+---
+title: Command Center
+description: Review approvals, monitor active runs, and recover from failures in the AgentRuntime run inbox.
+---
+
+**Command Center** is your workspace-wide run inbox. Open it from the Console sidebar at **Command Center** (`/command-center`).
+
+Use it when you need to approve human tasks, pause or stop runs, or triage recent failures — without opening every workflow in Workflow Studio.
+
+## What you see
+
+Command Center organizes runs into four sections:
+
+| Section | What it shows |
+|---------|---------------|
+| **Awaiting approval** | Runs paused on `human_task` steps with pending approve/reject actions |
+| **Stopping gracefully** | Runs in `draining` status — graceful stop in progress |
+| **Running now** | Live, queued, paused, and starting runs (excluding draining) |
+| **Failed recently** | Runs that failed or stopped in the last 24 hours |
+
+The page header shows badges when action is needed:
+
+- **N pending** — human tasks waiting for approval
+- **N draining** — graceful stops still winding down
+
+Data refreshes automatically every 3 seconds when there are pending approvals or active runs, otherwise every 30 seconds.
+
+## Awaiting approval
+
+When a workflow hits a `human_task` step, the run pauses and tasks appear here grouped by workflow and run.
+
+For each pending task you see:
+
+- Workflow name and run ID (first 8 characters)
+- Task type (for example, `approval`)
+- Step ID that triggered the pause
+
+### Approve or reject
+
+<Steps>
+  <Step title="Review the task">
+    Read the task type and step ID. For full payload context (draft email, proposed data changes), click **Review in studio** to open Workflow Studio on the run context tab.
+  </Step>
+  <Step title="Decide">
+    Click **Approve** to continue the run with an approval result, or **Reject** to stop the branch with a rejection result.
+  </Step>
+  <Step title="Confirm the run resumes">
+    After approval, the task disappears from Command Center and the run continues. Check **Running now** or open the run in Studio to watch downstream steps.
+  </Step>
+</Steps>
+
+<Note>
+  Approve/reject here is the same action as completing a task in Workflow Studio or via `POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete`. See [Human tasks](/workflows/human-tasks).
+</Note>
+
+## Running now
+
+Active runs appear with status badges:
+
+| Status | Meaning |
+|--------|---------|
+| **running** | Steps are executing |
+| **paused** | Operator paused the run — no new steps schedule until resumed |
+| **pending** / **queued** / **starting** | Run is waiting to start or between states |
+| **draining** | Graceful stop — shown in the separate draining section |
+
+### Run controls
+
+From **Running now** (and **Stopping gracefully**), you can:
+
+| Action | Effect |
+|--------|--------|
+| **Stop (immediate)** | Halt now — cancels in-flight MCP calls; default stop mode |
+| **Stop (graceful)** | Enter `draining` — let active steps finish, block new scheduling |
+| **Pause** | Pause scheduling; in-flight steps may complete |
+| **Resume** | Continue a paused run |
+
+Click **Open run** to jump to Workflow Studio's event log for that run.
+
+<Warning>
+  Immediate stop can leave downstream steps unexecuted. Graceful stop waits for in-flight work but never starts steps that were only pending. Both are terminal — you cannot resume a stopped run.
+</Warning>
+
+## Stopping gracefully
+
+When you choose graceful stop, the run moves to **Stopping gracefully** until all in-flight steps complete. The badge reads **Draining**.
+
+If a drain takes too long, escalate to **immediate stop** from the same row. A drain timeout surfaces as `DRAIN_TIMEOUT` in the failure log.
+
+## Failed recently
+
+Runs that **failed** or were **stopped** in the last 24 hours appear here. Open the run in Workflow Studio to read step-level error messages and `failure_code` values.
+
+Common failure codes:
+
+| Code | Meaning |
+|------|---------|
+| `MCP_TOOL_FAILED` | MCP tool returned an error |
+| `LLM_REQUEST_FAILED` | LLM call failed (key, model, or provider error) |
+| `INSUFFICIENT_CREDITS` | Workspace out of credits |
+| `RUN_STALLED_OR_TIMED_OUT` | No progress within the timeout window |
+| `RUN_STOPPED` | Operator stopped the run |
+
+See [Troubleshooting](/platform/troubleshooting) for recovery steps.
+
+## When a run looks stuck
+
+Work through this checklist:
+
+1. **Check status in Command Center** — Is it `paused`, `draining`, or waiting on approval? Complete the human task or resume if paused.
+2. **Open the run in Studio** — Read the event log for the last step started. A step stuck in `running` may be waiting on a slow MCP call or LLM response.
+3. **Try pause then stop** — Pause prevents new steps. If still stuck, use immediate stop.
+4. **Check connections** — MCP binding failures often show as `MCP_TOOL_FAILED` on the first tool step. See [Troubleshooting](/platform/troubleshooting).
+5. **Check credits** — `INSUFFICIENT_CREDITS` blocks new runs and can fail in-flight billing gates.
+
+Runs waiting on human approval are **not stuck** — they are designed to pause until you approve or reject.
+
+## API equivalents
+
+| Console action | API |
+|----------------|-----|
+| List pending tasks | `GET /v1/tasks/pending` |
+| Complete task | `POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` with `{ "approved": true\|false }` |
+| List tenant runs | `GET /v1/runs` |
+| Stop / pause / resume | `POST /v1/workflows/{id}/command` with `stop`, `pause`, or `resume` |
+
+## Related docs
+
+- [Runs and observability](/workflows/runs-and-command-center) — run lifecycle and analytics
+- [Human tasks](/workflows/human-tasks) — authoring approval gates
+- [Workflow patterns](/workflows/patterns) — approve-then-send and error handling

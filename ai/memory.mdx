@@ -1,0 +1,181 @@
+---
+title: Memory
+description: Long-term knowledge — search, indexing, extraction, and workflow context in AgentRuntime.
+---
+
+<Note>
+  **Preview** — See [Feature availability](/platform/feature-availability). Memory APIs and workflow hooks are implemented. The dedicated Memory nav in the Console is **off in production** (`enableMemory` false). Use the [Memory API](/api/reference#memory-preview), Platform MCP, and Autopilot memory tools in enabled environments.
+</Note>
+
+**Memory** is AgentRuntime's long-term knowledge layer. It extracts facts from conversations, files, and workflow step outputs, then makes them searchable for agents and workflows.
+
+Chat remembers the current thread. Memory remembers what matters across sessions.
+
+## What memory stores
+
+| Source | Episode type | How it gets in |
+|--------|--------------|----------------|
+| Chat conversations | `chat_conversation` | Index conversation API or auto-index on save |
+| Work files | `work_file` | Index file API |
+| Workflow step output | `run_step` | Runtime memory hooks on step completion |
+| Manual / scripts | `external_event` | Direct extract API |
+
+Extracted knowledge is scoped by **tenant** and **project**.
+
+## When to use memory
+
+| Use case | Approach |
+|----------|----------|
+| Agent recalls past decisions | Search memory before LLM steps (prepare-step or explicit search) |
+| Onboard context from chat history | Index key conversations after milestones |
+| Document Q&A across uploads | Index files from work-service, search at query time |
+| Workflow learns from prior runs | `run_step` episodes capture step outputs automatically |
+
+Memory complements — does not replace — workflow state. Step results in `{{steps.*}}` templates are run-scoped. Memory persists across runs.
+
+## Core operations
+
+### Search
+
+Semantic search over confirmed long-term memory:
+
+```
+POST /v1/memory/search
+```
+
+```json
+{
+  "query": "What did we decide about Q2 pricing?",
+  "limit": 10,
+  "project_id": "your-project-id"
+}
+```
+
+Also available as Platform MCP tool `memory_search`. Requires **project_contributor**.
+
+### Index a conversation
+
+Pull a chat transcript and queue extraction:
+
+```
+POST /v1/memory/index-conversation
+```
+
+```json
+{
+  "conversation_id": "conv-uuid",
+  "project_id": "your-project-id"
+}
+```
+
+Returns a job ID. Poll `GET /v1/memory/extract/{jobId}` for status.
+
+### Index a file
+
+Index a work-service file for extraction:
+
+```
+POST /v1/memory/index-file
+```
+
+```json
+{
+  "file_id": "file-uuid",
+  "project_id": "your-project-id"
+}
+```
+
+### Batch extraction
+
+For large backfills, use batch mode:
+
+```
+POST /v1/memory/extract/batch
+GET /v1/memory/extract/batch/{batchId}
+```
+
+Bulk jobs run on a separate queue and may take longer than interactive indexing.
+
+### Get an episode
+
+Retrieve a stored episode bundle:
+
+```
+GET /v1/memory/episodes/{episodeId}
+```
+
+Add `?detail=false` to omit item payloads.
+
+## Agent memory tools
+
+Agents and Autopilot can call memory tools via:
+
+```
+POST /v1/memory/tools/call
+```
+
+| Tool | Purpose |
+|------|---------|
+| `memory_search` | Semantic search |
+| `memory_get_episode` | Fetch episode by ID |
+| `memory_get_continuation` | Latest open episode for a conversation |
+| `memory_propose_items` | Propose candidate memory items |
+| `memory_confirm_item` | Promote item to confirmed long-term memory |
+
+Platform MCP exposes the same tools when the **memory** group is enabled.
+
+## Workflow integration
+
+The workflow runtime can call **prepare-step** memory hooks before LLM steps, injecting retrieved context into the prompt. If memory is unavailable, the run continues without LTM context (logged as a warning, not a hard failure).
+
+Pattern:
+
+1. Index relevant conversations/files into memory
+2. LLM workflow steps benefit from prepare-step context automatically when configured
+3. Optionally add an explicit `memory_search` via Platform MCP or a future builtin tool step
+
+## Billing
+
+Memory actions consume credits:
+
+| Action | Typical cost |
+|--------|--------------|
+| `memory_extract_interactive` | ~10 credits per job |
+| `memory_extract_bulk` | ~2 credits per job |
+| `memory_index_file_mb` | ~1 credit per MiB |
+
+See [Billing and credits](/platform/billing-and-credits).
+
+## Auto-indexing (when enabled)
+
+BFF can auto-index chat when memory is saved, controlled by deployment config:
+
+- `ChatMemoryAutoIndexMode` — `off`, `episode_narrow`, or `full_ltm`
+- `ChatEpisodeOnTurn` — episode append behavior per turn
+
+These are operator settings, not Console toggles today.
+
+## Limitations
+
+- No dedicated Memory browser in production Console yet
+- Search quality depends on indexed content — empty memory returns empty results
+- Extraction is async — poll job status before assuming facts are available
+- Memory is tenant/project isolated — no cross-tenant search
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `503 memory kernel not configured` | Memory service not deployed in this environment |
+| `queue unavailable` | Extract worker or Redis queue down — contact support |
+| `work file not found` | Verify `file_id` exists in work-service |
+| Search returns nothing | Confirm indexing job completed (`GET /v1/memory/extract/{jobId}`) |
+| High credit usage | Prefer bulk extraction for large backfills; set indexing scope narrowly |
+
+See [Troubleshooting](/platform/troubleshooting).
+
+## Related docs
+
+- [Autopilot and chat](/ai/autopilot-and-chat) — chat threads that feed memory
+- [Platform MCP](/api/platform-mcp) — `memory_search` and related tools
+- [Workflow patterns](/workflows/patterns) — memory-enriched LLM steps

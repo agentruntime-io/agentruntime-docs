@@ -1,0 +1,54 @@
+---
+title: User management
+description: Invite members, assign roles, and manage access across your AgentRuntime workspace.
+---
+
+Workspace admins manage the member lifecycle from **Settings → Members** in the [Console](https://console.agentruntime.io): invite new users, adjust roles, and deactivate accounts.
+
+## Invite by email
+
+<Steps>
+  <Step title="Open the members page">
+    Go to **Settings → Members** and click **Invite**.
+  </Step>
+  <Step title="Enter email addresses">
+    Add one or more email addresses. Each invitee receives a link to join your workspace.
+  </Step>
+  <Step title="Assign a role">
+    Choose a tenant-level role. Most builders need access to at least one project as a **project contributor**.
+  </Step>
+  <Step title="Add to projects">
+    After the member accepts, add them to relevant projects with the appropriate project role — **project_viewer**, **project_contributor**, or **project_admin**.
+  </Step>
+</Steps>
+
+<Info>
+  Project roles control day-to-day workflow and integration access. A member can be a **project viewer** in a production project and a **project contributor** in a sandbox project.
+</Info>
+
+## Role guidelines
+
+| If they need to… | Assign |
+|------------------|--------|
+| View runs and analytics only | **project_viewer** |
+| Build workflows, connect tools, run agents | **project_contributor** |
+| Manage project members | **project_admin** |
+| Manage billing, workspace settings, all projects | **tenant_admin** |
+
+## Deactivating accounts
+
+Deactivating a member revokes their access immediately without deleting content they created. Workflows, runs, and connections they set up remain available to other members.
+
+To deactivate:
+
+1. Find the member in **Settings → Members**
+2. Open their profile and select **Deactivate**
+3. Confirm the action
+
+Reactivate at any time to restore their previous memberships.
+
+## Invites and onboarding
+
+New members complete email verification on first sign-in. If your workspace uses domain verification, only addresses from approved domains can join.
+
+After onboarding, direct new builders to the [Quickstart](/platform/quickstart) and [Workflow Studio](/workflows/studio) guides.

@@ -1,0 +1,98 @@
+---
+title: Shopify connector
+description: Manage products, orders, customers, and inventory in Shopify from AgentRuntime workflows.
+---
+
+The **shopify** MCP adapter connects to your store's [Admin REST API](https://shopify.dev/docs/api/admin-rest). Automate catalog updates, order lookups, customer sync, and inventory adjustments when agents or scheduled workflows run.
+
+## Prerequisites
+
+- A Shopify store (development or production)
+- A **custom app** or private app with an **Admin API access token** (`shpat_...`)
+- API scopes matching the tools you use (products, orders, customers, inventory)
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create an Admin API token">
+    In Shopify Admin → **Settings → Apps and sales channels → Develop apps**, create an app and install it on your store. Copy the **Admin API access token**.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections**, click **New custom connection**, and store your shop domain (e.g. `your-store.myshopify.com`) and access token. See [Authentication](/integrations/authentication).
+  </Step>
+  <Step title="Add shopify MCP instance">
+    Go to **MCP**, click **Add instance** for **shopify**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Smoke test">
+    Run **mcp_call** → `get_shopify_shop` to confirm the token and shop name.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Low-stock alerts** — `list_shopify_inventory_levels` → filter below threshold → Resend or Slack notify ops → optional `adjust_shopify_inventory` after **human_task** approval.
+- **Order support bot** — Chat or webhook provides order ID → `get_shopify_order` + `list_shopify_fulfillments` → LLM drafts reply → Gmail `send_email`.
+- **Product feed sync** — `list_shopify_products` → transform in Lua → `update_shopify_product` or append rows to Google Sheets.
+- **New customer welcome** — Webhook on order paid → `get_shopify_customer` → ActiveCampaign `activecampaign_create_contact` + `send_email`.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_shopify_shop` | Store metadata |
+| `list_shopify_products` | List products |
+| `get_shopify_product` | Get one product |
+| `create_shopify_product` | Create a product |
+| `update_shopify_product` | Update a product |
+| `delete_shopify_product` | Delete a product |
+| `list_shopify_orders` | List orders |
+| `get_shopify_order` | Get one order |
+| `list_shopify_customers` | List customers |
+| `get_shopify_customer` | Get one customer |
+| `create_shopify_customer` | Create a customer |
+| `list_shopify_inventory_levels` | Inventory levels by location |
+| `adjust_shopify_inventory` | Adjust inventory quantity |
+| `list_shopify_fulfillments` | Fulfillments for an order |
+| `shopify_admin_rest` | Raw Admin REST call for endpoints not wrapped as tools |
+
+## Example
+
+Fetch an order for a support workflow:
+
+```json
+{
+  "id": "get-order",
+  "type": "mcp_call",
+  "name": "Lookup Shopify order",
+  "tool_name": "get_shopify_order",
+  "tool_args": {
+    "order_id": "{{input.order_id}}"
+  },
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `shopify_shop` | Yes | Shop hostname (e.g. `mystore.myshopify.com`) |
+| `shopify_admin_access_token` | Yes | Admin API access token |
+| `shopify_api_version` | No | API version (default `2026-04`) |
+| `shopify_request_timeout_seconds` | No | HTTP timeout (default `30`) |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401 Unauthorized` | Regenerate token; confirm app is installed on the store |
+| `403` on write tools | Grant write scopes on the custom app |
+| Wrong shop | `shopify_shop` must match the store that issued the token |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Inbound webhooks](/integrations/inbound-webhooks) — react to Shopify order events
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

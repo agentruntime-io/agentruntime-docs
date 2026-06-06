@@ -1,0 +1,93 @@
+---
+title: OpenAI Images connector
+description: Generate, edit, and vary images with OpenAI DALL-E and gpt-image models from AgentRuntime workflows.
+---
+
+The **openaiimage** MCP adapter connects to the [OpenAI Images API](https://platform.openai.com/docs/guides/images). Generate images from text prompts, edit existing images with instructions, and create variations — returning base64-encoded assets for downstream storage, email, or social publishing.
+
+## Prerequisites
+
+- An OpenAI account with API access and billing enabled
+- An OpenAI **API key** with Images API permissions
+- For edit/variation: source images as base64 PNG (DALL-E 2) or supported formats for gpt-image-1
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Get an OpenAI API key">
+    Create a key at [platform.openai.com](https://platform.openai.com/api-keys). Ensure your organization can use image models.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`. Optionally set `DefaultModel` (e.g. `gpt-image-1` or `dall-e-3`) and `APIBase`.
+  </Step>
+  <Step title="Add openaiimage MCP instance">
+    Go to **MCP**, click **Add instance** for **openaiimage**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Generate a test image">
+    Run **mcp_call** → `openai_text_to_image` with a short prompt to confirm billing and model access.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Marketing assets** — LLM writes creative brief → `openai_text_to_image` → upload to Google Drive or S3.
+- **Product mockups** — Reference screenshot base64 → `openai_edit_image` with style instructions.
+- **A/B variants** — `openai_image_variation` on approved hero image → **human_task** picks winner.
+- **Report illustrations** — Workflow data → LLM prompt → image embedded in PDF via Browserless.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `openai_text_to_image` | Generate images from a text prompt (gpt-image-1, DALL-E 3, DALL-E 2) |
+| `openai_edit_image` | Edit an image with a prompt; optional mask for inpainting |
+| `openai_image_variation` | Create variations of a source PNG (DALL-E 2 only) |
+
+## Example
+
+Generate a social image from an LLM-crafted prompt:
+
+```json
+{
+  "id": "openai-image",
+  "type": "mcp_call",
+  "name": "Generate hero image",
+  "tool_name": "openai_text_to_image",
+  "tool_args": {
+    "prompt": "{{steps.llm-prompt.result.image_prompt}}",
+    "model": "gpt-image-1",
+    "size": "1024x1024",
+    "output_format": "png",
+    "n": 1
+  },
+  "depends_on": ["llm-prompt"],
+  "timeout_s": 120
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | OpenAI API key |
+| `DefaultModel` | No | Default model when tools omit `model` |
+| `APIBase` | No | OpenAI API base URL |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Content policy rejection | Revise prompt; avoid disallowed content per OpenAI usage policies |
+| Model not available | Confirm account access to `gpt-image-1` or `dall-e-3`; fall back to `dall-e-2` |
+| Variation fails | Variations require DALL-E 2 and a square PNG under size limits |
+| Large payloads | Images return as base64; store externally rather than passing through many workflow steps |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Gemini Images connector](/connectors/geminiimage) — Google image generation
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

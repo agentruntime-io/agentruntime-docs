@@ -1,0 +1,72 @@
+---
+title: Workflow Studio
+description: Author, validate, version, and run workflow graphs in the AgentRuntime Console.
+---
+
+**Workflow Studio** is the visual editor for designing agent workflows. Open it from the Console sidebar at **Workflow Studio** (`/workflow`).
+
+## The authoring loop
+
+<Steps>
+  <Step title="Create a workflow">
+    Click **New workflow** and give it a name. The canvas opens with an empty graph.
+  </Step>
+  <Step title="Add steps">
+    Drag step types onto the canvas and connect them with dependencies. Each step needs a unique `id`, a `type`, and type-specific configuration.
+  </Step>
+  <Step title="Wire dependencies">
+    Steps run when their `depends_on` predecessors complete. Independent branches run in parallel automatically.
+  </Step>
+  <Step title="Validate">
+    Click **Validate** to run a server-side dry-run. Validation checks graph structure, dependency cycles, Lua syntax, MCP bindings, and connection overrides — without executing tools.
+  </Step>
+  <Step title="Publish">
+    Publish an immutable version when the graph is ready. Runs always execute a published snapshot, not draft edits.
+  </Step>
+  <Step title="Run">
+    Start a run from the Studio run panel. Watch step events stream in real time. Pause, resume, or stop from the run controls.
+  </Step>
+</Steps>
+
+## Template variables
+
+Steps pass data downstream through template strings:
+
+```
+{{steps.fetch-leads.result.contacts}}
+{{input.customer_email}}
+```
+
+Use these in `tool_args`, LLM `prompt` fields, `for_each_items`, and Lua `script` inputs. Upstream step results are available under `steps.<step-id>.result`.
+
+## Connection overrides
+
+Workflows can override which **connection** an MCP instance uses at runtime so the same graph works across environments (sandbox vs production credentials).
+
+The Console does not expose a dedicated overrides panel today. Set overrides via the API or [Platform MCP](/api/platform-mcp):
+
+```
+GET  /v1/workflows/{id}/connection-overrides
+PUT  /v1/workflows/{id}/connection-overrides
+```
+
+See [Connections — per-workflow overrides](/integrations/connections#per-workflow-connection-overrides) and [Feature availability](/platform/feature-availability).
+
+## Versioning
+
+Each publish creates a new immutable version. You can list versions, roll back runs to a specific version, and compare graphs. Draft edits do not affect in-flight runs.
+
+## Live streaming
+
+While a run is active, Workflow Studio subscribes to a WebSocket event stream (`/v1/workflows/{id}/stream`). You see step start, progress, completion, failure, and human-task pause events as they happen.
+
+## Autopilot assistance
+
+The Console **Chat** panel (Autopilot) can scaffold starter workflows, create graphs from natural language, and navigate you to Workflow Studio. Autopilot actions include `create_workflow`, `scaffold_starter`, and `run_workflow`.
+
+## Next steps
+
+- [Step types reference](/workflows/step-types) — MCP, LLM, human, Lua, and for-each
+- [Runs and Command Center](/workflows/runs-and-command-center) — run controls and observability
+- [Human tasks](/workflows/human-tasks) — approval gates
+- [JSON schema cookbook](/workflows/json-schema-cookbook) — copy-paste graph examples

@@ -1,0 +1,93 @@
+---
+title: GitLab connector
+description: List projects, manage issues, and call the GitLab REST API from AgentRuntime workflows.
+---
+
+The **gitlab** MCP adapter connects to the [GitLab REST API v4](https://docs.gitlab.com/ee/api/rest/). Use it to triage issues, create bug reports from workflow failures, and explore project metadata — on GitLab.com or self-managed instances.
+
+## Prerequisites
+
+- A GitLab account with access to the target projects or groups
+- A **personal access token**, **group access token**, or **project access token** with scopes such as `api` and `read_api`
+- For self-managed GitLab: the REST base URL for your instance (e.g. `https://gitlab.example.com/api/v4`)
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a GitLab access token">
+    In GitLab, go to **User Settings → Access Tokens** (or create a group/project token). Grant at least `read_api`; add `api` if you need to create issues. Copy the token immediately — GitLab shows it only once.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIToken`. For self-managed instances, also set `BaseURL` to your REST v4 base (e.g. `https://gitlab.example.com/api/v4`).
+  </Step>
+  <Step title="Add gitlab MCP instance">
+    Go to **MCP**, click **Add instance** for **gitlab**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Verify identity">
+    Run **mcp_call** → `get_current_user` and `list_projects` before wiring project IDs into workflows.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Incident → issue** — Workflow failure step captures error context → LLM formats a title and body → `create_issue` in the on-call project.
+- **Release notes triage** — `list_issues` with `state=opened` → LLM summarizes blockers → post summary to Slack or Notion.
+- **Project discovery** — `list_projects` with `search` → agent picks the correct `project_id_or_path` for downstream API calls.
+- **Custom automation** — `gitlab_api_call` for merge requests, pipelines, or labels not covered by first-class tools.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_current_user` | GitLab user for the configured API token |
+| `list_projects` | Projects visible to the token (optional name/path search) |
+| `get_project` | Project by numeric ID or namespace path (e.g. `group/project`) |
+| `list_issues` | Issues in a project with optional state filter |
+| `create_issue` | Create an issue with title, description, and labels |
+| `gitlab_api_call` | Raw GitLab REST v4 request (GET, POST, PUT, PATCH, DELETE) |
+
+## Example
+
+Create an issue when a workflow step fails:
+
+```json
+{
+  "id": "gitlab-issue",
+  "type": "mcp_call",
+  "name": "File GitLab issue",
+  "tool_name": "create_issue",
+  "tool_args": {
+    "project_id_or_path": "my-group/my-service",
+    "title": "Workflow run {{input.run_id}} failed",
+    "description": "{{steps.summarize-error.result.summary}}",
+    "labels": "automation,incident"
+  },
+  "depends_on": ["summarize-error"],
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIToken` | Yes | Personal, group, or project access token |
+| `BaseURL` | No | REST v4 base URL (default GitLab.com API) |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401 Unauthorized` | Token expired or revoked; create a new token with correct scopes |
+| `404` on project path | Use URL-encoded path (`group%2Fproject`) or numeric project ID |
+| Self-managed SSL errors | Confirm `BaseURL` uses HTTPS and matches your instance hostname |
+| `403` on create_issue | Token needs `api` scope, not just `read_api` |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

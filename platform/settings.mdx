@@ -1,0 +1,68 @@
+---
+title: Workspace settings
+description: Configure your workspace name, billing, auth policy, and member defaults in the Console.
+---
+
+Workspace settings control how your organization is identified, how members authenticate, and how billing is managed. Navigate to **Settings** in the [Console](https://console.agentruntime.io) to access these options.
+
+## General
+
+| Setting | Description |
+|---------|-------------|
+| **Workspace name** | Display name in the UI, emails, and shared links. |
+| **Workspace slug** | URL-safe identifier for API calls. Changing it updates tenant-scoped URLs — notify your team first. |
+| **Default project** | The project selected when you open the Console. |
+
+## Members and access
+
+Workspace admins manage the member directory from **Settings → Team & Members**:
+
+- Invite users by email
+- Assign tenant-level roles
+- Deactivate accounts without deleting their content
+
+See [User management](/platform/user-management) and [Roles and permissions](/platform/roles-permissions).
+
+## API keys
+
+Create and revoke **personal access tokens** from **Settings → API keys**. Use PATs for scripts, CI, and [Platform MCP](/api/platform-mcp). See [API authentication](/api/authentication).
+
+## Inbound webhooks
+
+Manage webhook subscriptions from **Settings → Inbound webhooks** (also available per workflow in Workflow Studio). See [Inbound webhooks](/integrations/inbound-webhooks).
+
+## Billing
+
+Billing is split across three Settings tabs. Project contributors can view usage; tenant admins can change plans, manage subscriptions, and initiate pay-as-you-go top-ups.
+
+| Tab | What you can do |
+|------|-----------------|
+| **Billing Overview** | Subscription status, payment method, top-up entry points |
+| **Plans** | View available plans, start a trial, upgrade, or cancel |
+| **Usage & History** | Credit balances, metered usage, payment history |
+
+Promoters use **Referrals** in the sidebar (`/referrals`). **Settings → Affiliates** is maintainer-only ops when `enableSettingsAffiliates` is on. See [Referrals and affiliates](/platform/referrals-and-affiliates).
+
+Pricing details are on [agentruntime.io/pricing](https://agentruntime.io/pricing). See [Billing and credits](/platform/billing-and-credits) for plans, trials, and PAYG top-ups.
+
+## Authentication policy
+
+Tenant admins can configure how members sign in:
+
+- **Email and password** with email verification
+- **Google OAuth** — Sign in with Google or Google One Tap
+- **Domain verification** — Restrict workspace access to verified email domains
+
+Password reset and change-password flows are available from the auth pages.
+
+## Vault (workspace secrets)
+
+Workspace admins with vault access can store secret paths for sensitive configuration. Vault-backed values are referenced by MCP instances and integrations without exposing plaintext in workflow definitions.
+
+<Warning>
+  Vault access is limited to workspace administrators. Store connector API keys in **Connections** unless your deployment requires vault-backed secret paths.
+</Warning>
+
+## Notification and display preferences
+
+Individual members can adjust personal preferences from their profile. Workspace-level defaults apply to new members where configured.

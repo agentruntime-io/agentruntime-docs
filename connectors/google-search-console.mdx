@@ -1,0 +1,87 @@
+---
+title: Google Search Console connector
+description: Pull search analytics, inspect URLs, and manage sitemaps from AgentRuntime workflows.
+---
+
+The **google-search-console** MCP adapter wraps the [Search Console APIs](https://developers.google.com/webmaster-tools/v1/api_reference_index) for analytics, URL inspection, and sitemap management. Use it in workflow **mcp_call** steps to report on query performance, diagnose indexing issues, and submit sitemaps after content publishes — feeding SEO dashboards and LLM-written summaries.
+
+## Prerequisites
+
+- A Google account with verified Search Console properties for the sites you query
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Search Console">
+    On your Google connection, enable the **Search Console** service so the account exposes webmasters and URL Inspection scopes.
+  </Step>
+  <Step title="Add google-search-console MCP instance">
+    Go to **MCP**, click **Add instance** for **google-search-console**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_sites` before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Weekly SEO digest** — Schedule → `search_analytics` for top queries and pages last 7 days → LLM narrative → **gmail** to marketing.
+- **Post-publish index check** — CMS webhook with new URL → `url_inspection` → if not indexed, **slack** alert with `coverage_state` and canonical details.
+- **Sitemap after deploy** — Release workflow completes → `submit_sitemap` for `sitemap.xml` → `list_sitemaps` to confirm pending status.
+- **Landing page regression** — Compare two date ranges via `search_analytics` with `page` dimension → flag pages with a large click drop → **google-sheets** tracker row.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_analytics` | Query Search Console analytics data with optional dimensions and filters. |
+| `url_inspection` | Inspect the index status of a URL within a verified Search Console property. |
+| `list_sites` | List Search Console sites available to the authenticated user. |
+| `add_site` | Add a site to Search Console properties. |
+| `delete_site` | Remove a site from Search Console properties. |
+| `list_sitemaps` | List sitemaps registered for a Search Console site. |
+| `submit_sitemap` | Submit or resubmit a sitemap for a Search Console site. |
+
+## Example
+
+Fetch top queries for a weekly SEO report:
+
+```json
+{
+  "id": "seo-analytics",
+  "type": "mcp_call",
+  "name": "Top search queries",
+  "tool_name": "search_analytics",
+  "tool_args": {
+    "site_url": "https://example.com/",
+    "start_date": "{{input.week_start}}",
+    "end_date": "{{input.week_end}}",
+    "dimensions": ["query", "page"],
+    "search_type": "web",
+    "row_limit": 500
+  },
+  "depends_on": [],
+  "timeout_s": 60
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Search Console scopes may have been revoked |
+| `403` on `search_analytics` | Confirm the signed-in user has access to `site_url`; use exact property URL format (`https://` or `sc-domain:`) |
+| `url_inspection` property mismatch | URL must belong to the verified property passed as `site_url` |
+| Empty analytics rows | Data lag is typically 2–3 days; widen the date range and check `search_type` filter |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

@@ -1,0 +1,45 @@
+---
+title: Feature availability
+description: Preview, beta, API-only, and catalog-placeholder features in AgentRuntime.
+---
+
+Some capabilities are fully supported in the Console; others are API-only, feature-flagged, or catalog placeholders. This page is the single reference — individual guides link here instead of repeating status notes.
+
+## Status legend
+
+| Label | Meaning |
+|-------|---------|
+| **GA** | Generally available in production Console for standard workspaces |
+| **Preview** | Backend implemented; Console UI limited or off in production |
+| **API only** | Supported via REST / Platform MCP; no dedicated Console screen yet |
+| **Placeholder** | Listed in catalog; tools not shipped |
+
+## Feature matrix
+
+| Feature | Status | Console path | Notes |
+|---------|--------|--------------|-------|
+| Workflows & Command Center | **GA** | Workflow Studio, Command Center | — |
+| Connections & MCP instances | **GA** | Connections, MCP | Wire connections on instance config profiles |
+| Inbound webhooks | **GA** | Workflow config → **Inbound** tab; Settings → **Inbound webhooks** | Disable per environment via `inbound_webhooks.ENABLED` |
+| LLM Providers | **GA** | Providers | Tenant API keys |
+| Billing & credits | **GA** | Settings → **Billing Overview**, **Plans**, **Usage & History** | Plan catalog syncs from Stripe |
+| Analytics | **Flagged** | `/analytics` when `enableAnalyticsNav` is on | KPIs + timeseries from runs and billing events |
+| Memory (search, index, extract) | **Preview** | No dedicated Memory nav in prod (`enableMemory` off) | Use [Memory API](/ai/memory) and Autopilot tools where enabled |
+| Workflow connection overrides | **API only** | — | `PUT /v1/workflows/{id}/connection-overrides` |
+| Slack connector | **Placeholder** | MCP catalog | Install + token OK; **no messaging tools** yet — see [slack](/connectors/slack) |
+| Healthcare connector | **Preview** | MCP catalog | **Mock APIs only** — not for production PHI |
+| Referrals (promoter program) | **Flagged** | `/referrals` when `enablePlatformReferrals` is on | Cash commissions + signup link |
+| Settings → Affiliates | **Flagged** | Settings tab when `enableSettingsAffiliates` is on | Maintainer payout ops — not promoter self-service |
+| Agents / Marketplace / Tools nav | **Flagged** | Sidebar when `enableAgents`, etc. | May be off in your workspace |
+
+## How to check your workspace
+
+- **Console flags** — Some nav items (Chat, Analytics, Memory) depend on deployment feature flags.
+- **Settings → Feature Flags** — Visible to tenant admins when the settings tab is enabled.
+- **API** — If an endpoint returns `404` or `feature disabled`, the capability is off for your environment.
+
+## Related
+
+- [Troubleshooting](/platform/troubleshooting)
+- [Billing and credits](/platform/billing-and-credits)
+- [Memory](/ai/memory)

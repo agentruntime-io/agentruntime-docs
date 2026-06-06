@@ -1,0 +1,109 @@
+---
+title: Postgres connector
+description: Query, explain, and manage PostgreSQL databases from AgentRuntime workflow steps.
+---
+
+The **postgres** MCP adapter connects with a PostgreSQL DSN (connection string) and provides read/write SQL access, schema introspection, and query planning. Use it for operational reporting, data enrichment, migration checks, performance triage, and schema-aware agents in workflows — often paired with the [MySQL connector](/connectors/mysql) when you operate both relational engines.
+
+## Prerequisites
+
+- A PostgreSQL database (self-hosted, RDS, Cloud SQL, Supabase, or compatible) reachable from AgentRuntime
+- A connection string (DSN) with credentials scoped to the operations your workflows need
+- `SELECT` for reporting; `INSERT`/`UPDATE`/`DELETE` only when workflows must write
+- TLS configured for production (`sslmode=require` or stricter in the DSN)
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create a connection string connection with your Postgres DSN:
+
+    ```
+    postgres://user:password@host:5432/dbname?sslmode=require
+    ```
+
+    Use a read-only role for reporting workflows. Grant write privileges only when steps call `postgres_exec`.
+  </Step>
+  <Step title="Add postgres MCP instance">
+    Go to **MCP**, click **Add instance** for **postgres**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Test with a health check">
+    Add a workflow with a single **mcp_call** to `postgres_health`. Run it to confirm connectivity before adding production queries.
+  </Step>
+  <Step title="Explore schema (optional)">
+    Run **mcp_call** → `postgres_list_schemas` and `postgres_list_tables` to verify the bound database and default schema (`public`).
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Operational reports** — Scheduled `postgres_query` on KPI tables → LLM narrative → Gmail or Resend digest.
+- **Enrichment pipeline** — External API fetch → `postgres_exec` INSERT with `$1` args → downstream sync to Google Sheets.
+- **Approval-gated writes** — **human_task** before `postgres_exec` UPDATE/DELETE on production tables.
+- **Schema-aware agents** — `postgres_list_tables` + `postgres_describe_table` + `postgres_explain_query` → Autopilot answers with grounded SQL.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `postgres_health` | Check PostgreSQL connectivity with a simple query |
+| `postgres_query` | Run a read-only query with optional args and row limit |
+| `postgres_exec` | Run a mutating statement (INSERT, UPDATE, DELETE, DDL) |
+| `postgres_list_tables` | List user tables in the current database |
+| `postgres_describe_table` | Describe columns, types, nullability, and defaults |
+| `postgres_list_schemas` | List non-system PostgreSQL schemas |
+| `postgres_list_indexes` | List indexes for a table |
+| `postgres_get_table_ddl` | Return the CREATE TABLE DDL for a table |
+| `postgres_explain_query` | Run EXPLAIN or EXPLAIN ANALYZE for a query |
+
+## Example
+
+Fetch pending orders for a daily report:
+
+```json
+{
+  "id": "fetch-orders",
+  "type": "mcp_call",
+  "name": "Fetch pending orders",
+  "tool_name": "postgres_query",
+  "tool_args": {
+    "sql": "SELECT id, email, total FROM orders WHERE status = $1 LIMIT 100",
+    "args": ["pending"]
+  },
+  "timeout_s": 30
+}
+```
+
+Reference query output in a downstream `lua_script` step:
+
+```
+{{steps.fetch-orders.result.rows}}
+```
+
+## Configuration
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `postgres_dsn` | Yes | — | PostgreSQL connection string (lib/pq DSN) |
+| `postgres_request_timeout_sec` | No | `30` | Per-request timeout in seconds for queries and ping |
+| `postgres_max_open_conns` | No | `10` | Maximum open connections in the pool |
+| `postgres_max_idle_conns` | No | `5` | Maximum idle connections kept in the pool |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Connection timeout | Check network path, firewall rules, and DSN host/port |
+| `permission denied` | Grant the DB user `SELECT` (and write privileges only if needed) on target tables |
+| SSL errors | Adjust `sslmode` in the DSN to match your server configuration |
+| Slow queries | Use `postgres_explain_query` with `analyze: true` to inspect the execution plan |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [MySQL connector](/connectors/mysql) — similar SQL patterns for MySQL
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

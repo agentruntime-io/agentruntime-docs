@@ -1,0 +1,97 @@
+---
+title: Gmail connector
+description: Send, search, and reply to email from AgentRuntime workflows via the Gmail MCP adapter.
+---
+
+The **gmail** MCP adapter wraps the [Gmail REST API v1](https://developers.google.com/gmail/api/reference/rest). Use it in workflow **mcp_call** steps to send notifications, search inboxes, and reply to threads.
+
+## Prerequisites
+
+- A Google account with Gmail enabled
+- **project_contributor** access in your workspace
+- Gmail API enabled in your Google Cloud project (handled automatically when connecting through the Console)
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. Enable the **Gmail** service for your account. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Add gmail MCP instance">
+    Go to **MCP**, click **Add instance** for **gmail**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Add a workflow step">
+    In Workflow Studio, add an **mcp_call** step targeting your `gmail` instance. Pick a tool and configure `tool_args`.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Run notifications** — On workflow success or failure, `send_email` to operators with run ID and a Command Center link.
+- **Inbox triage** — `search_emails` for `is:unread label:support` → LLM draft → **human_task** → `reply_to_email`.
+- **Lead alert** — Webhook from a form → `send_email` to sales with submission details and CRM link.
+- **Digest reports** — Postgres or Sheets data → LLM summary → `send_email` on a schedule.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `send_email` | Send an email through the connected Gmail account |
+| `get_email` | Retrieve a message by ID (from, to, subject, date, snippet) |
+| `search_emails` | Search with Gmail query syntax (e.g. `from:user@example.com is:unread`) |
+| `reply_to_email` | Reply to an existing message; supports reply-all |
+
+## Example
+
+Send a notification after a workflow completes:
+
+```json
+{
+  "id": "notify-team",
+  "type": "mcp_call",
+  "name": "Send summary email",
+  "tool_name": "send_email",
+  "tool_args": {
+    "to": "team@example.com",
+    "subject": "Workflow complete: {{input.workflow_name}}",
+    "body": "Run {{input.run_id}} finished successfully."
+  },
+  "depends_on": ["generate-summary"],
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+The instance inherits OAuth tokens from your Google connection. Optional config profile fields:
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `user_id` | No | `me` | Gmail user ID (`me` = authenticated account) |
+| `sender_email` | No | — | Default `From` address |
+
+## Gmail search syntax
+
+`search_emails` accepts standard Gmail operators:
+
+- `from:sender@example.com`
+- `is:unread`
+- `subject:invoice`
+- `after:2026/01/01`
+
+Combine operators: `from:alerts@example.com is:unread newer_than:7d`
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on connection | Re-authorize Google OAuth; Gmail scopes may have been revoked |
+| `403` from Gmail API | Confirm Gmail API is enabled and the account has send/read permissions |
+| Empty search results | Verify query syntax; test the same query in Gmail's web UI |
+
+## Related
+
+- [Google Workspace setup](/integrations/google-workspace)
+- [Integrations quickstart](/integrations/quickstart)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

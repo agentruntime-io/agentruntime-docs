@@ -1,1 +1,4 @@
 .DS_Store
+
+# Staging drafts from: go run ./cmd/connector-doc -all -format mdx (go-connectors)
+.generated/

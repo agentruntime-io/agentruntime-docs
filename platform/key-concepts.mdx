@@ -1,38 +1,90 @@
 ---
 title: Key concepts
-description: The building blocks of the platform—workspaces, projects, roles, and API access.
+description: Workspaces, projects, roles, workflows, runs, MCP, and connections — the AgentRuntime platform model.
 ---
 
-Understanding the core model makes every other guide easier to follow. This page explains the four foundational concepts you'll encounter throughout the platform.
+Understanding the core model makes every other guide easier to follow. This page explains the foundational concepts you will encounter throughout AgentRuntime.
 
-## Workspaces
+## Workspaces (tenants)
 
-A workspace is the top-level container for your organization. It holds all projects, members, settings, and billing information. Every user belongs to at least one workspace, and each workspace operates independently with its own configuration and data.
+A **workspace** is the top-level container for your organization. It holds all projects, members, billing, MCP resources, and connections. Every user belongs to at least one workspace, and each workspace operates independently with its own configuration and data.
 
-Workspaces are identified by a unique slug used in URLs and API calls.
+Workspaces are identified by a unique **slug** used in URLs and API calls (`X-Tenant-Id` header).
 
 ## Projects
 
-Projects are the primary unit of work within a workspace. Each project has its own members, settings, and data. You can create as many projects as you need, and the same user can belong to multiple projects with different roles in each.
+**Projects** are the primary unit of work inside a workspace. Workflows, runs, MCP instances, analytics, and billing context are scoped to a project. You can create multiple projects per workspace, and the same user can belong to multiple projects with different roles in each.
 
 <Info>
-  Project-level role overrides take precedence over workspace-level roles. A user who is a Viewer at the workspace level can be granted Admin access on a specific project.
+  Project-level roles take precedence within that project. A user who is a **project viewer** in one project can be a **project contributor** in another.
 </Info>
 
 ## Members and roles
 
-Every workspace member is assigned a role that controls what they can see and do:
+AgentRuntime uses role-based access control (RBAC) at both the tenant and project level.
 
-| Role | Description |
-|------|-------------|
-| **Admin** | Full access to workspace settings, billing, and all projects. Can invite and remove members. |
-| **Member** | Can create and manage projects they belong to. Cannot access billing or workspace-level settings. |
-| **Viewer** | Read-only access to projects they are added to. Cannot create or modify content. |
+### Project roles
 
-Custom roles with granular permissions are available on higher-tier plans. See [roles and permissions](/platform/administration/roles-permissions) for details.
+| Role | Typical access |
+|------|----------------|
+| **project_viewer** | Read workflows, runs, analytics, and chat. Cannot edit graphs or manage integrations. |
+| **project_contributor** | Create and edit workflows, run workflows, manage connections and MCP instances, view billing usage. |
+| **project_admin** | Full project control including member management within the project. |
 
-## API credentials
+### Tenant roles
 
-API keys allow external tools and services to interact with your workspace programmatically. Each key is scoped to a specific workspace and can be restricted to read-only or read-write access.
+| Role | Typical access |
+|------|----------------|
+| **tenant_admin** | Workspace settings, billing, member invites, vault secrets, and all projects. |
 
-Treat API keys as secrets—rotate them immediately if they are exposed. See the API reference for authentication details and endpoint documentation.
+See [Roles and permissions](/platform/roles-permissions) for the full matrix.
+
+## Workflows
+
+A **workflow** is a directed acyclic graph (DAG) of **steps**. You author workflows in **Workflow Studio**, validate them with a server-side dry-run, publish immutable versions, and execute them as **runs**.
+
+Common step types:
+
+- **mcp_call** — Invoke a tool on an MCP server
+- **llm_call** — Call an LLM with a prompt and model
+- **human_task** — Pause for human approval or input
+- **lua_script** — Transform data with inline Lua
+- **for_each** — Fan out over a list with controlled parallelism
+
+Steps reference upstream results with template variables like `{{steps.fetch-contacts.result.items}}`.
+
+## Runs
+
+A **run** is a single execution of a published workflow version. Runs are event-driven and stream step lifecycle events (started, completed, failed, paused) to the Console over WebSocket. You can **pause**, **resume**, or **stop** runs from Workflow Studio or the API.
+
+Pending human tasks across all runs appear in **Command Center**.
+
+## MCP servers and instances
+
+An **MCP server** is a catalog entry describing a tool server (platform-provided or custom). An **MCP instance** is your project's deployment of that server — with config profiles, environment variables, and **connection bindings** that supply credentials at runtime.
+
+Workflow **mcp_call** steps target a specific instance and tool name.
+
+## Connections
+
+A **connection** stores integration credentials: Google OAuth tokens, WhatsApp business credentials, or API keys. Connections are created in **Connections** and bound to MCP instances so tools authenticate correctly without embedding secrets in workflow graphs.
+
+## Agents and Autopilot
+
+**Platform agents** are reusable agent definitions installed in your project. They participate in chat rooms via the agent service.
+
+**Autopilot** is the Console copilot — a streaming assistant in the **Chat** panel that can help you navigate Workflow Studio, scaffold workflows, and start runs. Autopilot and chat threads are separate from workflow execution but can trigger workflow actions.
+
+## API access
+
+Programmatic access uses:
+
+- **Session cookies** — Browser login through the Console
+- **Personal access tokens (PATs)** — Bearer tokens with scopes like `workflow:read`, `workflow:run`, and `mcp:execute`
+- **Platform MCP** — PAT-authenticated MCP tools at `mcp.agentruntime.io` for IDE integrations
+
+See [API authentication](/api/authentication).
+
+## Billing and credits
+
+Usage is metered per action (LLM tokens, MCP tool calls, workflow steps). The **Analytics** page and billing APIs show credits consumed, run counts, and plan status. Trials and subscriptions are managed under **Settings → Billing**.

@@ -1,0 +1,129 @@
+---
+title: GitHub connector
+description: Automate repositories, issues, and pull requests from AgentRuntime workflows.
+---
+
+The **github** MCP adapter wraps the [GitHub REST API](https://docs.github.com/en/rest). Use it to triage issues, review pull requests, sync repo metadata, and post updates when workflows complete — without leaving AgentRuntime.
+
+## Prerequisites
+
+- A GitHub account with access to the repositories you will automate
+- A **personal access token** (classic or fine-grained) with scopes for those repos (`repo`, `read:org` as needed)
+- **project_contributor** access in your AgentRuntime workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a GitHub connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection. Paste your GitHub token as the secret. Store the token in a connection profile — never in workflow JSON.
+  </Step>
+  <Step title="Add github MCP instance">
+    Go to **MCP**, click **Add instance** for **github**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Verify access">
+    Run a test workflow with **mcp_call** → `get_authenticated_user` to confirm the token works before automating production repos.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for how connections bind to MCP instances.
+
+## What you can build
+
+- **PR release assistant** — On webhook or schedule: `list_pull_requests` → `get_pull_request` + `list_pull_request_files` → LLM summary → `add_issue_comment` or Gmail notify reviewers.
+- **Issue triage** — `list_issues` with labels filter → LLM classify → `update_issue` to add labels and assignees.
+- **Changelog draft** — `compare_commits` between tags → LLM generate notes → `create_or_update_file` on `CHANGELOG.md` → optional **human_task** before merge.
+- **Onboarding repo scan** — `search_repositories` or `list_repos` → `get_file_contents` for README → store metadata in Postgres for internal dashboards.
+
+## Tools
+
+### Pull requests & branches
+
+| Tool | Description |
+|------|-------------|
+| `get_pull_request` | Get a pull request by number |
+| `list_pull_requests` | List pull requests for a repository |
+| `list_pull_request_files` | List files changed in a pull request |
+| `create_pull_request` | Create a pull request |
+| `update_pull_request` | Update an existing pull request |
+| `merge_pull_request` | Merge a pull request |
+| `list_branches` | List branches for a repository |
+| `get_branch` | Get branch details |
+| `create_branch` | Create a branch from a base branch or commit SHA |
+
+### Issues & comments
+
+| Tool | Description |
+|------|-------------|
+| `get_issue` | Get a single issue by number |
+| `list_issues` | List issues for a repository |
+| `create_issue` | Create an issue |
+| `update_issue` | Update an existing issue |
+| `add_issue_comment` | Add a comment to an issue |
+| `list_issue_comments` | List comments on an issue |
+
+### Repository & code
+
+| Tool | Description |
+|------|-------------|
+| `get_repo` | Get repository metadata |
+| `list_repos` | List repositories for the authenticated user |
+| `get_file_contents` | Get file contents from a path |
+| `create_or_update_file` | Create or update a file |
+| `delete_file` | Delete a file |
+| `list_commits` | List commits |
+| `compare_commits` | Compare two refs or commits |
+| `list_tags` | List tags |
+| `create_fork` | Fork a repository |
+
+### Search & users
+
+| Tool | Description |
+|------|-------------|
+| `search_repositories` | Search repositories |
+| `search_code` | Search code |
+| `search_issues_pull_requests` | Search issues and pull requests |
+| `search_users` | Search users |
+| `get_user` | Get a public user profile |
+| `get_authenticated_user` | Get the authenticated user for the token |
+
+## Example
+
+Comment on a PR after an automated check passes:
+
+```json
+{
+  "id": "pr-comment",
+  "type": "mcp_call",
+  "name": "Post review summary",
+  "tool_name": "add_issue_comment",
+  "tool_args": {
+    "owner": "your-org",
+    "repo": "your-repo",
+    "issue_number": "{{input.pr_number}}",
+    "body": "Automated review complete.\n\n{{steps.llm-summary.result.text}}"
+  },
+  "depends_on": ["llm-summary"],
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIToken` | Yes | GitHub personal access token or fine-grained token with scopes for target repositories |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401 Bad credentials` | Regenerate token; update the connection and re-validate the MCP instance |
+| `403 Resource not accessible` | Fine-grained token must include the repo; classic token needs `repo` scope |
+| Empty `search_*` results | GitHub search has rate limits and indexing delay; narrow the query |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Inbound webhooks](/integrations/inbound-webhooks) — trigger workflows from GitHub events
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

@@ -1,0 +1,149 @@
+---
+title: Platform MCP
+description: Connect Cursor, Claude, and other MCP clients to AgentRuntime workflows, runs, and analytics.
+---
+
+**Platform MCP** exposes the AgentRuntime BFF as MCP tools so IDEs and AI assistants can list workflows, start runs, check analytics, and manage integrations — without crafting raw HTTP requests.
+
+| | |
+|---|---|
+| **Endpoint** | `https://mcp.agentruntime.io/mcp` |
+| **Auth** | Personal access token (Bearer) |
+| **Transport** | Streamable HTTP (MCP) |
+
+<Warning>
+  Platform MCP is different from **connector MCP instances** used in workflow runs. Connector tools run at `router.agentruntime.io` during execution. Platform MCP drives the **Console API** from your IDE.
+</Warning>
+
+## Quick setup (Cursor)
+
+<Steps>
+  <Step title="Create a PAT">
+    In the [Console](https://console.agentruntime.io), go to access token settings and create a PAT with scopes `workflow:read`, `workflow:run`, and `mcp:execute` as needed. Copy the token — it is shown once.
+  </Step>
+  <Step title="Add the MCP server">
+    In Cursor, open MCP settings and add a remote server:
+
+    ```json
+    {
+      "url": "https://mcp.agentruntime.io/mcp",
+      "headers": {
+        "Authorization": "Bearer pat_YOUR_TOKEN"
+      }
+    }
+    ```
+  </Step>
+  <Step title="Verify connection">
+    Ask the assistant to call `ar_health_summary` or `workflows_list` to confirm the PAT resolves to your workspace.
+  </Step>
+</Steps>
+
+The same URL and Bearer header work in Claude Code, OpenAI Codex CLI, and other MCP clients that support remote HTTP servers.
+
+## Authentication model
+
+- Send your PAT as `Authorization: Bearer pat_...` on every MCP request
+- The BFF infers **tenant**, **project**, and **user** from PAT introspection — do not set `X-Tenant-Id` manually
+- Your PAT must map to a user with the required project role (**project_contributor** for writes)
+
+## Tool groups
+
+Tools are organized into groups. Production deployments may disable sensitive groups.
+
+| Group | Tools | Risk level |
+|-------|-------|------------|
+| **core** | Workflows, runs, analytics, health | Standard |
+| **catalog** | `catalog_bff_request` — generic `/v1/mcp/*` passthrough | Standard |
+| **memory** | Search, episodes, propose/confirm items | Standard |
+| **chat** | List conversations, send messages | Standard |
+| **files** | Work file list and metadata | Standard |
+| **websocket** | `workflows_stream_websocket` — bounded WS read | Standard |
+| **vault** | List secrets; read/write with **risk** | Sensitive |
+| **pat** | List/revoke; create/reveal with **risk** | Sensitive |
+| **inbound** | List/delete webhooks; create with **risk** | Sensitive |
+| **llm_keys** | Catalog; mutate/reveal with **risk** | Sensitive |
+
+Tools marked **risk** return secrets (vault values, PAT plaintext, webhook signing secrets, LLM API keys). These are hidden in production when the `risk` group is disabled.
+
+## Core tools (workflows and runs)
+
+| Tool | BFF endpoint | Purpose |
+|------|--------------|---------|
+| `workflows_list` | `GET /v1/workflows` | List workflows |
+| `workflows_get` | `GET /v1/workflows/{id}` | Get workflow graph |
+| `workflows_create` | `POST /v1/workflows` | Create draft |
+| `workflows_patch` | `PATCH /v1/workflows/{id}` | Update draft |
+| `workflows_publish_version` | `POST /v1/workflows/{id}/versions` | Publish |
+| `workflows_validate` | `POST /v1/workflows/{id}/validate` | Dry-run |
+| `workflows_execute_command` | `POST /v1/workflows/{id}/command` | Start/pause/resume/stop |
+| `workflows_list_runs` | `GET /v1/workflows/{id}/runs` | List runs |
+| `runs_list_tenant` | `GET /v1/runs` | Tenant run feed |
+| `runs_list_events` | `GET /v1/workflows/{id}/runs/{run_id}/events` | Event log |
+| `runs_get_context` | `GET /v1/workflows/{id}/runs/{run_id}/context` | Run variables |
+
+## Analytics tools
+
+| Tool | Metric |
+|------|--------|
+| `analytics_live_runs` | Currently active runs |
+| `analytics_success_rate` | Success percentage |
+| `analytics_credits_consumed` | Credits used |
+| `analytics_runs_timeseries` | Runs over time |
+| `analytics_usage_timeseries` | Usage over time |
+
+## Catalog passthrough
+
+`catalog_bff_request` is a generic tool for any `/v1/mcp/*` BFF route — list servers, create instances, validate bindings, list tools, and more. Pass `method`, `path`, optional `query`, and `body`.
+
+Example paths:
+
+- `GET /v1/mcp/instances`
+- `POST /v1/mcp/instances/{id}/validate`
+- `GET /v1/mcp/platform-catalog`
+
+Paths containing `/credentials` require the **risk** group to be enabled.
+
+## Memory tools
+
+| Tool | Purpose |
+|------|---------|
+| `memory_search` | Semantic search over long-term memory |
+| `memory_get_episode` | Fetch an episode bundle |
+| `memory_get_continuation` | Latest open episode state |
+| `memory_propose_items` | Propose memory items |
+| `memory_confirm_item` | Confirm an item |
+
+## Live run streaming
+
+`workflows_stream_websocket` opens a bounded WebSocket read on `/v1/workflows/{workflow_id}/stream` and returns collected frames. Defaults cap duration, message count, and total bytes to prevent runaway reads.
+
+## Example assistant prompts
+
+- "List my workflows and show the three most recent runs"
+- "Validate workflow `{id}` and start a run with params `{\"env\": \"staging\"}`"
+- "How many credits did my project consume this week?"
+- "Search memory for decisions about the Q2 pricing workflow"
+
+## Security practices
+
+- Use the minimum PAT scopes needed for your workflow
+- Prefer a dedicated PAT for IDE use — revoke it without affecting production automation
+- Do not enable **risk** tools unless you need vault, PAT, or credential management from the IDE
+- Rotate PATs if they appear in logs or shared configs
+
+## Local development
+
+For local Platform MCP development, run the server from `dev_tools/agentruntime-platform-mcp` with:
+
+```
+AGENTRUNTIME_BFF_URL=https://api-dev.agentruntime.io
+AGENTRUNTIME_PAT=pat_...
+```
+
+Point your MCP client at `http://127.0.0.1:8340/mcp` (default local port).
+
+## Related docs
+
+- [API authentication](/api/authentication) — PAT scopes and creation
+- [MCP instances](/integrations/mcp-instances) — connector tools for workflow runs (different from Platform MCP)
+- [API reference](/api/reference) — full REST endpoint catalog

@@ -1,0 +1,112 @@
+---
+title: Google Form connector
+description: Create forms, collect responses, and manage permissions from AgentRuntime workflows.
+---
+
+The **google-form** MCP adapter wraps the [Google Forms API](https://developers.google.com/forms/api/reference/rest) and Drive file operations for form lifecycle. Use it in workflow **mcp_call** steps to list and read responses, poll new submissions, copy templates for recurring surveys, and share forms with collaborators — with optional Pub/Sub watches for push-driven workflows.
+
+## Prerequisites
+
+- A Google account with Google Forms and Drive access
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Forms">
+    On your Google connection, enable the **Forms** service so the account exposes Forms and Drive API scopes.
+  </Step>
+  <Step title="Add google-form MCP instance">
+    Go to **MCP**, click **Add instance** for **google-form**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_forms` or `get_form` on a known form before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **NPS follow-up** — Schedule → `list_new_responses` since last run → LLM sentiment tag → **google-sheets** append row → **gmail** alert for detractors.
+- **Event registration intake** — Webhook from Pub/Sub watch → `get_response` → `create_task` in **google-tasks** for ops → confirmation via **gmail**.
+- **Quarterly survey clone** — Cron → `copy_form` from master template → `rename_form` with quarter label → `share_form` with department leads.
+- **Application triage** — `list_responses` with filter → score answers in LLM step → **human_task** for borderline candidates → update **google-sheets** tracker.
+
+## Tools
+
+### Forms
+
+| Tool | Description |
+|------|-------------|
+| `create_form` | Create a Google Form with initial title metadata. |
+| `update_form` | Apply a Google Forms batchUpdate request to a form. |
+| `get_form` | Get a Google Form, including info, items, settings, and revision ID. |
+| `list_forms` | List Google Forms in the authenticated user's Drive. |
+| `copy_form` | Copy a Google Form through the Drive API, with optional rename or parent folder. |
+| `rename_form` | Rename the Drive file that backs a Google Form. |
+| `delete_form` | Permanently delete a Google Form through the Drive API. |
+| `move_form` | Move a Google Form to a different Drive folder. |
+
+### Responses
+
+| Tool | Description |
+|------|-------------|
+| `list_responses` | List submitted responses for a form, with optional filtering and pagination. |
+| `list_new_responses` | List form responses submitted after an RFC3339 timestamp. |
+| `get_response` | Get a specific submitted response for a form by response ID. |
+
+### Permissions
+
+| Tool | Description |
+|------|-------------|
+| `share_form` | Share a Google Form by creating a Drive permission. |
+| `list_form_permissions` | List Drive permissions on a Google Form. |
+| `revoke_form_permission` | Remove a Drive permission from a Google Form by permission ID. |
+
+### Watches
+
+| Tool | Description |
+|------|-------------|
+| `create_watch` | Create a Pub/Sub watch for form response or schema changes. |
+| `delete_watch` | Delete a Pub/Sub watch by watch ID. |
+| `list_watches` | List active Pub/Sub watches on a form. |
+| `renew_watch` | Renew a Pub/Sub watch before it expires. |
+
+## Example
+
+Poll new survey responses since the last workflow run:
+
+```json
+{
+  "id": "poll-responses",
+  "type": "mcp_call",
+  "name": "Fetch new form responses",
+  "tool_name": "list_new_responses",
+  "tool_args": {
+    "form_id": "{{input.nps_form_id}}",
+    "since_time": "{{input.last_poll_time}}",
+    "page_size": 100
+  },
+  "depends_on": [],
+  "timeout_s": 45
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Forms and Drive scopes may have been revoked |
+| `update_form` concurrency error | Pass the current `revision_id` from `get_form` as write-control fields |
+| Watch stopped firing | Pub/Sub watches expire after seven days — schedule `renew_watch` or recreate with `create_watch` |
+| Empty `list_new_responses` | Confirm `since_time` is RFC3339 and earlier than submission timestamps |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

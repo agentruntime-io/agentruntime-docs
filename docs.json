@@ -1,12 +1,12 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "almond",
-  "name": "Product Guide",
-  "description": "Step-by-step guides for every product—platform setup, analytics, and integrations in one place.",
+  "name": "AgentRuntime",
+  "description": "User guides for designing, running, and observing production AI agent workflows.",
   "colors": {
-    "primary": "#166E3F",
-    "light": "#26BD6C",
-    "dark": "#166E3F"
+    "primary": "#5BA8FC",
+    "light": "#93C5FD",
+    "dark": "#3B82F6"
   },
   "favicon": "/favicon.ico",
   "icons": {
@@ -16,7 +16,13 @@
     "eyebrows": "breadcrumbs"
   },
   "contextual": {
-    "options": ["copy", "view", "assistant", "mcp", "add-mcp"]
+    "options": [
+      "copy",
+      "view",
+      "assistant",
+      "mcp",
+      "add-mcp"
+    ]
   },
   "navigation": {
     "global": {
@@ -27,51 +33,160 @@
           "href": "/"
         },
         {
-          "anchor": "Changelog",
-          "icon": "scroll-text",
-          "href": "https://www.mintlify.com/docs/changelog"
+          "anchor": "Console",
+          "icon": "layout-dashboard",
+          "href": "https://console.agentruntime.io"
         },
         {
-          "anchor": "Help",
+          "anchor": "API",
+          "icon": "code",
+          "href": "https://api.agentruntime.io"
+        },
+        {
+          "anchor": "Support",
           "icon": "life-buoy",
-          "href": "https://www.mintlify.com/docs/contact-support"
+          "href": "mailto:support@agentruntime.io"
         }
       ]
     },
     "directory": "card",
     "groups": [
       {
+        "group": "Get started",
+        "icon": "rocket",
+        "expanded": true,
+        "pages": [
+          "introduction/what-is-agentruntime",
+          "platform/quickstart",
+          "platform/key-concepts"
+        ]
+      },
+      {
         "group": "Platform",
         "icon": "layers",
         "expanded": true,
         "pages": [
-          "platform/quickstart",
-          "platform/key-concepts",
-          "platform/configuration/settings",
-          "platform/configuration/user-management",
-          "platform/administration/roles-permissions"
+          "platform/settings",
+          "platform/user-management",
+          "platform/roles-permissions",
+          "platform/billing-and-credits",
+          "platform/analytics",
+          "platform/security-and-compliance",
+          "platform/referrals-and-affiliates",
+          "platform/feature-availability",
+          "platform/troubleshooting"
         ]
       },
       {
-        "group": "Analytics",
-        "icon": "chart-bar",
+        "group": "Workflows",
+        "icon": "workflow",
         "expanded": true,
         "pages": [
-          "analytics/quickstart",
-          "analytics/connect-data",
-          "analytics/dashboards/create-dashboard",
-          "analytics/reports/scheduled-reports"
+          "workflows/studio",
+          "workflows/step-types",
+          "workflows/command-center",
+          "workflows/runs-and-command-center",
+          "workflows/human-tasks",
+          "workflows/patterns",
+          "workflows/json-schema-cookbook"
         ]
       },
       {
-        "group": "Integrations",
+        "group": "Guides",
+        "icon": "book-open",
+        "expanded": true,
+        "pages": [
+          "guides/overview",
+          "guides/form-webhook-postgres-resend-digest",
+          "guides/shopify-order-whatsapp",
+          "guides/github-pr-review",
+          "guides/scheduled-postgres-gmail-report",
+          "guides/lead-sync-activecampaign-notion"
+        ]
+      },
+      {
+        "group": "Integration setup",
         "icon": "plug",
         "expanded": true,
         "pages": [
           "integrations/quickstart",
+          "integrations/connections",
+          "integrations/mcp-instances",
+          "integrations/custom-mcp-servers",
+          "integrations/google-workspace",
           "integrations/authentication",
-          "integrations/connectors/crm",
-          "integrations/webhooks/configure"
+          "integrations/inbound-webhooks",
+          "integrations/inbound-webhook-wizard",
+          "integrations/connector-catalog"
+        ]
+      },
+      {
+        "group": "Connectors",
+        "icon": "unplug",
+        "expanded": false,
+        "pages": [
+          "connectors/activecampaign",
+          "connectors/brave",
+          "connectors/browserless",
+          "connectors/clickup",
+          "connectors/cursor",
+          "connectors/elevenlabs",
+          "connectors/exa",
+          "connectors/firestore",
+          "connectors/geminiimage",
+          "connectors/github",
+          "connectors/gitlab",
+          "connectors/gmail",
+          "connectors/google-calendar",
+          "connectors/google-docs",
+          "connectors/google-drive",
+          "connectors/google-form",
+          "connectors/google-search",
+          "connectors/google-search-console",
+          "connectors/google-sheets",
+          "connectors/google-slides",
+          "connectors/google-tasks",
+          "connectors/healthcare",
+          "connectors/linkedin",
+          "connectors/mongodb",
+          "connectors/mysql",
+          "connectors/neo4j",
+          "connectors/notion",
+          "connectors/openaiimage",
+          "connectors/postgres",
+          "connectors/reddit",
+          "connectors/redis",
+          "connectors/resend",
+          "connectors/rss",
+          "connectors/shopify",
+          "connectors/slack",
+          "connectors/sqlite",
+          "connectors/vapi",
+          "connectors/whatsapp",
+          "connectors/wrike",
+          "connectors/youtube"
+        ]
+      },
+      {
+        "group": "AI & chat",
+        "icon": "bot",
+        "expanded": true,
+        "pages": [
+          "ai/llm-providers",
+          "ai/autopilot-and-chat",
+          "ai/memory"
+        ]
+      },
+      {
+        "group": "API",
+        "icon": "terminal",
+        "expanded": false,
+        "pages": [
+          "api/overview",
+          "api/authentication",
+          "api/examples",
+          "api/reference",
+          "api/platform-mcp"
         ]
       }
     ]
@@ -81,17 +196,26 @@
     "dark": "/logo/dark.svg"
   },
   "navbar": {
-    "links": [],
+    "links": [
+      {
+        "label": "Pricing",
+        "href": "https://agentruntime.io/pricing"
+      },
+      {
+        "label": "GitHub",
+        "href": "https://github.com/agentruntime-io"
+      }
+    ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Open Console",
+      "href": "https://console.agentruntime.io"
     }
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/yourcompany",
-      "linkedin": "https://linkedin.com/company/yourcompany"
+      "x": "https://x.com/agentruntime",
+      "github": "https://github.com/agentruntime-io"
     }
   }
 }

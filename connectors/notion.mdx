@@ -1,0 +1,104 @@
+---
+title: Notion connector
+description: Read and write Notion pages, databases, and comments from AgentRuntime workflows.
+---
+
+The **notion** MCP adapter uses the [Notion API](https://developers.notion.com) to search workspaces, update database rows, append page content, and manage comments. Ideal for run logs, CRM-style databases, and agent-generated documentation.
+
+## Prerequisites
+
+- A Notion workspace where you can create integrations
+- An **internal integration** with token (`secret_...`)
+- Target pages and databases **shared with the integration** (⋯ → Connect to → your integration)
+- For comments: enable **Read comments** and **Insert comments** on the integration
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a Notion integration">
+    Go to [notion.so/my-integrations](https://www.notion.so/my-integrations), create an integration, and copy the **Internal Integration Token**.
+  </Step>
+  <Step title="Share pages with the integration">
+    Open each database or parent page → **⋯** → **Connect to** → select your integration.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections**, click **New custom connection**, and paste the integration token as an API key connection.
+  </Step>
+  <Step title="Add notion MCP instance">
+    Go to **MCP**, click **Add instance** for **notion**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Discover IDs">
+    Run **mcp_call** → `notion_search` to list accessible databases and pages before hard-coding IDs in workflows.
+  </Step>
+</Steps>
+
+<Note>
+  Tool arguments accept bare UUIDs, 32-character hex IDs, or pasted Notion URLs (query strings are stripped automatically).
+</Note>
+
+## What you can build
+
+- **Run log database** — On workflow complete: `notion_create_database_item` with run ID, status, duration, and link to Command Center.
+- **Content pipeline** — LLM draft → `notion_create_page` under a parent → **human_task** review → `notion_append_to_page` with approved blocks.
+- **Ticket sync** — GitHub `create_issue` → `notion_create_database_item` with issue URL and assignee property.
+- **Knowledge lookup** — `notion_find_database_item` with filter JSON → pass rows to LLM for grounded answers in Chat Autopilot.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `notion_search` | List shared pages and databases |
+| `notion_retrieve_database` | Get database schema |
+| `notion_find_database_item` | Query database with Notion `filter` JSON |
+| `notion_create_database_item` | Create a row in a database |
+| `notion_update_database_item` | Update database row properties |
+| `notion_archive_database_item` | Archive a page (row) |
+| `notion_restore_database_item` | Unarchive a page |
+| `notion_find_page` | Search pages by title |
+| `notion_create_page` | Create a sub-page |
+| `notion_append_to_page` | Append blocks to a page |
+| `notion_get_page_or_block_children` | List block children |
+| `notion_add_comment` | Add a comment to a page |
+| `notion_get_page_comments` | List page comments |
+| `notion_custom_api_call` | Raw REST call |
+
+## Example
+
+Create a row when a workflow run finishes:
+
+```json
+{
+  "id": "log-run",
+  "type": "mcp_call",
+  "name": "Log run in Notion",
+  "tool_name": "notion_create_database_item",
+  "tool_args": {
+    "database_id": "your-database-uuid",
+    "properties_json": "{\"Name\":{\"title\":[{\"text\":{\"content\":\"Run {{input.run_id}}\"}}]},\"Status\":{\"select\":{\"name\":\"Complete\"}}}"
+  },
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `notion_access_token` | Yes | Internal integration token |
+| `notion_api_base` | No | API base (default `https://api.notion.com/v1`) |
+| `notion_notion_version` | No | Notion-Version header (default `2022-02-22`) |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `object_not_found` | Page or database not shared with the integration |
+| Invalid property JSON | Match property names and types from `notion_retrieve_database` |
+| Search returns empty | Integration only sees explicitly connected pages |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

@@ -1,0 +1,68 @@
+---
+title: Roles and permissions
+description: Project and tenant roles that control workflow, integration, and billing access in AgentRuntime.
+---
+
+AgentRuntime uses role-based access control (RBAC). Roles are assigned at the **tenant** (workspace) level and at the **project** level. Project roles govern most day-to-day Console and API access.
+
+## Project roles
+
+<CardGroup cols={3}>
+  <Card title="project_viewer" icon="eye">
+    Read workflows, runs, analytics, Autopilot chat, and work items. Cannot edit graphs, manage connections, or start runs.
+  </Card>
+  <Card title="project_contributor" icon="wrench">
+    Full builder access: create and edit workflows, run and control runs, manage connections and MCP instances, view billing usage.
+  </Card>
+  <Card title="project_admin" icon="shield">
+    Everything contributors can do, plus project member management and project-level configuration.
+  </Card>
+</CardGroup>
+
+### What each role can access
+
+| Capability | project_viewer | project_contributor | project_admin |
+|------------|:--------------:|:-------------------:|:-------------:|
+| View workflows and runs | ✓ | ✓ | ✓ |
+| Edit and publish workflows | | ✓ | ✓ |
+| Start, pause, stop runs | | ✓ | ✓ |
+| Complete human tasks | | ✓ | ✓ |
+| Manage connections and MCP | | ✓ | ✓ |
+| Configure LLM providers | | ✓ | ✓ |
+| View analytics and usage | ✓ | ✓ | ✓ |
+| Change billing plan | | | ✓ (tenant admin) |
+| Manage project members | | | ✓ |
+
+<Info>
+  Some API endpoints also require PAT scopes (for example, `workflow:run` or `mcp:execute`) in addition to the project role. See [API authentication](/api/authentication).
+</Info>
+
+## Tenant roles
+
+**tenant_admin** has full workspace access: all projects, billing, member invites, vault, domain verification, and workspace settings. Assign tenant admin sparingly.
+
+Members without tenant admin still participate in projects through their project roles.
+
+## Assigning project roles
+
+1. Open **Settings → Members** or the project's member list
+2. Find the member and select a project role
+3. Save changes
+
+Removing a project membership revokes access to that project's workflows, runs, and integrations.
+
+## API and PAT scopes
+
+When calling the API with a personal access token, both the user's project role and the token's scopes must allow the operation:
+
+| Scope | Allows |
+|-------|--------|
+| `workflow:read` | List and get workflows, runs, and events |
+| `workflow:run` | Start, pause, resume, and stop runs |
+| `mcp:execute` | Invoke MCP tools during workflow execution |
+
+Create PATs from **Settings → Access tokens** (or the PAT management page in your Console version).
+
+## Sysadmin access
+
+Internal AgentRuntime operators use a separate sysadmin login path. Sysadmin capabilities are not available to customer workspace members.

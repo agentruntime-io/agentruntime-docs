@@ -1,0 +1,59 @@
+---
+title: Autopilot and chat
+description: Use the Console copilot and chat threads alongside AgentRuntime workflows.
+---
+
+AgentRuntime provides two chat surfaces:
+
+- **Console Chat** (`/chat`) — Autopilot copilot with thread list and streaming responses
+- **Workspace chat** ([space.agentruntime.io](https://space.agentruntime.io)) — Team channels and agent rooms (separate app)
+
+This page covers Console Autopilot and how it relates to workflows.
+
+## Autopilot modes
+
+Autopilot is the AI assistant built into the Console. It streams responses in the Chat panel and can take actions on your behalf:
+
+| Mode | Behavior |
+|------|----------|
+| **Ask** | Answer questions about your workspace, workflows, and integrations |
+| **Autopilot** | Propose and execute actions — scaffold workflows, navigate to Studio, start runs |
+
+Autopilot uses your project context (tenant, project, role) and calls BFF endpoints at `/v1/autopilot/*`.
+
+## What Autopilot can do with workflows
+
+Today Autopilot supports workflow-oriented actions including:
+
+- **create_workflow** — Start a new workflow from a description
+- **scaffold_starter** — Generate a starter graph template
+- **run_workflow** — Start a run on an existing workflow
+- **Navigate** — Open Workflow Studio or Command Center
+
+Ask Autopilot to "create a workflow that emails a summary" or "run the daily report workflow" to use these actions.
+
+## Chat threads
+
+The Chat page lists conversation threads persisted per user and project. Messages stream over `/v1/autopilot/stream` with token-by-token delivery.
+
+Threads are separate from workflow runs, but messages can reference runs, workflows, and pending human tasks as the integration matures.
+
+## Platform agents
+
+**Agents** (sidebar, feature-flagged in some environments) are reusable agent definitions installed in your project. They participate in `dm` and `channel` rooms through the agent service — distinct from Autopilot.
+
+Platform agents run multi-turn loops with MCP tools and memory, orchestrated by agent-service rather than the workflow DAG engine.
+
+## Workspace chat (space)
+
+The team workspace at [space.agentruntime.io](https://space.agentruntime.io) provides Slack-shaped channels, Autopilot DM, threads, and workflow system cards. It uses the chat-service API and shares authentication with the Console via `.agentruntime.io` cookies.
+
+Use Console Chat for operator copilot tasks; use workspace chat for team coordination and agent room participation.
+
+## Memory (knowledge layer)
+
+AgentRuntime includes a memory layer for long-term knowledge — search, extraction, and episodic memory scoped by tenant and project. Memory tools are available to agents and workflow prepare-step hooks. Console memory UI may be feature-flagged; the APIs are available at `/v1/memory/*` for contributors.
+
+<Note>
+  Chat and Autopilot are actively evolving toward ChatGPT-style persistence with deeper workflow and Command Center integration. Workflow execution remains authoritative through Workflow Studio and the `/v1/workflows` API.
+</Note>

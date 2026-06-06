@@ -1,0 +1,80 @@
+---
+title: API authentication
+description: Sign in with email, Google OAuth, or personal access tokens for AgentRuntime APIs.
+---
+
+AgentRuntime supports multiple authentication methods depending on whether you use the Console, call the REST API, or connect an IDE through Platform MCP.
+
+## Console session (browser)
+
+Sign in at [console.agentruntime.io](https://console.agentruntime.io) with:
+
+- **Email and password** — Requires email verification for new accounts
+- **Google OAuth** — Sign in with Google or Google One Tap
+
+The BFF issues a session cookie scoped to `.agentruntime.io`. The Console refreshes tokens automatically.
+
+Password reset and change-password flows are at `/auth/forgot-password` and account settings.
+
+## Personal access tokens (PATs)
+
+PATs are the recommended method for scripts, CI pipelines, and Platform MCP.
+
+<Steps>
+  <Step title="Create a token">
+    In the Console, go to **Settings → API keys** (`/settings?tab=apiKeys`). Click **Create API key** and give the token a descriptive name.
+  </Step>
+  <Step title="Select scopes">
+    Choose the minimum scopes needed:
+
+    | Scope | Grants |
+    |-------|--------|
+    | `workflow:read` | List workflows, runs, events |
+    | `workflow:run` | Start and control runs |
+    | `mcp:execute` | Execute MCP tools in workflow runs |
+  </Step>
+  <Step title="Copy the token">
+    The token value is shown once. Store it in a secrets manager.
+  </Step>
+  <Step title="Call the API">
+    Send `Authorization: Bearer YOUR_PAT` on every request, plus `X-Tenant-Id` and `X-Project-Id` for scoped operations.
+  </Step>
+</Steps>
+
+```bash
+curl "https://api.agentruntime.io/v1/workflows" \
+  -H "Authorization: Bearer ar_pat_..." \
+  -H "X-Tenant-Id: acme" \
+  -H "X-Project-Id: prod"
+```
+
+PATs are validated against your user identity and project role. A PAT with `workflow:run` still requires **project_contributor** on the target project.
+
+## Platform MCP
+
+Connect Cursor or other MCP clients to:
+
+```
+https://mcp.agentruntime.io/mcp
+```
+
+Authenticate with the same PAT used for REST. Platform MCP tools wrap BFF operations — list workflows, trigger runs, manage resources — without crafting raw HTTP.
+
+## Google OAuth (API)
+
+Google OAuth for **user login** uses `/v1/auth/oauth/google/*`. This is separate from **Google connections** for Workspace MCP adapters (`/v1/connections/google/*`).
+
+## Inbound webhook signatures
+
+External systems triggering runs via [inbound webhooks](/integrations/inbound-webhooks) authenticate with HMAC signatures on the subscription secret — not PATs.
+
+## Security practices
+
+- Rotate PATs on a schedule and revoke unused tokens
+- Use the narrowest scopes that satisfy your automation
+- Never commit tokens to git or embed them in client-side code
+- Tenant admins can enforce domain verification and auth policy for workspace members
+
+<Warning>
+  If a PAT is exposed, revoke it immediately in the Console and create a new one. Audit recent runs and API activity for unauthorized use.
+</Warning>

@@ -1,0 +1,88 @@
+---
+title: ElevenLabs connector
+description: List voices and synthesize speech from text with ElevenLabs text-to-speech in AgentRuntime workflows.
+---
+
+The **elevenlabs** MCP adapter connects to the [ElevenLabs API](https://elevenlabs.io/docs). List available voices and convert text to MP3 audio — ideal for podcast snippets, IVR prompts, accessibility outputs, and voice-enabled agent responses.
+
+## Prerequisites
+
+- An ElevenLabs account with an **API key**
+- Character quota sufficient for your synthesis volume
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Get an ElevenLabs API key">
+    Sign in to [ElevenLabs](https://elevenlabs.io/) and copy your API key from profile settings.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  </Step>
+  <Step title="Add elevenlabs MCP instance">
+    Go to **MCP**, click **Add instance** for **elevenlabs**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Pick a voice">
+    Run **mcp_call** → `list_voices` and note the `voice_id` for your default narrator.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Daily audio brief** — LLM summarizes RSS or news → `text_to_speech` → store MP3 in cloud storage.
+- **Multilingual outreach** — Translate text step → `text_to_speech` with `eleven_multilingual_v2`.
+- **Workflow notifications** — Short spoken alert for ops team when a human_task is assigned.
+- **Content repurposing** — Blog post → LLM abridgment → audio clip for social distribution.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_voices` | List voices available to the API key |
+| `text_to_speech` | Synthesize speech from text; returns base64 MP3 |
+
+## Example
+
+Convert an LLM summary to audio:
+
+```json
+{
+  "id": "elevenlabs-tts",
+  "type": "mcp_call",
+  "name": "Synthesize briefing",
+  "tool_name": "text_to_speech",
+  "tool_args": {
+    "voice_id": "{{input.voice_id}}",
+    "text": "{{steps.llm-summary.result.text}}",
+    "model_id": "eleven_multilingual_v2"
+  },
+  "depends_on": ["llm-summary"],
+  "timeout_s": 60
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | ElevenLabs API key (xi-api-key header) |
+| `APIBase` | No | ElevenLabs API base URL |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Voice not found | Run `list_voices`; voice IDs differ from display names |
+| Quota exceeded | Check character usage in ElevenLabs dashboard; shorten text or upgrade plan |
+| Garbled or clipped audio | Split long text across multiple calls; respect model input limits |
+| Wrong language | Use `eleven_multilingual_v2` or a voice trained for the target language |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Vapi connector](/connectors/vapi) — voice assistants and telephony
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

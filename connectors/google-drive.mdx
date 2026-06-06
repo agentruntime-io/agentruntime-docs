@@ -1,0 +1,110 @@
+---
+title: Google Drive connector
+description: Search, upload, share, and organize Drive files from AgentRuntime workflows.
+---
+
+The **google-drive** MCP adapter wraps the [Google Drive API](https://developers.google.com/drive/api/reference/rest/v3). Use it in workflow **mcp_call** steps to search and list files, upload attachments, export Google Docs as PDF, manage permissions, and move or archive content across folders — including shared drives when enabled.
+
+## Prerequisites
+
+- A Google account with Google Drive access
+- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
+- **project_contributor** access in your workspace
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Connect Google">
+    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  </Step>
+  <Step title="Enable Drive">
+    On your Google connection, enable the **Drive** service so the account exposes Drive API scopes.
+  </Step>
+  <Step title="Add google-drive MCP instance">
+    Go to **MCP**, click **Add instance** for **google-drive**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  </Step>
+  <Step title="Test in a workflow">
+    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_files` on a known folder ID before production workflows.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Invoice archive** — **gmail** attachment webhook → `upload_file` to `Invoices/{{year}}` folder → **google-sheets** log file ID and vendor.
+- **Client deliverable handoff** — **google-docs** finished doc → `save_file_as_pdf` → `set_public_access` or `add_permission` for client email → notify via **gmail**.
+- **Shared drive janitor** — Schedule trigger → `search_files` for stale MIME types → `move_file` to archive folder → `trash_file` on duplicates after **human_task**.
+- **Backup mirror** — `list_files` with recursion → `read_file` → upload to **amazon-s3** or duplicate to backup folder with `duplicate_file`.
+
+## Tools
+
+### Search & read
+
+| Tool | Description |
+|------|-------------|
+| `search_files` | Search Google Drive files and folders by name, full text, or MIME type. |
+| `list_files` | List files in a Google Drive folder, with optional recursion into subfolders. |
+| `get_file_by_id` | Get Google Drive file or folder metadata by file ID. |
+| `read_file` | Read a Drive file and return base64 content, exporting Google Docs, Sheets, and Slides when needed. |
+| `save_file_as_pdf` | Export a Google document as PDF and save the PDF into Drive. |
+
+### Create & upload
+
+| Tool | Description |
+|------|-------------|
+| `create_folder` | Create an empty folder in Google Drive. |
+| `create_text_file` | Create a text file in Google Drive from inline text content. |
+| `upload_file` | Upload a base64-encoded file to Google Drive. |
+| `duplicate_file` | Copy a Google Drive file into a target folder. |
+
+### Permissions & sharing
+
+| Tool | Description |
+|------|-------------|
+| `add_permission` | Grant a Drive permission to a user on a file or folder. |
+| `delete_permission` | Remove a Drive permission from a file or folder. |
+| `set_public_access` | Make a Drive file or folder accessible to anyone with the link. |
+
+### Organize & delete
+
+| Tool | Description |
+|------|-------------|
+| `move_file` | Move a Drive file from its current parent folders to a new folder. |
+| `trash_file` | Move a Drive file to trash. |
+| `delete_file` | Permanently delete a Drive file without sending it to trash. |
+
+## Example
+
+Upload a generated report PDF to a client folder:
+
+```json
+{
+  "id": "upload-report",
+  "type": "mcp_call",
+  "name": "Upload report PDF",
+  "tool_name": "upload_file",
+  "tool_args": {
+    "file_name": "Q1-report-{{input.client_slug}}.pdf",
+    "file_base64": "{{steps.render-pdf.result.base64}}",
+    "mime_type": "application/pdf",
+    "parent_folder": "{{input.client_folder_id}}"
+  },
+  "depends_on": ["render-pdf"],
+  "timeout_s": 90
+}
+```
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Reconnect** prompt on Google connection | Re-authorize OAuth; Drive scopes may have been revoked |
+| File not found in shared drive | Set `include_team_drives: true` on search, list, and move operations |
+| `read_file` returns empty or wrong type | Google-native files are exported automatically; confirm the file ID and MIME type |
+| Permission denied on `move_file` | Caller needs writer access on source and destination; use `get_file_by_id` to verify parents |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Google Workspace setup](/integrations/google-workspace)
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

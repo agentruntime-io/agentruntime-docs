@@ -1,0 +1,89 @@
+---
+title: Vapi connector
+description: List and inspect Vapi voice assistants from AgentRuntime workflows.
+---
+
+The **vapi** MCP adapter connects to the [Vapi API](https://docs.vapi.ai/). Discover voice assistants configured in your Vapi account and retrieve full assistant configurations — useful for auditing prompts, syncing assistant metadata into internal docs, and orchestrating voice workflows alongside other connectors.
+
+## Prerequisites
+
+- A Vapi account with at least one configured assistant
+- A Vapi **private API key** (Bearer token)
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Get a Vapi API key">
+    Sign in to the [Vapi dashboard](https://dashboard.vapi.ai/) and copy your private API key from settings.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  </Step>
+  <Step title="Add vapi MCP instance">
+    Go to **MCP**, click **Add instance** for **vapi**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="List assistants">
+    Run **mcp_call** → `list_assistants` to confirm the key and see assistant IDs.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+<Note>
+  This adapter currently exposes read-only assistant discovery tools. Outbound call creation and live call control are configured in Vapi directly or via future adapter tools.
+</Note>
+
+## What you can build
+
+- **Assistant inventory** — Scheduled `list_assistants` → diff against expected list → alert on drift.
+- **Config documentation** — `get_assistant` → LLM summarizes model, voice, and tool settings → save to Notion.
+- **Pre-call validation** — Before a campaign, verify assistant ID and prompt version match release notes.
+- **Cross-system sync** — Export `raw_json` to internal config store for compliance review.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_assistants` | List voice assistants visible to the API key |
+| `get_assistant` | Full assistant configuration by ID (includes pretty-printed JSON) |
+
+## Example
+
+Fetch assistant configuration for audit logging:
+
+```json
+{
+  "id": "vapi-audit",
+  "type": "mcp_call",
+  "name": "Get Vapi assistant config",
+  "tool_name": "get_assistant",
+  "tool_args": {
+    "assistant_id": "{{input.assistant_id}}"
+  },
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | Vapi private API key (Bearer token) |
+| `APIBase` | No | Vapi API base URL |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401 Unauthorized` | Verify private key, not a publishable or webhook-only key |
+| Assistant not in list | Key may be scoped to a different Vapi org or project |
+| Empty `raw_json` | Check HTTP status in tool output; assistant ID may be invalid |
+| Timeout on get | Large assistant configs with many tools may need higher `timeout_s` |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [ElevenLabs connector](/connectors/elevenlabs) — text-to-speech synthesis
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

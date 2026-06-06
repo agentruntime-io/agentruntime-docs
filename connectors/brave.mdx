@@ -1,0 +1,92 @@
+---
+title: Brave Search connector
+description: Web, news, image, video, and local search plus AI summaries via the Brave Search API.
+---
+
+The **brave** MCP adapter connects to the [Brave Search API](https://brave.com/search/api/). Run privacy-focused web searches, fetch news and media results, look up local businesses, and generate AI summaries from search keys — useful for research, monitoring, and grounded agent responses.
+
+## Prerequisites
+
+- A Brave Search API subscription and **API key** (X-Subscription-Token)
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Subscribe to Brave Search API">
+    Sign up at [brave.com/search/api](https://brave.com/search/api/) and copy your subscription token from the dashboard.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  </Step>
+  <Step title="Add brave MCP instance">
+    Go to **MCP**, click **Add instance** for **brave**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Test web search">
+    Run **mcp_call** → `brave_web_search` with a simple query to confirm the token works.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **News digests** — `brave_news_search` with `freshness=pd` → LLM summarizes top stories → post to Slack or email.
+- **Research with summary** — `brave_web_search` with `summary=true` → pass summary key to `brave_summarizer` for inline citations.
+- **Local lead gen** — `brave_local_search` for businesses near a query → enrich with CRM connector.
+- **Media monitoring** — `brave_image_search` or `brave_video_search` for brand or product mentions.
+- **Filtered web search** — `result_filter`, `goggles`, and `freshness` for precise result sets.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `brave_web_search` | General web search; set `summary=true` to obtain a key for the summarizer |
+| `brave_summarizer` | AI summary from a prior web search summary key |
+| `brave_news_search` | News articles (defaults to past day when freshness omitted) |
+| `brave_local_search` | Local businesses and places with POI details |
+| `brave_image_search` | Image search results |
+| `brave_video_search` | Video search results |
+
+## Example
+
+Fetch today's news on a topic:
+
+```json
+{
+  "id": "brave-news",
+  "type": "mcp_call",
+  "name": "Fetch news",
+  "tool_name": "brave_news_search",
+  "tool_args": {
+    "query": "{{input.topic}}",
+    "count": 10,
+    "freshness": "pd",
+    "extra_snippets": true
+  },
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | Brave Search API subscription token |
+| `APIBase` | No | Brave Search API base URL |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `401` / invalid token | Verify subscription is active; key goes in `APIKey` as X-Subscription-Token |
+| Summarizer fails | Run `brave_web_search` with `summary=true` first; pass the returned key to `brave_summarizer` |
+| Empty local results | Query may be too broad; local search depends on Brave location data availability |
+| Unexpected result types | Use `result_filter` on web search to limit to `web`, `news`, `videos`, etc. |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Exa connector](/connectors/exa) — semantic web search
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

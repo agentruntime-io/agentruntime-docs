@@ -1,0 +1,85 @@
+---
+title: Resend connector
+description: Send transactional email and manage audiences from AgentRuntime workflows.
+---
+
+The **resend** MCP adapter integrates [Resend](https://resend.com) for reliable transactional email. Use it to notify users when workflows finish, send reports, and drive onboarding sequences — with a verified sender domain.
+
+## Prerequisites
+
+- A Resend account with a **verified domain** (or Resend's test domain for development)
+- A Resend **API key** with send permissions
+- A default **From** address on that verified domain
+- **project_contributor** access
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Verify your domain in Resend">
+    In the Resend dashboard, add DNS records for your sending domain and wait for verification.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections**, click **New custom connection**, and create an API key connection, and paste your Resend API key. Optionally set `FromEmail` in the connection or MCP config profile.
+  </Step>
+  <Step title="Add resend MCP instance">
+    Go to **MCP**, click **Add instance** for **resend**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Send a test email">
+    Run a workflow with **mcp_call** → `send_email` to yourself before wiring production notifications.
+  </Step>
+</Steps>
+
+## What you can build
+
+- **Workflow completion alerts** — After a run succeeds or fails, `send_email` with run ID, step summary, and a link to Command Center.
+- **Weekly digest** — Postgres `postgres_query` for metrics → LLM narrative → `send_email` to stakeholders.
+- **Human task reminders** — When a **human_task** is assigned, email the assignee with task title and due date.
+- **Audience sync reporting** — `list_audiences` to verify list IDs before syncing contacts from ActiveCampaign or a form webhook.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `send_email` | Send an email through Resend |
+| `list_audiences` | List audiences visible to the API key |
+
+## Example
+
+```json
+{
+  "id": "notify-complete",
+  "type": "mcp_call",
+  "name": "Email run summary",
+  "tool_name": "send_email",
+  "tool_args": {
+    "to": "ops@example.com",
+    "subject": "Workflow finished: {{input.workflow_name}}",
+    "html": "<p>Run <strong>{{input.run_id}}</strong> completed.</p>"
+  },
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | Resend API key |
+| `FromEmail` | Yes | Verified sender address (default From on `send_email`) |
+| `APIBase` | No | Resend API base URL (default production endpoint) |
+| `AudienceID` | No | Default audience for list/subscription tools |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Domain not verified | Complete DNS verification in Resend before sending to external addresses |
+| `403` on send | From address must use a verified domain; check `FromEmail` in config |
+| Emails in spam | Configure SPF, DKIM, and DMARC for your sending domain |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Gmail connector](/connectors/gmail) — send from a user's Google mailbox instead
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

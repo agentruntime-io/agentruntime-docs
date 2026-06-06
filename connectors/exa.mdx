@@ -1,0 +1,88 @@
+---
+title: Exa connector
+description: Semantic web search, similar-page discovery, and cited answers via the Exa API.
+---
+
+The **exa** MCP adapter connects to [Exa](https://exa.ai/) for neural and keyword web search. Find relevant pages, discover content similar to a URL, and get AI-generated answers with citations — ideal for research workflows and grounded agent responses.
+
+## Prerequisites
+
+- An Exa account with an API key
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Get an Exa API key">
+    Sign up at [exa.ai](https://exa.ai/) and copy your API key from the dashboard.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  </Step>
+  <Step title="Add exa MCP instance">
+    Go to **MCP**, click **Add instance** for **exa**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="Test search">
+    Run **mcp_call** → `exa_search` with a simple query to confirm connectivity.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+## What you can build
+
+- **Research briefs** — `exa_search` with `include_text=true` → LLM synthesizes findings → save to Notion or Google Docs.
+- **Competitive intel** — `exa_find_similar` on a competitor landing page → rank overlapping products.
+- **Q&A with citations** — `exa_answer` for user questions in Chat Autopilot → display answer plus source URLs.
+- **Deep research mode** — `exa_search` with `type=deep` for multi-hop investigation before human review.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `exa_search` | Web search with modes `auto`, `fast`, or `deep`; optional full page text |
+| `exa_find_similar` | Find pages semantically similar to a given URL |
+| `exa_answer` | AI-generated answer with cited web sources |
+
+## Example
+
+Search the web and pass results to an LLM step:
+
+```json
+{
+  "id": "exa-research",
+  "type": "mcp_call",
+  "name": "Research topic",
+  "tool_name": "exa_search",
+  "tool_args": {
+    "query": "{{input.topic}} market trends 2026",
+    "num_results": 8,
+    "type": "auto",
+    "include_text": true
+  },
+  "timeout_s": 45
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | Exa API key |
+| `APIBase` | No | Exa API base URL |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Empty results | Broaden query; try `type=deep` for niche topics |
+| Rate limits | Reduce `num_results` or add backoff between workflow runs |
+| Stale citations in `exa_answer` | Re-run search; Exa synthesizes from live index at query time |
+| High latency on deep search | Increase step `timeout_s`; deep mode takes longer than `fast` |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Brave connector](/connectors/brave) — alternative web search
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

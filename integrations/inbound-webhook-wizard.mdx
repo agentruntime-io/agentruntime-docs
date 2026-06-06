@@ -1,0 +1,100 @@
+---
+title: Inbound webhook wizard
+description: Step-by-step walkthrough for creating signed webhook subscriptions in Workflow Studio, Settings, and Autopilot Chat.
+---
+
+This page walks through the **Console UI** for inbound webhooks. For the security model, signature algorithm, and API reference, see [Inbound webhooks](/integrations/inbound-webhooks).
+
+## Before you start
+
+- A **saved workflow** in Workflow Studio (draft-only graphs cannot subscribe)
+- **project_contributor** role
+- At least one **API key** (PAT) under **Settings → API keys** — webhooks use this for `Authorization: Bearer pat_…` on ingress
+- `inbound_webhooks` enabled on your deployment (default **on**)
+
+## Path A — Workflow Studio (recommended)
+
+<Steps>
+  <Step title="Open the workflow">
+    Navigate to **Workflow Studio** at `/workflow/{workflow_id}` for the graph you want to trigger.
+  </Step>
+  <Step title="Open the Inbound tab">
+    In the workflow configuration panel, select **Inbound**. This tab lists subscriptions for **this workflow only**.
+  </Step>
+  <Step title="Name the subscription">
+    Enter a label (for example `shopify-fulfillment` or `weekly-cron`). Names appear in **Settings → Inbound webhooks** too.
+  </Step>
+  <Step title="Select automation API key">
+    Choose an existing key from the dropdown. Create one first under **Settings → API keys** if the list is empty.
+  </Step>
+  <Step title="Create">
+    Click create. A dialog shows the **signing secret** and **ingress URL** — copy both immediately.
+  </Step>
+  <Step title="Copy curl template">
+    Use the generated curl example to verify HMAC signing and PAT auth before wiring your external system.
+  </Step>
+</Steps>
+
+### PAT paste fallback
+
+If the BFF cannot read the PAT secret from Vault (legacy key, Vault unavailable, or `pat_secret_not_in_vault`), the UI prompts you to **paste the PAT secret once**. The plaintext is used only for subscription setup and is not shown again.
+
+This same fallback appears in Autopilot's wizard and matches the API's optional `automation_bearer` field.
+
+## Path B — Settings (workspace-wide)
+
+<Steps>
+  <Step title="Open Settings → Inbound webhooks">
+    Go to `/settings?tab=inboundWebhooks` for a workspace-wide list of all subscriptions.
+  </Step>
+  <Step title="Review and delete">
+    Use this view to audit subscriptions across workflows or remove unused hooks. Creation still requires a workflow context — use Workflow Studio or Autopilot for new subscriptions.
+  </Step>
+</Steps>
+
+## Path C — Autopilot Chat wizard
+
+When you ask Autopilot to trigger a workflow from external events, Chat may render an **Inbound webhook** card:
+
+<Steps>
+  <Step title="Open a saved workflow">
+    The wizard requires `workflow_id` from the workflow open in Studio. If missing, Autopilot shows: *"Open a saved workflow in Workflow Studio first."*
+  </Step>
+  <Step title="Fill the card">
+    Set **Label**, pick **Automation API key**, and click **Create webhook**.
+  </Step>
+  <Step title="Copy secrets from success state">
+    After creation, the card shows signing secret, ingress URL, and example curl — same as the Studio dialog.
+  </Step>
+</Steps>
+
+Ask in Chat: *"Create an inbound webhook for this workflow"* or *"I need a signed URL to trigger this graph from Shopify."*
+
+## After creation
+
+| Item | Notes |
+|------|-------|
+| **Signing secret** | Shown once. Store in your secrets manager. Used for `X-Agentruntime-Signature`. |
+| **Ingress URL** | Public POST target. Body becomes workflow `input`. |
+| **Automation PAT** | Must be sent on every ingress request. Tied to the subscription at create time. |
+
+Test with the curl template, then map your provider's webhook fields to workflow `input` (for example map `pull_request.number` → `pr_number`).
+
+## Example ingress request
+
+```bash
+curl -X POST 'https://api.agentruntime.io/v1/inbound-webhooks/{subscription_id}' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer pat_…' \
+  -H 'X-Agentruntime-Signature: sha256=<hmac-sha256 of raw body>' \
+  -d '{"order_id": "5678901234"}'
+```
+
+See [API examples — inbound webhooks](/api/examples#create-inbound-webhook-subscription) for programmatic create/list/delete.
+
+## Related
+
+- [Inbound webhooks](/integrations/inbound-webhooks) — security model and payload mapping
+- [API authentication](/api/authentication) — create PATs
+- [Guides](/guides/overview) — recipes that start with webhooks
+- [Workflow patterns](/workflows/patterns#inbound-webhook-triggers)

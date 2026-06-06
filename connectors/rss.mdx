@@ -1,0 +1,90 @@
+---
+title: RSS connector
+description: Fetch and parse RSS and Atom feeds from public URLs in AgentRuntime workflows.
+---
+
+The **rss** MCP adapter fetches and parses **RSS 2.0** and **Atom** feeds from public URLs. No OAuth or API keys are required for typical public feeds — pass feed URLs directly in workflow steps for news monitoring, content pipelines, and aggregation.
+
+## Prerequisites
+
+- Publicly reachable RSS or Atom feed URLs (HTTPS recommended)
+- **project_contributor** access in AgentRuntime
+- No API credentials required for standard public feeds
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Identify feed URLs">
+    Collect RSS or Atom URLs from blogs, YouTube channels, podcasts, or product changelogs. Most sites expose `/feed`, `/rss`, or `<link rel="alternate">` in HTML.
+  </Step>
+  <Step title="Create a connection (optional)">
+    On **Connections**, click **New custom connection** only if you want to customize `user_agent` or `request_timeout_seconds`. Many teams install the adapter with default settings and no secrets.
+  </Step>
+  <Step title="Add rss MCP instance">
+    Go to **MCP**, click **Add instance** for **rss**, wire a connection on **Instance config** if you created one, then set the profile **active**.
+  </Step>
+  <Step title="Test a feed">
+    Run **mcp_call** → `rss_fetch_items` with a known feed URL and `limit: 5`.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+<Note>
+  Feeds behind login walls or IP allowlists may fail unless you expose a public URL or proxy. This adapter does not store feed credentials.
+</Note>
+
+## What you can build
+
+- **Morning digest** — `rss_fetch_items_multi` on industry feeds → LLM summary → email or Slack (when available).
+- **Content pipeline** — New blog item → LLM rewrite → **human_task** → publish via LinkedIn or Google Docs connectors.
+- **Competitive monitoring** — Daily fetch → diff titles against Postgres history → alert on new product posts.
+- **Podcast/show notes** — Parse episode feeds → extract links → add to ClickUp content calendar.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `rss_fetch_items` | Fetch one feed URL; return normalized items sorted newest first |
+| `rss_fetch_items_multi` | Fetch multiple feeds in parallel; merge and sort newest first |
+
+## Example
+
+Fetch the five latest items from a blog feed:
+
+```json
+{
+  "id": "rss-fetch",
+  "type": "mcp_call",
+  "name": "Latest blog posts",
+  "tool_name": "rss_fetch_items",
+  "tool_args": {
+    "rss_feed_url": "https://example.com/blog/feed.xml",
+    "limit": 5
+  },
+  "timeout_s": 30
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `user_agent` | No | HTTP User-Agent for feed requests |
+| `request_timeout_seconds` | No | Per-feed HTTP timeout in seconds |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Parse errors | Confirm URL returns XML, not HTML error page; validate feed in a reader |
+| Empty items | Feed may be valid but stale; set `limit` to 0 to return all parsed entries |
+| Timeout | Increase `request_timeout_seconds` or workflow `timeout_s` for slow hosts |
+| SSL or redirect failures | Use canonical HTTPS feed URL; some sites redirect HTTP → HTTPS |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [YouTube connector](/connectors/youtube) — channel RSS via `youtube_list_channel_videos_rss`
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)

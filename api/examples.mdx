@@ -1,0 +1,424 @@
+---
+title: API examples
+description: Copy-paste request and response samples for common AgentRuntime REST operations.
+---
+
+These examples use the public BFF at **`https://api.agentruntime.io`**. Replace tenant slug, project ID, workflow UUIDs, and tokens with your values.
+
+All authenticated examples require:
+
+```bash
+export AR_API="https://api.agentruntime.io"
+export AR_TOKEN="pat_…"
+export AR_TENANT="your-workspace-slug"
+export AR_PROJECT="your-project-id"
+```
+
+```bash
+curl -sS "$AR_API/v1/workflows" \
+  -H "Authorization: Bearer $AR_TOKEN" \
+  -H "X-Tenant-Id: $AR_TENANT" \
+  -H "X-Project-Id: $AR_PROJECT"
+```
+
+See [API authentication](/api/authentication) for PAT scopes and session cookies.
+
+---
+
+## Create a workflow
+
+`POST /v1/workflows` — **project_contributor**
+
+**Request:**
+
+```json
+{
+  "name": "hello-mcp",
+  "description": "Smoke test",
+  "graph": {
+    "steps": [
+      {
+        "id": "ping",
+        "type": "lua_script",
+        "name": "Echo input",
+        "script": "return { message = 'ok', input = input }",
+        "timeout_s": 10
+      }
+    ]
+  }
+}
+```
+
+**Response** (`201`):
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "hello-mcp",
+  "description": "Smoke test",
+  "tenant_id": "your-workspace-slug",
+  "project_id": "your-project-id",
+  "status": "draft",
+  "graph": { "steps": ["…"] },
+  "created_at": "2026-06-06T12:00:00Z",
+  "updated_at": "2026-06-06T12:00:00Z"
+}
+```
+
+---
+
+## Publish a version
+
+`POST /v1/workflows/{id}/versions` — **project_contributor**
+
+**Request:**
+
+```json
+{
+  "changelog": "Initial publish"
+}
+```
+
+**Response** (`201`):
+
+```json
+{
+  "version": 1,
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "published_at": "2026-06-06T12:05:00Z",
+  "graph_snapshot": { "steps": ["…"] }
+}
+```
+
+Runs always execute a **published** snapshot, not draft edits.
+
+---
+
+## Start a run
+
+`POST /v1/workflows/{id}/command` — **project_contributor**
+
+**Request:**
+
+```json
+{
+  "command": "start",
+  "params": {
+    "customer_email": "alex@example.com",
+    "order_id": "12345"
+  }
+}
+```
+
+**Response** (`200`):
+
+```json
+{
+  "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "status": "running",
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "started_at": "2026-06-06T12:10:00Z"
+}
+```
+
+`params` become workflow **input** (`{{input.customer_email}}`, etc.).
+
+### Pause, resume, stop
+
+```json
+{ "command": "pause", "params": { "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7" } }
+```
+
+```json
+{ "command": "resume", "params": { "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7" } }
+```
+
+```json
+{ "command": "stop", "params": { "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "mode": "graceful" } }
+```
+
+---
+
+## Complete a human task
+
+`POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` — **project_contributor**
+
+**Approve only** (Console default):
+
+```json
+{
+  "approved": true
+}
+```
+
+**Approve with custom result fields:**
+
+```json
+{
+  "approved": true,
+  "result": {
+    "comment_body": "Edited review text posted to GitHub"
+  }
+}
+```
+
+**Response** (`200`):
+
+```json
+{
+  "status": "completed",
+  "task_id": "approve-review",
+  "approved": true
+}
+```
+
+See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
+
+---
+
+## Create inbound webhook subscription
+
+`POST /v1/inbound-webhooks` — **project_contributor**
+
+**Request** (Vault-backed PAT id):
+
+```json
+{
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "form-leads",
+  "automation_pat_id": "pat-wheelhouse-id"
+}
+```
+
+**Request** (paste bearer once):
+
+```json
+{
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "form-leads",
+  "automation_pat_id": "pat-wheelhouse-id",
+  "automation_bearer": "pat_…"
+}
+```
+
+**Response** (`201`):
+
+```json
+{
+  "subscription": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "tenant_id": "your-workspace-slug",
+    "project_id": "your-project-id",
+    "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "form-leads",
+    "enabled": true,
+    "created_at": "2026-06-06T12:00:00Z",
+    "updated_at": "2026-06-06T12:00:00Z"
+  },
+  "signing_secret": "whsec_…",
+  "ingress_url": "https://api.agentruntime.io/v1/inbound-webhooks/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "ingress_path": "/v1/inbound-webhooks/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+`signing_secret` is returned **once**. List endpoints never include secrets.
+
+### Public ingress (external sender)
+
+`POST /v1/inbound-webhooks/{subscription_id}` — **HMAC + Bearer PAT** (no session cookie)
+
+```bash
+BODY='{"email":"alex@example.com"}'
+SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$WHSEC" | sed 's/^.* //')
+curl -X POST "$AR_API/v1/inbound-webhooks/$SUBSCRIPTION_ID" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $AR_TOKEN" \
+  -H "X-Agentruntime-Signature: sha256=$SIG" \
+  -d "$BODY"
+```
+
+---
+
+## Workflow connection overrides
+
+`PUT /v1/workflows/{id}/connection-overrides` — **project_contributor** (API only — no Console panel)
+
+**Request:**
+
+```json
+{
+  "overrides": [
+    {
+      "instance_id": "mcp-instance-uuid",
+      "connection_id": "connection-uuid-for-prod"
+    }
+  ]
+}
+```
+
+**Response** (`200`):
+
+```json
+{
+  "status": "ok"
+}
+```
+
+**List:**
+
+```
+GET /v1/workflows/{id}/connection-overrides
+```
+
+```json
+{
+  "overrides": [
+    {
+      "instance_id": "mcp-instance-uuid",
+      "connection_id": "connection-uuid-for-prod"
+    }
+  ]
+}
+```
+
+---
+
+## Create a custom connection
+
+`POST /v1/connections` — **project_contributor**
+
+**Request:**
+
+```json
+{
+  "display_name": "GitHub CI",
+  "provider": "custom",
+  "service": "api_key",
+  "credentials": {
+    "api_key": "ghp_…"
+  }
+}
+```
+
+**Response** (`201`):
+
+```json
+{
+  "id": "conn-uuid",
+  "name": "GitHub CI",
+  "provider": "custom",
+  "service": "api_key",
+  "status": "active",
+  "credential_keys": ["api_key"]
+}
+```
+
+Secrets are stored in Vault; list/get responses do not return plaintext values.
+
+---
+
+## Register a custom MCP server
+
+`POST /v1/mcp/servers` — **project_contributor**
+
+**Request:**
+
+```json
+{
+  "name": "Internal tools",
+  "canonical_url": "https://tools.example.com/mcp",
+  "mode": "third_party",
+  "auth_mode": "token"
+}
+```
+
+**Response** (`201`):
+
+```json
+{
+  "id": "server-uuid",
+  "name": "Internal tools",
+  "service": "internal_tools",
+  "canonical_url": "https://tools.example.com/mcp",
+  "status": "draft",
+  "auth_mode": "token",
+  "tool_count": 0
+}
+```
+
+Follow with discover → publish version → validate → `POST /v1/mcp/instances`. See [Custom MCP servers](/integrations/custom-mcp-servers).
+
+---
+
+## Create a PAT
+
+`POST /v1/pats` — **project_contributor**
+
+**Request:**
+
+```json
+{
+  "display_name": "CI deploy",
+  "scopes": ["workflow:read", "workflow:run"]
+}
+```
+
+**Response** (`201`):
+
+```json
+{
+  "id": "pat-metadata-id",
+  "display_name": "CI deploy",
+  "token": "pat_…",
+  "scopes": ["workflow:read", "workflow:run"],
+  "created_at": "2026-06-06T12:00:00Z"
+}
+```
+
+`token` is shown **once**. Create keys in the Console under **Settings → API keys**.
+
+---
+
+## Billing usage snapshot
+
+`GET /v1/billing/usage` — **project_contributor**
+
+**Response** (`200`):
+
+```json
+{
+  "trial_remaining": 2000000,
+  "included_remaining": 10000000,
+  "payg_remaining": 5000000,
+  "total_remaining_microcredits": 17000000
+}
+```
+
+Values are **microcredits** (1 credit = 1,000,000 microcredits). See [Billing and credits](/platform/billing-and-credits).
+
+---
+
+## Error responses
+
+Most endpoints return JSON errors:
+
+```json
+{
+  "error": "invalid request body"
+}
+```
+
+| Status | Meaning |
+|--------|---------|
+| `401` | Missing or invalid auth |
+| `403` | Role or scope insufficient |
+| `404` | Resource or feature not found |
+| `503` | Dependency unavailable (Vault, inbound PAT resolution, analytics) |
+
+---
+
+## Related
+
+- [API reference](/api/reference) — full endpoint tables
+- [API authentication](/api/authentication)
+- [Platform MCP](/api/platform-mcp)

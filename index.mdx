@@ -1,51 +1,78 @@
 ---
-title: Home
-description: Everything you need to set up, configure, and get the most out of Platform, Analytics, and Integrations tools.
+title: AgentRuntime Docs
+description: Design, run, and observe production AI agent workflows with MCP integrations, human approvals, and real-time observability.
 mode: frame
 ---
 
 <div data-product-guide-index className="flex w-full flex-col gap-8 max-w-5xl mx-auto px-4 md:px-8 lg:px-12 py-10 lg:gap-14 lg:py-16">
   <div className="flex max-w-[540px] flex-col gap-2 self-center text-center">
     <h1 className="text-[30px] font-medium leading-9 tracking-tight text-gray-900 dark:text-gray-50">
-      Product Guide
+      AgentRuntime Docs
     </h1>
     <p className="text-balance text-base leading-relaxed tracking-tight text-gray-600 dark:text-gray-400">
-      Everything you need to set up, configure, and get the most out of Platform, Analytics, and Integrations tools.
+      Stop experimenting. Put your agents to work. Learn how to design workflows, connect tools via MCP, run agents reliably, and govern access across your workspace.
     </p>
   </div>
 
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
     <Card
-      title={<span className="product-guide-feature-card-title">Platform overview</span>}
-      icon="chart-no-axes-gantt"
-      href="/platform"
+      title={<span className="product-guide-feature-card-title">What is AgentRuntime?</span>}
+      icon="layers"
+      href="/introduction/what-is-agentruntime"
       className="product-guide-feature-card"
       size={64}
     >
-      <span className="product-guide-feature-card-description">Setup, configure, and manage your workspace.</span>
+      <span className="product-guide-feature-card-description">The platform model — workspaces, workflows, runs, MCP, and agents.</span>
     </Card>
 
     <a
-      href="/analytics"
+      href="/platform/quickstart"
       className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
     >
-      <Icon icon="chart-column" color="rgb(var(--primary))" size={18} className="shrink-0" />
+      <Icon icon="rocket" color="rgb(var(--primary))" size={18} className="shrink-0" />
       <div className="flex flex-col gap-1">
-        <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Analytics</span>
+        <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Quickstart</span>
         <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          Build, report, and visualize your data.
+          Create a workspace, connect a tool, and run your first workflow in the Console.
         </span>
       </div>
     </a>
+
     <a
-      href="/integrations"
+      href="/workflows/studio"
       className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
     >
-      <Icon icon="code-xml" color="rgb(var(--primary))" size={18} className="shrink-0" />
+      <Icon icon="workflow" color="rgb(var(--primary))" size={18} className="shrink-0" />
       <div className="flex flex-col gap-1">
-        <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Integrations</span>
+        <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Workflow Studio</span>
         <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          Ready-to-use connectors for common platforms and flexible webhooks.
+          Author DAG workflows, validate before deploy, and stream live run events.
+        </span>
+      </div>
+    </a>
+
+    <a
+      href="/integrations/connector-catalog"
+      className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
+    >
+      <Icon icon="plug" color="rgb(var(--primary))" size={18} className="shrink-0" />
+      <div className="flex flex-col gap-1">
+        <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Connector catalog</span>
+        <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+          40+ MCP adapters for Google Workspace, databases, commerce, and more.
+        </span>
+      </div>
+    </a>
+
+    <a
+      href="/guides/overview"
+      className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
+    >
+      <Icon icon="book-open" color="rgb(var(--primary))" size={18} className="shrink-0" />
+      <div className="flex flex-col gap-1">
+        <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">End-to-end guides</span>
+        <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+          Full recipes — webhook to database to email, Shopify to WhatsApp, PR review, and more.
         </span>
       </div>
     </a>
@@ -58,74 +85,92 @@ mode: frame
 
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <a
-        href="/platform/configuration/user-management"
+        href="/integrations/connections"
         className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
       >
-        <Icon icon="users" color="rgb(var(--primary))" size={18} className="shrink-0" />
+        <Icon icon="cable" color="rgb(var(--primary))" size={18} className="shrink-0" />
         <div className="flex flex-col gap-1">
-          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Manage your team</span>
+          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Connect Google or WhatsApp</span>
           <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-            Add members, assign roles, and control access across your workspace.
+            Save OAuth credentials and bind them to MCP instances in your project.
           </span>
         </div>
       </a>
+
       <a
-        href="/analytics/connect-data"
+        href="/workflows/command-center"
         className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
       >
-        <Icon icon="database" color="rgb(var(--primary))" size={18} className="shrink-0" />
+        <Icon icon="inbox" color="rgb(var(--primary))" size={18} className="shrink-0" />
         <div className="flex flex-col gap-1">
-          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Connect a data source</span>
+          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Open Command Center</span>
           <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-            Link a database, data warehouse, or third-party data provider.
+            Approve tasks, pause or stop runs, and triage recent failures.
           </span>
         </div>
       </a>
+
       <a
-        href="/integrations/connectors/crm"
+        href="/ai/llm-providers"
         className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
       >
-        <Icon icon="building-2" color="rgb(var(--primary))" size={18} className="shrink-0" />
+        <Icon icon="brain" color="rgb(var(--primary))" size={18} className="shrink-0" />
         <div className="flex flex-col gap-1">
-          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Connect your CRM</span>
+          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Configure LLM providers</span>
           <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-            Sync your CRM through native connectors or a custom strategy.
+            Add tenant API keys and pick models for workflow LLM steps.
           </span>
         </div>
       </a>
+
       <a
-        href="/analytics/dashboards/create-dashboard"
+        href="/api/platform-mcp"
         className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
       >
-        <Icon icon="layout-dashboard" color="rgb(var(--primary))" size={18} className="shrink-0" />
+        <Icon icon="key-round" color="rgb(var(--primary))" size={18} className="shrink-0" />
         <div className="flex flex-col gap-1">
-          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Build a dashboard</span>
+          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Connect your IDE via Platform MCP</span>
           <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-            Add charts, set filters, and share a live dashboard.
+            Drive workflows and runs from Cursor with a PAT and mcp.agentruntime.io.
           </span>
         </div>
       </a>
+
       <a
-        href="/integrations/webhooks/configure"
+        href="/platform/billing-and-credits"
+        className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
+      >
+        <Icon icon="credit-card" color="rgb(var(--primary))" size={18} className="shrink-0" />
+        <div className="flex flex-col gap-1">
+          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Understand billing and credits</span>
+          <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+            Plans, trials, PAYG top-ups, and what actions consume credits.
+          </span>
+        </div>
+      </a>
+
+      <a
+        href="/workflows/runs-and-command-center"
+        className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
+      >
+        <Icon icon="inbox" color="rgb(var(--primary))" size={18} className="shrink-0" />
+        <div className="flex flex-col gap-1">
+          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Monitor runs</span>
+          <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+            Track live runs, success rates, and credits from Analytics and Command Center.
+          </span>
+        </div>
+      </a>
+
+      <a
+        href="/integrations/inbound-webhooks"
         className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
       >
         <Icon icon="webhook" color="rgb(var(--primary))" size={18} className="shrink-0" />
         <div className="flex flex-col gap-1">
-          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Set up a webhook</span>
+          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Trigger workflows from webhooks</span>
           <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-            Subscribe to events and route them to any endpoint.
-          </span>
-        </div>
-      </a>
-      <a
-        href="/analytics/reports/scheduled-reports"
-        className="rounded-2xl flex flex-col gap-4 border bg-gray-50 p-4 outline-none shadow-sm shadow-gray-950/5 transition hover:border-primary hover:shadow-md dark:bg-gray-950 dark:shadow-black/20 dark:hover:border-primary"
-      >
-        <Icon icon="calendar-clock" color="rgb(var(--primary))" size={18} className="shrink-0" />
-        <div className="flex flex-col gap-1">
-          <span className="font-serif text-base font-medium text-gray-900 dark:text-gray-50">Schedule a report</span>
-          <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-            Send recurring snapshots via email or Slack.
+            Start runs from external systems via signed inbound webhook subscriptions.
           </span>
         </div>
       </a>

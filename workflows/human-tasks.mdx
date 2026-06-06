@@ -1,0 +1,98 @@
+---
+title: Human tasks
+description: Add approval gates and human-in-the-loop pauses to AgentRuntime workflows.
+---
+
+**Human tasks** let you pause a workflow until a person reviews, approves, rejects, or edits data. They are essential for production agents that take real-world actions — sending emails, updating CRM records, or processing payments.
+
+## How human tasks work
+
+1. A workflow reaches a `human_task` step
+2. The run **pauses** and creates a pending task with the `task_payload` you defined
+3. The task appears in **Command Center** and in per-run task lists
+4. A project contributor **completes** the task (approve, reject, or submit edits)
+5. The run **resumes** with the completion result available to downstream steps
+
+## Authoring a human task step
+
+Add a step with `type: "human_task"`:
+
+| Field | Description |
+|-------|-------------|
+| `task_type` | Category such as `approval` or `edit` |
+| `task_payload` | JSON shown in the UI — title, description, fields to review, optional editable values |
+
+Keep payloads concise. Include enough context for a reviewer to decide without opening external systems.
+
+## Completing tasks in the Console
+
+See the [Command Center guide](/workflows/command-center) for the full operator inbox.
+
+<Steps>
+  <Step title="Open Command Center">
+    Go to **Command Center** in the sidebar. Pending tasks are listed with workflow name, run ID, and task title.
+  </Step>
+  <Step title="Review the payload">
+    Open the task to see the data the workflow paused on — draft email, proposed CRM update, generated summary, etc.
+  </Step>
+  <Step title="Approve or reject">
+    Click **Approve** to continue the run with an approval result, or **Reject** to stop the branch with a rejection result. Some task types allow editing fields before submission.
+  </Step>
+</Steps>
+
+You can also complete tasks from Workflow Studio's run panel when viewing an active run.
+
+## What downstream steps receive
+
+When a task completes, the `human_task` step result is a JSON object:
+
+| Field | Always present | Description |
+|-------|----------------|-------------|
+| `approved` | Yes | `true` if approved, `false` if rejected |
+
+The Console **Approve** and **Reject** buttons send only `{ "approved": true }` or `{ "approved": false }`. They do **not** rename or edit draft fields automatically.
+
+To pass edited text to downstream steps, either:
+
+- Reference the **upstream LLM/MCP step** that produced the draft (for example `{{steps.draft-review.result.text}}`) and gate with `condition: "{{steps.approve-review.result.approved}}"`
+- Complete the task via API with an optional `result` object (merged into the step result alongside `approved`)
+
+Example API body with edits:
+
+```json
+{
+  "approved": true,
+  "result": {
+    "comment_body": "Edited review text posted to GitHub."
+  }
+}
+```
+
+Downstream templates would use `{{steps.approve-review.result.comment_body}}`.
+
+## API completion
+
+Automate or integrate approvals via the API:
+
+```
+POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete
+```
+
+Requires **project_contributor** and workflow run scopes on your PAT.
+
+List pending tasks:
+
+- Per run: `GET /v1/workflows/{id}/runs/{runID}/tasks/pending`
+- Tenant inbox: `GET /v1/tasks/pending`
+
+## Design patterns
+
+| Pattern | When to use |
+|---------|-------------|
+| **Approve before send** | LLM drafts content; human approves before an MCP email/send step |
+| **Escalation** | Low-confidence LLM output routes to human review via a `condition` + `human_task` branch |
+| **Data correction** | Human edits extracted fields before downstream MCP writes |
+
+<Warning>
+  Runs paused on human tasks hold worker resources. Set timeouts on preceding steps and monitor Command Center so approvals do not stall production runs.
+</Warning>

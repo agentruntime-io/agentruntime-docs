@@ -1,0 +1,100 @@
+---
+title: Cursor connector
+description: Launch and manage Cursor cloud agents on GitHub repositories from AgentRuntime workflows.
+---
+
+The **cursor** MCP adapter connects to the [Cursor Cloud Agents API](https://docs.cursor.com/). Launch coding agents against GitHub repos, monitor progress, send follow-up instructions, and optionally auto-open pull requests — useful for delegating implementation work from Workflow Studio or Chat Autopilot.
+
+## Prerequisites
+
+- A Cursor account with Cloud Agents enabled
+- A Cursor **user API key** from account settings
+- GitHub repositories the Cursor GitHub App can access (or use `open_as_cursor_github_app`)
+- **project_contributor** access in AgentRuntime
+
+## Connect in AgentRuntime
+
+<Steps>
+  <Step title="Create a Cursor API key">
+    In Cursor, open **Settings → API** and generate a user API key. Store it securely — treat it like a password.
+  </Step>
+  <Step title="Create a connection">
+    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`. Set `APIBase` only if Cursor provides a non-default endpoint.
+  </Step>
+  <Step title="Add cursor MCP instance">
+    Go to **MCP**, click **Add instance** for **cursor**, wire your connection on **Instance config**, set the profile **active**, and save.
+  </Step>
+  <Step title="List existing agents">
+    Run **mcp_call** → `list_agents` to confirm the key works before launching production agents.
+  </Step>
+</Steps>
+
+See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+
+<Note>
+  Cloud agents run on Cursor infrastructure and modify GitHub repositories. Use **human_task** approval before `launch_agent` in production repos.
+</Note>
+
+## What you can build
+
+- **Bug-fix delegation** — Issue triage LLM step → `launch_agent` with repro steps and target repo → poll `find_agent_status` → notify on PR creation.
+- **Refactor batches** — Scheduled workflow launches agents per module with `branch_name` and `auto_create_pr`.
+- **Follow-up loops** — Initial agent run → review output → `add_followup_instruction` with corrections.
+- **Agent housekeeping** — `list_agents` → `delete_agent` for stale or failed runs.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `launch_agent` | Start a cloud agent on a GitHub repo with prompt, ref, and optional PR settings |
+| `find_agent_status` | Get status and details for an agent by ID |
+| `list_agents` | List cloud agents with pagination |
+| `add_followup_instruction` | Send additional instructions to a running or completed agent |
+| `delete_agent` | Permanently delete a cloud agent |
+
+## Example
+
+Launch an agent to implement a feature from a workflow input:
+
+```json
+{
+  "id": "cursor-agent",
+  "type": "mcp_call",
+  "name": "Launch Cursor agent",
+  "tool_name": "launch_agent",
+  "tool_args": {
+    "repository": "my-org/my-repo",
+    "ref": "main",
+    "prompt": {
+      "text": "Implement the feature described below:\n\n{{input.spec}}"
+    },
+    "auto_create_pr": true,
+    "branch_name": "agent/{{input.ticket_id}}"
+  },
+  "depends_on": ["human-approve"],
+  "timeout_s": 120
+}
+```
+
+## Configuration
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `APIKey` | Yes | Cursor user API key |
+| `APIBase` | No | Cursor API base URL |
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Agent cannot access repo | Install Cursor GitHub App on the org/repo or set `open_as_cursor_github_app` |
+| Webhook signature errors | `webhook_secret` must be at least 32 characters when set |
+| Agent stuck in pending | Poll `find_agent_status`; check Cursor dashboard for quota or repo errors |
+| PR not created | Confirm `auto_create_pr` is true and the agent completed successfully |
+
+## Related
+
+- [Integrations quickstart](/integrations/quickstart)
+- [Human tasks](/workflows/human-tasks) — approval before launching agents
+- [Connector catalog](/integrations/connector-catalog)
+- [Troubleshooting](/platform/troubleshooting)
