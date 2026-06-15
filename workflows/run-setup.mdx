@@ -1,0 +1,98 @@
+---
+title: Run setup and start input
+description: Configure shared trigger_payload, per-step overrides, and saved Run setup defaults in Workflow Studio.
+---
+
+**Run setup** is how you choose **what input a workflow run starts with** — before any step executes. In Workflow Studio, open **Workflow configuration → Trigger**.
+
+<Note>
+  Run setup is separate from the canvas graph. Saving Run setup defaults does **not** auto-save step wiring on the canvas.
+</Note>
+
+## Three layers (do not confuse)
+
+| Layer | Where | What |
+|-------|--------|------|
+| **Graph step config** | Canvas nodes | Authored `prompt`, `tool_args`, Lua `script`, etc. |
+| **Input schema** | Published workflow version | Field **definitions** for `{{input.*}}` (no values) |
+| **Run setup** | Workflow configuration → Trigger | **Start values** for this run (and optional saved defaults) |
+
+At run start, Studio sends `trigger_payload` + `trigger_steps` to the runtime. Steps resolve templates like `{{input.topic}}` from that data.
+
+## Shared input (`trigger_payload`)
+
+Most workflows only need **Shared input** — workflow-wide values referenced as `{{input.*}}` in step templates.
+
+<Note>
+  If you have not published an **input schema**, Studio offers optional fields **message**, **topic**, and **data**. Use **Define input schema at publish** (under Shared input) to open version history on the publish form and add required fields.
+</Note>
+
+When you **have** published an input schema, those fields drive Run setup validation and appear in [template intellisense](/workflows/template-intellisense).
+
+Example fields after you publish an input schema:
+
+- `topic` → `{{input.topic}}`
+- `message` → `{{input.message}}`
+
+## Per-step overrides (`trigger_steps`)
+
+Optional. Use when a specific entry step needs different start values than the shared payload.
+
+Per-step forms use each step's **catalog / MCP input schema** when available. If the canvas already defines a value (for example **prompt** on an Agent Call), Run setup treats that field as satisfied — you only need an override when you want different start data than the graph.
+
+```json
+{
+  "trigger_payload": { "topic": "digest" },
+  "trigger_steps": {
+    "uuid-of-root-step": { "prompt": "override for this step only" }
+  }
+}
+```
+
+Per-step keys map to `run.input._steps.<stepId>.*` at runtime (engine overlay on canvas defaults).
+
+## Start steps
+
+Pick which steps receive starting input:
+
+- **Entry steps** — graph roots; run automatically at t=0.
+- **Optional steps** (`no_auto_start`) — only run if you select them in Run setup.
+
+## Save defaults
+
+Click **Save defaults** to persist the current Run setup on the workflow **version** (`run_setup_json`):
+
+- `trigger_step_ids`
+- `trigger_payload`
+- `trigger_steps`
+
+Defaults reload when you reopen the workflow. **Publish** copies the current Run setup snapshot to the new published version.
+
+Expand **Start params preview** at the bottom of the Trigger tab to see the JSON Studio will send (`trigger_payload` and `trigger_steps`).
+
+Studio **Run** / **Dry-run** always uses in-session values (no `use_run_setup_defaults` flag).
+
+## API and external triggers
+
+**API / PAT** starts use saved defaults only when you pass:
+
+```json
+{
+  "command": "start",
+  "params": {
+    "use_run_setup_defaults": true,
+    "trigger_payload": { "topic": "weekly" }
+  }
+}
+```
+
+Caller params win on key conflicts. Without the flag, only `trigger_payload` / `trigger_steps` in the request apply.
+
+**Inbound webhooks** and **cron** follow the same rule — saved Run setup merges only when subscription/trigger extras (webhooks) or `config` (cron) sets `use_run_setup_defaults: true`. See [External triggers](/workflows/external-triggers).
+
+## Related
+
+- [Workflow Studio](/workflows/studio) — authoring loop
+- [Template intellisense](/workflows/template-intellisense) — `{{input.*}}` and `{{steps.*}}`
+- [Inbound webhooks](/integrations/inbound-webhooks) — signed ingress
+- [External triggers](/workflows/external-triggers) — webhook config and cron (platform wiring)

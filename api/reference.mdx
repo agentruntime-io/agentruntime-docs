@@ -57,7 +57,7 @@ Base path: `/v1/workflows`
 | `GET` | `/v1/workflows` | viewer+ | List workflows |
 | `POST` | `/v1/workflows` | contributor+ | Create workflow |
 | `GET` | `/v1/workflows/{id}` | viewer+ | Get workflow |
-| `PATCH` | `/v1/workflows/{id}` | contributor+ | Update draft graph |
+| `PATCH` | `/v1/workflows/{id}` | contributor+ | Update draft graph or **run_setup** (Save defaults) |
 | `DELETE` | `/v1/workflows/{id}` | contributor+ | Archive workflow |
 | `POST` | `/v1/workflows/{id}/versions` | contributor+ | Publish version |
 | `GET` | `/v1/workflows/{id}/versions` | viewer+ | List versions |
@@ -74,14 +74,26 @@ Base path: `/v1/workflows`
 {
   "command": "start",
   "params": {
-    "owner": "your-org",
-    "repo": "your-repo",
-    "pr_number": 42
+    "trigger_type": "api",
+    "trigger_payload": {
+      "topic": "weekly digest",
+      "message": "Hello"
+    },
+    "trigger_steps": {
+      "step-uuid-optional": { "prompt": "per-step override" }
+    },
+    "use_run_setup_defaults": false
   }
 }
 ```
 
-`params` become workflow **input** (`{{input.*}}` in steps).
+| Param | Description |
+|-------|-------------|
+| `trigger_payload` | Global shared input → `{{input.*}}` |
+| `trigger_steps` | Per-step map (optional overrides / gated entry grants) |
+| `use_run_setup_defaults` | When `true`, merge saved Studio defaults from the workflow version; **request keys win** on conflicts. Default `false`. |
+
+`params` become workflow **input** (`{{input.*}}` in steps). See [Run setup](/workflows/run-setup).
 
 | `command` | `params` | Effect |
 |-----------|----------|--------|
@@ -122,6 +134,31 @@ Complete task body:
 ```
 
 The human task step result always includes `approved`. The Console Approve/Reject buttons send only `{ "approved": true|false }`. See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
+
+### Run event types {#run-event-types}
+
+Persisted on `GET /v1/workflows/{id}/runs/{runID}/events`. See also [Runs and Command Center — Failure handling](/workflows/runs-and-command-center#failure-handling).
+
+| `event_type` | Description |
+|--------------|-------------|
+| `step_started` | Step began |
+| `step_completed` | Step succeeded, or synthetic skip (`data.skipped: true`) |
+| `step_failed` | Step error; run may transition to `failed` |
+| `step_cancelled` | Step was in flight when another step failed the run |
+| `state_changed` | Run status transition |
+| `run_started` / `run_rejected` | Run lifecycle |
+
+**Skip reasons** on `step_completed` when `skipped: true`:
+
+| `reason` | Meaning |
+|----------|---------|
+| `blocked` | Run failed before this step started |
+| `out_of_scope` | Episode mode — step outside scope |
+| `step_disabled` | Step disabled in graph |
+
+**Cancelled step** (`step_cancelled`): `data.cancelled: true`, `data.reason: "run_failed"`, optional `caused_by_step_id`.
+
+See [Runs and Command Center — Failure handling](/workflows/runs-and-command-center#failure-handling) for Console badges.
 
 ---
 
@@ -255,7 +292,7 @@ Base path: `/v1/billing`
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
 | `GET` | `/v1/billing/summary` | contributor+ | Tenant/project summary |
-| `GET` | `/v1/billing/plans` | contributor+ | Plan catalog (Stripe-synced) |
+| `GET` | `/v1/billing/plans` | contributor+ | Plan catalog for this deployment's `product_code` (Stripe-synced) |
 | `GET` | `/v1/billing/status` | contributor+ | Subscription and trial status |
 | `GET` | `/v1/billing/usage` | contributor+ | Credit balances (microcredits) |
 | `GET` | `/v1/billing/usage-dimensions` | viewer+ | Usage breakdown dimensions |
@@ -273,7 +310,9 @@ Base path: `/v1/billing`
 
 `GET /v1/config/stripe` — publishable Stripe config for Console checkout.
 
-See [Billing and credits](/platform/billing-and-credits).
+`GET /v1/billing/plans` returns tiers for the BFF's configured product (AgentRuntime Console → `agentruntime`). Catalog rows are keyed by `(product_code, plan_code)` in Wheelhouse; the public response surfaces `plan_code` and pricing fields. See [Multi-product billing](/platform/multi-product-billing).
+
+See [Billing and credits](/platform/billing-and-credits) and [API examples](/api/examples).
 
 ---
 

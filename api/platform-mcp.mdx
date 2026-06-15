@@ -52,7 +52,7 @@ Tools are organized into groups. Production deployments may disable sensitive gr
 
 | Group | Tools | Risk level |
 |-------|-------|------------|
-| **core** | Workflows, runs, analytics, health | Standard |
+| **core** | Workflows, runs, human tasks, analytics, health | Standard |
 | **catalog** | `catalog_bff_request` — generic `/v1/mcp/*` passthrough | Standard |
 | **memory** | Search, episodes, propose/confirm items | Standard |
 | **chat** | List conversations, send messages | Standard |
@@ -75,11 +75,24 @@ Tools marked **risk** return secrets (vault values, PAT plaintext, webhook signi
 | `workflows_patch` | `PATCH /v1/workflows/{id}` | Update draft |
 | `workflows_publish_version` | `POST /v1/workflows/{id}/versions` | Publish |
 | `workflows_validate` | `POST /v1/workflows/{id}/validate` | Dry-run |
-| `workflows_execute_command` | `POST /v1/workflows/{id}/command` | Start/pause/resume/stop |
-| `workflows_list_runs` | `GET /v1/workflows/{id}/runs` | List runs |
+| `workflows_execute_command` | `POST /v1/workflows/{id}/command` | Start/pause/resume/stop; response includes `run_id` (optional client `run_id` on start) |
+| `workflows_list_runs` | `GET /v1/workflows/{id}/runs` | List runs (use when `run_id` is unknown) |
+| `runs_get_summary` | `GET /v1/workflows/{id}/runs/{run_id}/summary` | Preferred run status read (`orchestration_phase`, `session_id`, `run_complete`) |
 | `runs_list_tenant` | `GET /v1/runs` | Tenant run feed |
 | `runs_list_events` | `GET /v1/workflows/{id}/runs/{run_id}/events` | Event log |
 | `runs_get_context` | `GET /v1/workflows/{id}/runs/{run_id}/context` | Run variables |
+
+## Human task tools (approvals)
+
+Runs blocked on a `human_task` step stay **`running`** until a task is completed. Use these tools instead of inferring state from run events alone.
+
+| Tool | BFF endpoint | Purpose |
+|------|--------------|---------|
+| `tasks_list_pending` | `GET /v1/tasks/pending` | Tenant-wide approval inbox |
+| `tasks_list_pending_run` | `GET /v1/workflows/{id}/runs/{run_id}/tasks/pending` | Pending tasks for one run |
+| `tasks_complete` | `POST /v1/workflows/{id}/runs/{run_id}/tasks/{task_id}/complete` | Approve or reject (`approved: true\|false`) |
+
+After `workflows_execute_command`, save `run_id` from the response and poll `runs_get_summary` until the run completes, fails, or blocks. Call `tasks_list_pending_run` (or `tasks_list_pending`) to detect approval gates before reporting success.
 
 ## Analytics tools
 

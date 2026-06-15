@@ -1,85 +1,187 @@
 ---
+
 title: Step types
+
 description: MCP calls, LLM steps, human tasks, Lua scripts, and for-each loops in AgentRuntime workflows.
+
 ---
+
+
 
 Workflow graphs are made of typed **steps**. Each step has an `id`, `type`, `name`, optional `depends_on`, and type-specific fields.
 
-The JSON schema is published at [agentruntime.io/schemas/workflow-graph.schema.json](https://agentruntime.io/schemas/workflow-graph.schema.json).
+
+
+The JSON schema is published at [agentruntime.io/schemas/workflow-graph.schema.json](https://agentruntime.io/schemas/workflow-graph.schema.json). Runtime graphs use **`{ "steps": [...] }`** — not a top-level step-id map.
+
+
 
 ## mcp_call
 
+
+
 Invoke a tool on an MCP instance.
 
+
+
 | Field | Description |
+
 |-------|-------------|
-| `server_url` | MCP instance endpoint (resolved from instance binding) |
+
+| `server_url` | **Portable** system `canonical_url` — use when sharing graphs across workspaces |
+
+| `instance_id` | Tenant MCP instance UUID — optional override; Studio sets this when you pick an instance |
+
 | `tool_name` | Tool to call on the server |
+
 | `tool_args` | JSON arguments; supports template variables |
+
 | `timeout_s` | Step timeout in seconds |
+
 | `retry_count` | Number of retries on failure |
+
+
+
+At run start the engine resolves `server_url` → `instance_id` when needed (and may auto-create a tenant instance). Dry-run validation warns when an instance will be created.
+
+
+
+**Importing shared graphs:** Workflow Studio **Import** accepts canvas JSON or `{ "steps": [] }`, previews the graph, then maps each `server_url` to an instance in your workspace before applying to the canvas.
+
+
 
 **Example use cases:** Send an email via Resend, query Postgres, create a GitHub issue, post a WhatsApp message.
 
+
+
 ## llm_call
+
+
 
 Call a large language model with a prompt.
 
+
+
 | Field | Description |
+
 |-------|-------------|
-| `model` | Model identifier from your Providers catalog |
+
+| `model` | Wire model name (for example `gpt-4o`). Required if `model_ref` is omitted. |
+
+| `model_ref` | Providers catalog reference (for example `direct.openai.gpt-4o`). Required if `model` is omitted. |
+
 | `prompt` | Prompt text with template variables |
+
 | `llm_params` | Temperature, max tokens, and other provider params |
 
-Models resolve through tenant and system provider keys configured in **Providers**.
+| `llm_credential_id` / `llm_credential_scope` | Optional explicit tenant or system API key from **Providers** |
+
+
+
+In Workflow Studio, use the **LLM Call** palette node and pick model + source in the node config; the editor writes these fields on save. Resolution uses **Providers** keys and control-service `model_ref` routing at run time.
+
+
 
 ## human_task
 
+
+
 Pause the run until a human approves, rejects, or provides input.
 
+
+
 | Field | Description |
+
 |-------|-------------|
+
 | `task_type` | Task category (for example, `approval`) |
+
 | `task_payload` | Data shown in Command Center (title, description, editable fields) |
+
+
 
 The run enters a paused state until the task is completed via the Console or API.
 
+
+
 ## lua_script
+
+
 
 Run inline Lua to transform upstream data.
 
+
+
 | Field | Description |
+
 |-------|-------------|
+
 | `script` | Lua source (max 64 KB). Access upstream via `steps.<id>.result` and trigger input via `input.<field>`. Must return a table. |
+
+
 
 Use Lua for lightweight mapping, filtering, and aggregation without an extra MCP round-trip.
 
+
+
 ## for_each
+
+
 
 Fan out over a list with controlled parallelism.
 
+
+
 | Field | Description |
+
 |-------|-------------|
+
 | `for_each_items` | Template or path to an array, e.g. `{{steps.gen.result.items}}` |
+
 | `for_each_max_parallel` | Max concurrent body runs (default 10, max 100) |
+
 | `for_each_body` | Nested step (`mcp_call`, `llm_call`, or `lua_script`) executed per item |
+
+
 
 ## Execution controls
 
+
+
 All step types support:
 
+
+
 | Field | Description |
+
 |-------|-------------|
+
 | `depends_on` | Array of step IDs that must complete first |
-| `condition` | Expression; skip step when false |
+
 | `enabled` | When `false`, step is skipped with a synthetic completion |
+
 | `retry_count` | Retries after failure |
+
 | `timeout_s` | Per-step timeout |
+
+| `no_auto_start` | When `true` on a root, block auto-start until `trigger_steps` grants entry |
+
+| `terminal` | When `true`, completing this step may close an autonomous/mixed episode |
+
+
 
 ## Parallelism
 
+
+
 Parallelism emerges naturally from the DAG. Steps with no dependency relationship run concurrently. The runtime manages step scheduling, retries, and failure propagation.
 
+
+
 <Note>
-  Forward-looking step types (`condition`, `parallel`, `sequence`) appear in the schema for future use. Author graphs with `depends_on` and `condition` today.
+
+  Author graphs with `depends_on`, `no_auto_start`, and `trigger_steps` — not legacy `condition`, `parallel`, or `sequence` step types (removed from the engine).
+
 </Note>
+
+

@@ -20,11 +20,14 @@ description: Author, validate, version, and run workflow graphs in the AgentRunt
   <Step title="Validate">
     Click **Validate** to run a server-side dry-run. Validation checks graph structure, dependency cycles, Lua syntax, MCP bindings, and connection overrides — without executing tools.
   </Step>
+  <Step title="Import (optional)">
+    Use **Import** to load a shared graph from JSON — canvas `{ "nodes", "edges" }` or backend `{ "steps": [] }`. The review step shows a read-only preview and, for MCP steps, lets you map each `server_url` to an instance in your workspace before applying to the canvas.
+  </Step>
   <Step title="Publish">
     Publish an immutable version when the graph is ready. Runs always execute a published snapshot, not draft edits.
   </Step>
   <Step title="Run">
-    Start a run from the Studio run panel. Watch step events stream in real time. Pause, resume, or stop from the run controls.
+    Start a run from the workflow configuration panel (**Run setup**). Configure **shared input** (`trigger_payload`) and optional per-step overrides (`trigger_steps`), then **Run** or **Dry-run**. Use **Save defaults** to persist start values on the workflow version (separate from canvas Save).
   </Step>
 </Steps>
 
@@ -38,6 +41,10 @@ Steps pass data downstream through template strings:
 ```
 
 Use these in `tool_args`, LLM `prompt` fields, `for_each_items`, and Lua `script` inputs. Upstream step results are available under `steps.<step-id>.result`.
+
+Studio suggests variables as you type — see [Template intellisense](/workflows/template-intellisense) for search tips, the variable picker, and the **Variables** reference tab.
+
+**Run-start input** uses `{{input.*}}` (from `trigger_payload` and optional `trigger_steps`). See [Run setup and start input](/workflows/run-setup).
 
 ## Connection overrides
 
@@ -66,7 +73,9 @@ The Console **Chat** panel (Autopilot) can scaffold starter workflows, create gr
 
 ## Next steps
 
+- [Template intellisense](/workflows/template-intellisense) — inline variable suggestions
 - [Step types reference](/workflows/step-types) — MCP, LLM, human, Lua, and for-each
+- [Run setup and start input](/workflows/run-setup) — trigger_payload, saved defaults, API merge flag
 - [Runs and Command Center](/workflows/runs-and-command-center) — run controls and observability
 - [Human tasks](/workflows/human-tasks) — approval gates
 - [JSON schema cookbook](/workflows/json-schema-cookbook) — copy-paste graph examples

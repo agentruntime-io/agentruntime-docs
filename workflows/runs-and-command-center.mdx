@@ -64,9 +64,32 @@ See the dedicated [Command Center guide](/workflows/command-center) for daily op
 
 ## Failure handling
 
-When a step fails after exhausting `retry_count`, the run marks the step failed. Downstream steps that depend on the failed step are skipped unless the graph defines alternate paths.
+When a step fails, the run becomes **`failed`** (terminal). The canvas and event log show distinct step outcomes — not stale “Processing” or “Pending” on branches that cannot complete.
 
-Review the event log for error messages and tool responses. Fix the workflow or connection binding, publish a new version, and start a new run.
+### Step status badges
+
+| Badge | When |
+|-------|------|
+| **Failed** | The step that caused the run failure (read the error in Events) |
+| **Cancelled** | Was **in flight** (e.g. parallel LLM call) when another step failed the run |
+| **Skipped (Blocked)** | Never started — blocked because an upstream or parallel dependency failed |
+| **Success** | Completed before the failure (outputs may still be in run context) |
+
+Parallel example: branch A fails on missing credential; branch B (still calling the LLM) shows **Cancelled**; join step C shows **Skipped (Blocked)**.
+
+<Note>
+  **Cancelled** on a step is not the same as run status `stopped`. Operator **Stop** marks in-flight steps differently (`RUN_STOPPED`). Step failure uses fail-fast cancellation.
+</Note>
+
+Failed runs do **not** resume today. Fix the root cause (model, credential, tool args), publish if the graph changed, and **start a new run**. Planned checkpoint/retry flows are described in [Run recovery (roadmap)](/workflows/run-recovery).
+
+Review the event log for error messages and tool responses. Persisted event types include `step_failed`, `step_cancelled`, and `step_completed` with `skipped: true` and `reason: "blocked"` — see [Run event types](/api/reference#run-event-types).
+
+## Related
+
+- [Run recovery (roadmap)](/workflows/run-recovery) — planned checkpoint retry
+- [Command Center](/workflows/command-center)
+- [Troubleshooting](/platform/troubleshooting)
 
 ## Credits and metering
 

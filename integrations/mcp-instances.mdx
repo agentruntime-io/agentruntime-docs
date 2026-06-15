@@ -43,11 +43,22 @@ The catalog lists 40+ Go adapters (Gmail, Postgres, Shopify, GitHub, …). See t
 
 In **Workflow Studio** (`/workflow/{id}`), add an **mcp_call** step and select:
 
-- The **instance** (resolved to `server_url` / `instance_id` at runtime)
+- The **instance** (saved as `instance_id` + `server_url` on the step)
 - The **tool name** from the instance's tool catalog
 - **tool_args** — static values or template variables (`{{input.*}}`, `{{steps.step-id.result.*}}`)
 
 At runtime, the workflow engine calls the MCP tool with credentials from the instance's active config profile.
+
+## Importing shared graphs
+
+When you **Import** a workflow JSON from another workspace or a template:
+
+1. Studio previews the graph (fit-to-screen).
+2. MCP steps grouped by **`server_url`** show connection status for your workspace.
+3. Pick an existing instance, **Create instance**, or connect credentials for servers you have not installed yet.
+4. Unknown servers must be added from **MCP** before import can complete.
+
+Shared graphs should include **`server_url`** (portable). **`instance_id`** values from the source workspace are remapped on import.
 
 ## Connection overrides (API)
 

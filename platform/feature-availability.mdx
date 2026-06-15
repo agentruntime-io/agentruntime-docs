@@ -22,7 +22,7 @@ Some capabilities are fully supported in the Console; others are API-only, featu
 | Connections & MCP instances | **GA** | Connections, MCP | Wire connections on instance config profiles |
 | Inbound webhooks | **GA** | Workflow config → **Inbound** tab; Settings → **Inbound webhooks** | Disable per environment via `inbound_webhooks.ENABLED` |
 | LLM Providers | **GA** | Providers | Tenant API keys |
-| Billing & credits | **GA** | Settings → **Billing Overview**, **Plans**, **Usage & History** | Plan catalog syncs from Stripe |
+| Billing & credits | **GA** | Settings → **Billing Overview**, **Plans**, **Usage & History** | Plan catalog syncs from Stripe; scoped to `product_code = agentruntime` on this Console |
 | Analytics | **Flagged** | `/analytics` when `enableAnalyticsNav` is on | KPIs + timeseries from runs and billing events |
 | Memory (search, index, extract) | **Preview** | No dedicated Memory nav in prod (`enableMemory` off) | Use [Memory API](/ai/memory) and Autopilot tools where enabled |
 | Workflow connection overrides | **API only** | — | `PUT /v1/workflows/{id}/connection-overrides` |

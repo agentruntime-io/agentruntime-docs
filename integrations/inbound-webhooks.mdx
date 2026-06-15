@@ -25,7 +25,9 @@ sequenceDiagram
 1. You create a **subscription** linked to a workflow
 2. AgentRuntime returns an **ingress URL** and **signing secret** (shown once at creation)
 3. Senders POST JSON to the ingress URL with HMAC signature and a **Bearer PAT** for automation auth
-4. The BFF verifies the signature and starts a run with the POST body as workflow `input`
+4. The BFF verifies the signature and starts a run with the POST body as workflow input (`webhook_payload` in start params)
+
+Saved **Run setup** defaults from Workflow Studio are **not** applied unless the subscription `extras` sets `use_run_setup_defaults: true`. See [Run setup](/workflows/run-setup).
 
 ## Create a subscription in the Console
 
@@ -106,7 +108,20 @@ AgentRuntime verifies on ingress before starting a run.
 
 ## Payload and workflow input
 
-The POST body becomes workflow trigger **input**. Reference fields in steps with `{{input.field_name}}`.
+The POST body is mapped to **`trigger_payload`** (for `{{input.*}}`). Reference fields in steps with `{{input.field_name}}`.
+
+Saved **Run setup** defaults from Studio merge only when subscription `extras.use_run_setup_defaults` is `true`. See [Run setup](/workflows/run-setup) and [External triggers](/workflows/external-triggers).
+
+Set `extras` on create (`POST /v1/inbound-webhooks`) or update later (`PATCH /v1/inbound-webhooks/{id}`):
+
+```json
+{
+  "extras": {
+    "use_run_setup_defaults": true,
+    "trigger_payload": { "source": "shopify" }
+  }
+}
+```
 
 Design workflows with a first step that validates required input (Lua script or `condition`) before calling external tools.
 

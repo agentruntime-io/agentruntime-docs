@@ -5,7 +5,7 @@ description: Save Google, WhatsApp, and API key credentials for MCP connectors i
 
 **Connections** store Vault-backed credentials MCP tools use at runtime. Manage them from **Connections** (`/connections`) in the [Console](https://console.agentruntime.io).
 
-Connections are separate from workflow graphs. You **wire** them to MCP instances through **config profiles** on each instance (`/mcp/instances/{instance_id}`), then reference `instance_id` in workflow **mcp_call** steps.
+Connections are separate from workflow graphs. You **wire** them to MCP instances through **config profiles** on each instance (`/mcp/instances/{instance_id}`), then reference the instance in workflow **mcp_call** steps (`instance_id` + `server_url` after publish, or `server_url` only in portable exports).
 
 <Info>
   This page covers **shared connection flows** only. Per-adapter tools and config live on each [connector page](/integrations/connector-catalog).

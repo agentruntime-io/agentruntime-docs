@@ -70,6 +70,7 @@
           "platform/user-management",
           "platform/roles-permissions",
           "platform/billing-and-credits",
+          "platform/multi-product-billing",
           "platform/analytics",
           "platform/security-and-compliance",
           "platform/referrals-and-affiliates",
@@ -83,9 +84,13 @@
         "expanded": true,
         "pages": [
           "workflows/studio",
+          "workflows/template-intellisense",
+          "workflows/run-setup",
+          "workflows/external-triggers",
           "workflows/step-types",
           "workflows/command-center",
           "workflows/runs-and-command-center",
+          "workflows/run-recovery",
           "workflows/human-tasks",
           "workflows/patterns",
           "workflows/json-schema-cookbook"

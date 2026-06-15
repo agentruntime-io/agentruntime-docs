@@ -11,7 +11,21 @@ This guide covers the most common operator issues in AgentRuntime. Start from [C
 
 1. Open **Command Center → Failed recently** (last 24 hours)
 2. Click **Open run** to view the event log in Workflow Studio
-3. Find the first step with `failed` status and read the error message
+3. Find the first step with **Failed** status and read the error message
+4. Check other steps on the canvas — **Cancelled** and **Skipped (Blocked)** are expected on fail-fast runs (not bugs)
+
+### Step status on failed runs
+
+When one step fails, the run is terminal **`failed`**. Other steps are labeled explicitly:
+
+| Studio badge | Meaning | Action |
+|--------------|---------|--------|
+| **Failed** | Root cause step | Fix model, credential, tool args, or graph |
+| **Cancelled** | Was running in parallel when the run failed | No fix needed — audit only |
+| **Skipped (Blocked)** | Never ran — blocked by failed dependency | No fix needed — will run on a **new** run after upstream succeeds |
+| **Success** | Finished before the failure | Outputs remain in run context for inspection |
+
+If the **Events** panel still shows “Processing…” on a **Cancelled** step after a refresh, reload the run — the event log should include a `step_cancelled` event. See [Runs and Command Center](/workflows/runs-and-command-center#failure-handling).
 
 ### Failure codes
 
@@ -34,7 +48,11 @@ Failed runs are terminal. After fixing the root cause:
 1. Publish a new workflow version if the graph changed
 2. Start a **new run** — do not expect the old run to resume
 
+**Cancelled** and **Skipped (Blocked)** steps on the old run are historical — they record what happened on that attempt. A new run executes the graph from the beginning (or from a future checkpoint API when shipped).
+
 For transient API errors, add `retry_count` on flaky steps. See [Workflow patterns](/workflows/patterns).
+
+Planned **continue-from-failure** (checkpoint retry, same-run retry) is documented in [Run recovery (roadmap)](/workflows/run-recovery) — not available yet.
 
 ## Run appears stuck
 
@@ -140,8 +158,16 @@ Dry-run validation (`POST /v1/workflows/{id}/validate`) catches issues before ex
 | Dependency cycle | Remove circular `depends_on` |
 | Missing `tool_name` / `server_url` | Complete MCP step configuration |
 | Lua syntax error | Fix `script` in `lua_script` steps |
-| Unknown MCP instance | Install instance or fix instance reference |
+| Unknown MCP instance | Install instance, fix reference, or use **Import** to remap `server_url` bindings |
 | Invalid template | Check `{{steps.id.result}}` references exist |
+
+### Template fields look wrong after editing
+
+| Symptom | What to do |
+|---------|------------|
+| Nested or duplicated `{{` / `}}` in a prompt or start-input field | Clear the field; re-insert variables from the **variable** picker or [Template intellisense](/workflows/template-intellisense) |
+| Variable left as literal text in run output | Confirm the path matches a real step **Step ID** and field; use **Validate** (dry-run) before running |
+| Undo (Ctrl+Z) left the field in a odd state | Clear and re-pick from suggestions, or use **Variables** tab to copy a clean path |
 
 See [Feature availability](/platform/feature-availability) for preview vs GA features.
 
@@ -162,5 +188,7 @@ See [Feature availability](/platform/feature-availability) for preview vs GA fea
 ## Related docs
 
 - [Command Center](/workflows/command-center) — daily operator inbox
+- [Runs and Command Center](/workflows/runs-and-command-center) — Cancelled / Blocked badges on failure
+- [Run recovery (roadmap)](/workflows/run-recovery) — planned checkpoint retry
 - [Workflow patterns](/workflows/patterns) — retries and error handling
 - [Connections](/integrations/connections) — credential management

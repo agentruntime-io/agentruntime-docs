@@ -1,0 +1,88 @@
+---
+title: External triggers and Run setup
+description: How inbound webhooks and scheduled cron triggers merge saved Run setup defaults.
+---
+
+External systems start workflows **without** Workflow Studio. Saved **Run setup** defaults apply only when explicitly enabled — the default is **off** so callers are not surprised by Studio-saved values.
+
+## Merge rule (same everywhere)
+
+```text
+effective params = merge(saved run_setup_json, caller params)   // caller wins
+                 → only when use_run_setup_defaults: true
+```
+
+| Source | Uses saved Run setup? |
+|--------|------------------------|
+| Studio Run / Dry-run | Always (in-session + saved; no flag) |
+| API `POST …/command` start | Only if `params.use_run_setup_defaults: true` |
+| Inbound webhook | Only if subscription `extras.use_run_setup_defaults: true` |
+| Cron (`workflow_triggers`) | Only if trigger `config.use_run_setup_defaults: true` |
+
+See [Run setup](/workflows/run-setup) for `trigger_payload`, `trigger_steps`, and Save defaults.
+
+## Inbound webhooks
+
+**Shipped today (BFF + control-service):**
+
+1. Sender POSTs to `/v1/inbound-webhooks/{subscription_id}` with HMAC + idempotency key.
+2. BFF loads subscription credentials from Wheelhouse.
+3. JSON body is mapped to `trigger_payload` (merged under caller/webhook values).
+4. If credentials include `extras.use_run_setup_defaults: true`, BFF sets that flag on the start request; control-service merges `run_setup_json` from the active workflow version before forwarding to the runtime.
+
+**Subscription `extras` shape** (Wheelhouse column `extras` jsonb; **[DONE] prod** migration `000019`):
+
+```json
+{
+  "use_run_setup_defaults": true,
+  "trigger_payload": { "source": "shopify" },
+  "trigger_steps": { "uuid-root": {} }
+}
+```
+
+Set on create or `PATCH /v1/inbound-webhooks/{id}` with `{ "extras": { ... } }`.
+
+**Console gap:** Inbound tab may not expose `extras` editing yet; use PATCH API until UI ships.
+
+## Cron (`workflow_triggers`)
+
+**Phase 1 shipped** in control-service (disabled by default via `[workflow_scheduler] ENABLED`):
+
+1. `workflow_trigger_fires` outbox (migration `000025`)
+2. Scheduler ticker: claim due triggers → insert fire → advance `next_run_at`
+3. Dispatcher ticker: claim pending fires → start run via `BuildCronStartParams` + `applyRunSetupMerge`
+4. REST: `GET/POST/PATCH/DELETE /workflows/{id}/triggers`
+
+**Trigger `config` example:**
+
+```json
+{
+  "cron": "0 9 * * *",
+  "timezone": "UTC",
+  "catchup_policy": "fire_once_within_grace",
+  "grace_minutes": 10,
+  "use_run_setup_defaults": true,
+  "body": { "topic": "digest" },
+  "automation_user_id": "user-uuid",
+  "project_id": "project-uuid"
+}
+```
+
+**Gaps:** Studio Schedule UI; trigger fire history in Console. **Design:** internal doc `WORKFLOW_CRON_SCHEDULER.md` (Phase 2 Redis, Phase 3 external).
+
+Until `[workflow_scheduler] ENABLED=true` and migration `000025` applied, cron rows are configuration only.
+
+## When to enable `use_run_setup_defaults`
+
+| Use case | Recommendation |
+|----------|----------------|
+| Webhook body is the full input | `false` — map body → `trigger_payload` only |
+| Webhook sends partial delta; Studio saved the rest | `true` |
+| Cron fires same digest weekly with fixed Run setup | `true` + optional `config.body` overrides |
+| Strict API integrator owns all params | `false` |
+
+## Related
+
+- [Run setup](/workflows/run-setup)
+- [Inbound webhooks](/integrations/inbound-webhooks)
+- [API reference — workflows](/api/reference)

@@ -87,7 +87,7 @@ i18n/
 
 ```
 introduction/     Product overview
-platform/           Workspace setup, settings, members, roles, billing, analytics, security, referrals, feature availability, troubleshooting
+platform/           Workspace setup, settings, members, roles, billing, multi-product billing, analytics, security, referrals, feature availability, troubleshooting
 workflows/          Studio, Command Center, step types, runs, patterns, human tasks, JSON cookbook
 integrations/       Integration setup (connections, MCP, custom MCP, auth, webhooks, webhook wizard, catalog index)
 connectors/         One MDX per MCP adapter slug (40 Go connectors)

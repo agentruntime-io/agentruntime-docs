@@ -16,7 +16,7 @@ The **Providers** page shows two tiers of keys:
 | **Platform keys** | Read-only rows supplied by AgentRuntime | Platform (for trials or bundled usage) |
 | **Workspace keys** | Keys you add for your tenant | **Tenant admins** and users with provider-key access |
 
-Workspace keys are stored in Vault. After saving, you can reveal or rotate secrets from the same card. Workflow **llm_call** steps resolve models against this catalog — you pick a `model` ID in Workflow Studio; the runtime chooses the matching provider key.
+Workspace keys are stored in Vault. After saving, you can reveal or rotate secrets from the same card. Workflow **llm_call** steps resolve models against this catalog — in Workflow Studio, drag **LLM Call** from the palette, then pick **Model** and **Source** in the node General tab; the compiled step stores `model_ref` and optional credential fields.
 
 <Warning>
   LLM API keys on **Providers** are different from **Settings → API keys** (PATs for REST automation). Do not paste LLM vendor keys into the API keys tab.
@@ -35,7 +35,7 @@ Workspace keys are stored in Vault. After saving, you can reveal or rotate secre
     Paste the key from your vendor dashboard. Keys are stored encrypted in Vault and scoped to your workspace.
   </Step>
   <Step title="Save and verify">
-    Save the key, then confirm models for that provider appear in the catalog. In Workflow Studio, add an **llm_call** step and set `model` to a catalog ID (for example `gpt-4o`).
+    Save the key, then confirm models for that provider appear in the catalog. In Workflow Studio, add an **LLM Call** node and select a model (for example GPT-4o) and key source in the node config.
   </Step>
   <Step title="Optional: per-step override">
     In an LLM step's config, you can bind a specific workspace key instead of the platform default. If loading keys fails, save the workflow and recheck **Providers**.
@@ -50,15 +50,16 @@ Check **Settings → Usage & History** and **Analytics** (`/analytics`, when ena
 
 ## Using models in workflows
 
-In Workflow Studio, add an **llm_call** step and set:
+In Workflow Studio, add an **LLM Call** node (builtin `llm_call`). Configure in the node panel:
 
 | Field | Example |
 |-------|---------|
-| `model` | `gpt-4o`, `claude-sonnet-4-20250514`, or catalog ID |
-| `prompt` | Instructions with `{{steps.*}}` template variables |
+| Model (UI) | GPT-4o, Claude, etc. from Providers catalog |
+| Source (UI) | Platform default, tenant key, or system key |
+| `prompt` | Instructions with `{{steps.*}}` template variables (Prompts tab) |
 | `llm_params` | `temperature`, `max_tokens`, etc. |
 
-The runtime resolves the provider from the model ID and uses the bound API key.
+The saved graph compiles to an `llm_call` step with `model_ref` (for example `direct.openai.gpt-4o`) and optional `llm_credential_id` / `llm_credential_scope`. Runtime resolves vendor, wire model, and API key via the Providers catalog.
 
 ## Resolution order
 

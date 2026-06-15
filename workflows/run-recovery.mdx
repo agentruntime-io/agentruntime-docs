@@ -1,0 +1,105 @@
+---
+title: Run recovery (roadmap)
+description: What happens when a run fails today, and planned continue-from-failure options.
+---
+
+**Status:** Failed runs are **terminal** today. This page describes current operator workflow and **planned** recovery features.
+
+When a step fails, see [Runs and Command Center — Failure handling](/workflows/runs-and-command-center#failure-handling) for **Failed**, **Cancelled**, and **Skipped (Blocked)** step badges on the canvas and event log.
+
+## Current behavior (today)
+
+| Action | Supported? |
+|--------|------------|
+| **Pause / Resume** | Yes — only while `run.status` is `paused` |
+| **Retry same run** (`run_id`) | **No** — failed runs stay terminal |
+| **Start new run** | Yes — full re-execution with a new `run_id` |
+| **Auto `retry_count` on step** | Transient errors only (timeout, rate limit) — not “fix credential and continue” |
+
+### What to do after a failure
+
+1. Open the failed run in Workflow Studio or [Command Center](/workflows/command-center).
+2. Find the step marked **Failed** and read the error (often `LLM_REQUEST_FAILED` or `MCP_TOOL_FAILED`).
+3. Fix the root cause — model, provider credential, MCP binding, tool args, or graph logic.
+4. **Publish** a new workflow version if the graph changed.
+5. **Start a new run** — do not expect the old run to resume.
+
+See [Troubleshooting — Failed runs](/platform/troubleshooting#failed-runs).
+
+### Why Cancelled and Blocked appear
+
+On fail-fast runs, the platform marks orphan steps honestly:
+
+| Badge | Meaning |
+|-------|---------|
+| **Failed** | Step that caused the run to fail |
+| **Cancelled** | Was **running** in parallel when another step failed |
+| **Skipped (Blocked)** | Never started — downstream blocked by the failure |
+
+These are an **audit trail** for attempt 1. They do not block starting a **new** run today.
+
+## Planned recovery (not shipped)
+
+The platform team is designing **continue-from-failure** so operators can fix config (e.g. wrong LLM model) without redoing every upstream step.
+
+### Option A — New run with checkpoint (likely first)
+
+Start a **new** `run_id` but **reuse completed step outputs** from a parent failed run. Only re-execute from the failed step (and downstream).
+
+**UX (planned):** **Retry run** (reuse checkpoints) vs **Run again** (fresh).
+
+### Option B — Retry on same run
+
+Reopen a **failed** run: reset the failed step and downstream to `pending`, keep upstream results, append new events (attempt 2 on the same timeline).
+
+**UX (planned):** **Retry from failure** on the failed run row in Command Center.
+
+### Option C — Recoverable failures (later)
+
+Some error classes (e.g. missing credential) would **not** fail the whole run immediately; the step waits for operator fix and **Retry step**.
+
+## Open product question
+
+When one **parallel** branch fails, should sibling branches be allowed to **finish**?
+
+| Policy | Today | Alternative |
+|--------|-------|-------------|
+| **Fail-fast** | Run fails immediately; siblings **Cancelled** | — |
+| **Drain parallel** | — | Siblings finish; join may still fail |
+| **Lenient join** | — | Join uses fallbacks (e.g. default subject from an earlier Lua step) |
+
+**Not decided.** Today is fail-fast for clear UX.
+
+## API preview (future)
+
+Checkpoint retry (Option A) may look like:
+
+```http
+POST /v1/workflows/{workflow_id}/command
+{
+  "command": "start",
+  "params": {
+    "resume_from_run_id": "uuid-of-failed-run",
+    "reuse_completed_steps": true,
+    "from_step_id": "optional-step-id"
+  }
+}
+```
+
+Same-run retry (Option B) may add:
+
+```http
+POST /v1/workflows/{workflow_id}/runs/{run_id}/retry
+{
+  "from_step_id": "optional-step-id"
+}
+```
+
+These endpoints are **not available** yet. Integrations should start a normal `start` command after fixing the workflow.
+
+## Related
+
+- [Runs and Command Center](/workflows/runs-and-command-center) — run lifecycle and failure badges
+- [Troubleshooting](/platform/troubleshooting) — failure codes and recovery steps
+- [Workflow patterns — Retries](/workflows/patterns) — `retry_count` for transient errors
+- [Run event types](/api/reference#run-event-types) — `step_cancelled`, blocked skip payloads

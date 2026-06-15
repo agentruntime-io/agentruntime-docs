@@ -9,7 +9,11 @@ Understanding the core model makes every other guide easier to follow. This page
 
 A **workspace** is the top-level container for your organization. It holds all projects, members, billing, MCP resources, and connections. Every user belongs to at least one workspace, and each workspace operates independently with its own configuration and data.
 
-Workspaces are identified by a unique **slug** used in URLs and API calls (`X-Tenant-Id` header).
+Workspaces are identified by a unique **slug** used in URLs and API calls (`X-Tenant-Id` header). Each workspace is also stamped with a **`product_code`** (for example `agentruntime` on this Console) that scopes its plan catalog and billing policies. See [Multi-product billing](/platform/multi-product-billing).
+
+<Note>
+  You do not choose `product_code` in the UI — it is set from the Console deployment when the workspace is created.
+</Note>
 
 ## Projects
 
@@ -53,6 +57,8 @@ Common step types:
 
 Steps reference upstream results with template variables like `{{steps.fetch-contacts.result.items}}`.
 
+**Run-start input** (`{{input.topic}}`, etc.) comes from `trigger_payload` at run start. Workflow Studio **Run setup** lets you save default values on the version; API and webhooks supply their own unless you opt in with `use_run_setup_defaults`. See [Run setup](/workflows/run-setup).
+
 ## Runs
 
 A **run** is a single execution of a published workflow version. Runs are event-driven and stream step lifecycle events (started, completed, failed, paused) to the Console over WebSocket. You can **pause**, **resume**, or **stop** runs from Workflow Studio or the API.
@@ -63,7 +69,7 @@ Pending human tasks across all runs appear in **Command Center**.
 
 An **MCP server** is a catalog entry describing a tool server (platform-provided or custom). An **MCP instance** is your project's deployment of that server — with config profiles, environment variables, and **connection bindings** that supply credentials at runtime.
 
-Workflow **mcp_call** steps target a specific instance and tool name.
+Workflow **mcp_call** steps target a tool on an MCP instance (`instance_id` + `server_url` in Studio). Shared graphs can use **`server_url` only** — import remaps to your workspace instances.
 
 ## Connections
 

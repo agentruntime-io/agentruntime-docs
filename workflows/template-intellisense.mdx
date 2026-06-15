@@ -1,0 +1,170 @@
+---
+title: Template intellisense
+description: Use Workflow Studio suggestions to insert {{input.*}} and step output variables without memorizing step IDs or template syntax.
+sidebarTitle: Template intellisense
+---
+
+Workflow Studio helps you connect steps with **template variables** — placeholders like `{{input.topic}}` or `{{steps.<step-id>.result.message}}` that fill in at run time from start input or upstream step output.
+
+**Template intellisense** is the inline helper in text fields: type `{{`, search by step name or field, pick a suggestion, and Studio inserts the correct path for you.
+
+## Where you'll see it
+
+Template intellisense appears anywhere Workflow Studio accepts template text, including:
+
+| Location | Typical fields |
+|----------|----------------|
+| **Workflow configuration → Trigger** | Starting input for selected steps — agent **prompt**, tool arguments, shared run input |
+| **Agent Call** structured input | Catalog agent fields that support templates |
+
+Look for the small **variable** icon inside the field. It opens the same list of suggestions you get while typing.
+
+<Tip>
+  Open **Workflow configuration** (click empty canvas) → **Variables** for a read-only cheat sheet of every step and common paths on the current graph.
+</Tip>
+
+## Quick start
+
+<Steps>
+  <Step title="Open a template field">
+    In **Workflow configuration**, open the **Trigger** tab and expand a step — for example an **Agent Call** entry step. Click a field like **Task text or template for the agent turn**.
+  </Step>
+  <Step title="Type {{">
+    Type two opening braces. Suggestions appear when your cursor is inside an unfinished `{{ …` segment (before the closing `}}`).
+  </Step>
+  <Step title="Search naturally">
+    Keep typing a step name, field name, or path fragment. You do not need special symbols — see [What you can type](#what-you-can-type).
+  </Step>
+  <Step title="Pick a suggestion">
+    Click a row, or press **Enter** or **Tab** while it is highlighted. Studio inserts the full variable and adds the closing `}}` when needed.
+  </Step>
+</Steps>
+
+**Example:** you type `{{prepare news context message` and choose **Prepare news context · message**. Studio saves something like:
+
+```
+{{steps.f79e84fa-609c-485e-83f1-acb3db67f856.result.message}}
+```
+
+The list showed the step's **display name**; the saved text uses that step's real **Step ID** (the UUID shown in the step config header).
+
+## What the dropdown shows
+
+Each suggestion has two lines:
+
+| Line | What it means |
+|------|----------------|
+| **Bold text** | Friendly label — step name **·** field, e.g. `Prepare news context · message`, or `input.topic` for start input |
+| **Gray path** | Exact template that will be inserted, e.g. `{{steps.<uuid>.result.message}}` |
+
+The middle dot in the label is for reading only — you never type it.
+
+## What you can type
+
+While your cursor is inside `{{ …` (before `}}`), Studio filters suggestions as you type:
+
+| You type | Finds |
+|----------|-------|
+| `input` or `input.topic` | Workflow start input |
+| `prepare news` | Steps whose display name matches |
+| `prepare news context message` | Step name plus field, with or without spaces |
+| `message` | Field names on steps or start input |
+| `steps.f79e84fa…` | A step by the start of its Step ID |
+| `steps.prepare news` | A step by display name after `steps.` |
+
+<Tip>
+  Think in plain language: `prepare news context message` is enough to surface **Prepare news context · message** — you do not need to know the UUID first.
+</Tip>
+
+## Two kinds of variables
+
+### Start input — `{{input.*}}`
+
+Values provided when a run starts — from **Run setup**, the API, or a webhook.
+
+```
+{{input.topic}}
+{{input.message}}
+```
+
+If you defined an **input schema** when you published the workflow, those fields appear in suggestions.
+
+Per-step start input uses the same `{{input.*}}` syntax on that step's fields; the engine applies the right payload for the step that is running.
+
+### Step output — `{{steps.<step-id>.result.*}}`
+
+Data returned by an earlier step on the canvas.
+
+```
+{{steps.505d4d95-dcb2-4a9f-a3a7-007c062898f4.result.message}}
+```
+
+- **`<step-id>`** — the step's **Step ID** (UUID in the step config panel).
+- **`.result.<field>`** — a field on that step's output.
+
+You can reference **nested** data when the runtime provides it — for example `{{steps.<id>.result.items.0.title}}` — even if Studio does not list every nested key in the dropdown.
+
+## Common fields in suggestions
+
+Studio builds suggestions from **published input schema**, **MCP tool output schemas**, and **catalog agent `output_schema`** when available. Otherwise it falls back to common fields per step type.
+
+| Step type | Output fields often suggested |
+|-----------|------------------------------|
+| **Agent Call** | Catalog `output_schema` fields, or `message` / `result` |
+| **MCP Call** | Tool `outputSchema` properties (including nested paths like `data.title`) |
+| **LLM Call**, **Lua transform** | `message`, `result`, `content`, `response` |
+| **Approval Gate** | `approved` |
+| **Shared start input** | `message`, `topic`, `data`, plus your published input schema |
+
+Nested JSON paths beyond the dropdown still work at run time — type them manually when needed.
+
+## Variable picker
+
+Click the **variable** icon in the field to open **Available variables**:
+
+- Browse all start-input and step-output suggestions for the workflow
+- Click a row to insert at the cursor
+- Use **Insert trigger input placeholder** for a quick `{{input.message}}` starter
+
+## Mixing text and variables
+
+Templates can be part of a normal sentence:
+
+```
+Write a newsletter about {{input.topic}} using this research:
+
+{{steps.<step-id>.result.content}}
+```
+
+When the field contains `{{…}}` blocks, Studio shows how many **variable(s) detected** under the field.
+
+## Inside a For each loop
+
+In a **For each** body step, the runtime also supports loop variables:
+
+```
+{{item}}
+{{index}}
+```
+
+These work at run time inside the loop body. They are not in the Studio suggestion list today — type them directly when you need them.
+
+## Good to know
+
+| Topic | Guidance |
+|-------|----------|
+| **Display names** | Search by step name in Studio; saved templates always use the step's **Step ID** (UUID). |
+| **Deep JSON paths** | Suggestions cover common top-level fields; nested paths can be typed by hand. |
+| **Valid syntax** | One `{{`, a path, one `}}`. Broken text like `{{input.topic{{input.topic}}}}` will not resolve — fix before you run. |
+| **Undo (Ctrl+Z)** | Restores the previous whole field value. Use **Ctrl+Shift+Z** or **Ctrl+Y** to redo. |
+
+<Warning>
+  Malformed templates fail silently at run time — the unresolved `{{…}}` text is left as-is. Use **Validate** (dry-run) before important runs, and check the payload preview under run setup fields.
+</Warning>
+
+## Related
+
+- [Workflow Studio](/workflows/studio) — authoring and validation
+- [Run setup and start input](/workflows/run-setup) — `trigger_payload`, saved defaults, API
+- [Step types](/workflows/step-types) — what each step type returns
+- [JSON schema cookbook](/workflows/json-schema-cookbook) — example graphs with templates

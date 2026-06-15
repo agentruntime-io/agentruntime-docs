@@ -398,6 +398,49 @@ Values are **microcredits** (1 credit = 1,000,000 microcredits). See [Billing an
 
 ---
 
+## Plan catalog (product-scoped)
+
+`GET /v1/billing/plans` — **project_contributor**
+
+The BFF filters to its deployment `product_code` (`agentruntime` on `api.agentruntime.io`). Response omits `product_code` — it is implicit for this host.
+
+**Response** (`200`, excerpt):
+
+```json
+{
+  "plans": [
+    {
+      "plan_code": "pro",
+      "stripe_price_id": "price_1Example",
+      "amount": 4900,
+      "currency": "usd",
+      "interval": "month",
+      "interval_count": 1,
+      "product_name": "AgentRuntime Pro",
+      "trial_enabled": true,
+      "trial_requires_card": false,
+      "trial_days": 14,
+      "trial_credits_granted": 5000000,
+      "onboarding_default": true,
+      "self_serve_onboarding": true
+    },
+    {
+      "plan_code": "free",
+      "amount": 0,
+      "currency": "usd",
+      "interval": "month",
+      "interval_count": 1,
+      "product_name": "AgentRuntime Free",
+      "trial_enabled": false
+    }
+  ]
+}
+```
+
+Use `stripe_price_id` when starting trials or subscriptions via `POST /v1/billing/subscription`. See [Multi-product billing](/platform/multi-product-billing).
+
+---
+
 ## Error responses
 
 Most endpoints return JSON errors:

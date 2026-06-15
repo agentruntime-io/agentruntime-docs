@@ -25,6 +25,8 @@ Annual plans (`pro_annual`, `plus_annual`, etc.) follow the same tier rules with
 
 View live plan details and prices in the Console **Plans** tab — catalog syncs from Stripe.
 
+Plans are scoped to the **AgentRuntime** product (`product_code = agentruntime`). The Console shows tier names (`pro`, `plus`, …) only. See [Multi-product billing](/platform/multi-product-billing) for how product lines share one platform kernel.
+
 ## How credits work
 
 **1 credit = 1,000,000 microcredits.** The Console displays credits; APIs and ledgers often use microcredits internally.
@@ -152,20 +154,21 @@ POST /v1/billing/discounts/validate
 | View usage dimensions | **project_viewer** |
 | Change plan, top up, apply codes | **tenant_admin** |
 
-## Multi-product catalog (upcoming)
+## Multi-product billing
 
-AgentRuntime is extending the billing catalog so plans and Stripe prices can be scoped by **product** (for example, Console vs future product lines). Today, each workspace has a single plan and credit balance.
+Wheelhouse scopes the plan catalog by **`(product_code, plan_code)`**. The AgentRuntime Console (`console.agentruntime.io`) is wired to **`product_code = agentruntime`** — you see only AgentRuntime tiers in **Settings → Plans**.
 
-When multi-product billing ships:
+| What | Scope |
+|------|-------|
+| Plan catalog | Per `product_code` (BFF filters by deployment config) |
+| Workspace subscription & credits | Per workspace — one plan and ledger per workspace |
+| Stripe sync | Each price carries `product_code` + `plan_code` metadata |
 
-- Plan codes may include a `product_code` dimension in API responses
-- Self-serve checkout in **Settings → Plans** will filter to the active product for your Console deployment
-- Existing workspaces keep their current plan during migration — no action required
-
-Until then, treat **Settings → Plans** and `GET /v1/billing/plans` as the source of truth for your workspace.
+Existing workspaces were migrated with `product_code = agentruntime`; plan codes and balances are unchanged. Full architecture: [Multi-product billing](/platform/multi-product-billing).
 
 ## Related resources
 
+- [Multi-product billing](/platform/multi-product-billing) — product_code, catalog keys, API scope, future products
 - [Pricing](https://agentruntime.io/pricing) — marketing overview (plan names in Console are authoritative)
 - [Analytics](/platform/analytics) — run volume and credits consumed over time
 - [Referrals and affiliates](/platform/referrals-and-affiliates) — promoter codes and commissions
