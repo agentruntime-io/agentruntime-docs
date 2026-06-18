@@ -1,0 +1,32 @@
+---
+title: BFF API v1 and platform billing updates
+date: 2026-03-01
+version: "2.3.0"
+areas:
+  - api
+  - platform
+summary: Public BFF endpoints stabilize under `/v1`, async run semantics are documented end-to-end, and billing surfaces per-workflow credit usage in the Console.
+---
+
+## Added
+
+- Async execution model for workflow runs documented in [API reference](/api/reference) and [API examples](/api/examples)
+- Credit usage breakdown on the workspace [billing](/platform/billing-and-credits) page, grouped by workflow and connector
+- Service account API keys with scoped workspace access
+
+## Changed
+
+- OpenAPI spec groups operations by product area for easier navigation in the docs portal
+- [Authentication](/api/authentication) guide covers key rotation and least-privilege service accounts
+- Rate limit responses include `Retry-After` on throttled BFF calls
+
+## Deprecated
+
+- `POST /v0/runs` — migrate to `POST /v1/runs` before **2026-08-01**
+
+## Fixed
+
+- Rate limit headers (`X-RateLimit-*`) now appear on all authenticated BFF responses
+- Run status polling no longer returns stale `running` after terminal failure events
+
+Migration checklist: rotate keys, update base URL to `https://api.agentruntime.io`, and switch run creation to `/v1/runs`.

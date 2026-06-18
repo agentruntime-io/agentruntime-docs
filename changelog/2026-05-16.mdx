@@ -1,0 +1,25 @@
+---
+title: Workflow Studio GA and connector catalog expansion
+date: 2026-05-16
+version: "2.4.0"
+areas:
+  - workflows
+  - integrations
+  - platform
+summary: Workflow Studio is generally available, the MCP catalog passes 40 adapters, and run recovery handles transient tool failures without operator intervention.
+added:
+  - "Workflow Studio visual editor with live graph validation before deploy"
+  - "Run recovery retries transient MCP timeouts with configurable backoff and step-level caps"
+  - "12 new MCP connectors including Shopify, Notion, Google Calendar, and Resend"
+  - "Command Center filter presets for failed runs and long-running workflows"
+changed:
+  - "Command Center streams step events with lower latency on workflows over 30 minutes"
+  - "Workspace roles now support project-scoped workflow editors without tenant admin access"
+  - "External triggers accept signed payloads from the inbound webhook wizard"
+fixed:
+  - "Webhook triggers no longer duplicate when a workflow is republished to the same environment"
+  - "Template intellisense resolves variables inside nested `depends_on` branches"
+  - "Studio canvas no longer loses selection when switching between light and dark Console themes"
+---
+
+Workflow Studio is the recommended path for new automation. Start with [Workflow Studio](/workflows/studio), then browse the [Connector catalog](/integrations/connector-catalog) for MCP adapters your steps can call.
