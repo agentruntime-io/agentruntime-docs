@@ -1,63 +1,29 @@
 # Changelog content
 
-Release notes live in this folder as **one file per release**. The Portico renderer discovers them automatically — you do not add changelog pages to `docs.json` navigation.
+User-facing release notes — one file per release (or rollup). Portico discovers them automatically; do not add pages to `docs.json`.
+
+## Files
+
+| File | Version | Scope |
+|------|---------|--------|
+| `2026-04-30.mdx` | v0.1.0 | Billing UI, Stripe checkout foundations, API gateway hardening |
+| `2026-05-22.mdx` | v0.1.1 | Onboarding, Autopilot, Studio dry-run preview, webhooks, analytics, Lua steps |
+| `2026-05-25.mdx` | v0.1.2 | for_each, memory kernel, chat BFF wiring, billing profiles, run summaries |
+| `2026-06-05.mdx` | v0.1.3 | Google connections, password reset, HITL realtime, Workspace Chat alpha |
+| `2026-06-15.mdx` | v0.1.4 / v0.1.5 | Operate hub, Studio dry-run GA, triggers, vault, multi-product billing |
+| `2026-06-20.mdx` | v0.2.0 | UE baseline — session workflow, Continue on limit, in-process agents, Work/contacts |
+| `2026-06-23.mdx` | v0.2.1 | Message queue, drafts, archive, Cedar permissions, lifecycle accountability |
+| `2026-07-04.mdx` | v0.2.2 | Production tag alignment, workflow template panic fix, billing rate limits, chat payload patches |
+| `_template.mdx` | — | Copy to start the next entry |
+
+**Source of truth:** GitHub release bodies (`gh release view`), cross-checked with git tags.
 
 ## File naming
 
-Use an ISO date slug:
+ISO date slug → `/changelog/YYYY-MM-DD`. Use a suffix only when a second page shares the same date.
 
-```
-changelog/2026-05-16.mdx
-```
-
-Published at `/changelog/2026-05-16`.
-
-## Frontmatter
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `title` | Yes | Release headline |
-| `date` | Yes | ISO date (`YYYY-MM-DD`) — should match the filename |
-| `version` | No | Semver tag shown on the timeline |
-| `areas` | No | Filter tags (`workflows`, `api`, `platform`, …) |
-| `summary` | No | One-line card blurb on the index |
-| `added` / `changed` / `deprecated` / `removed` / `fixed` / `security` | No | [Keep a Changelog](https://keepachangelog.com/) sections (arrays) |
-
-Structured sections are **optional**. You can instead write freeform markdown below the frontmatter, or mix both.
-
-## Example (structured)
-
-```yaml
----
-title: Workflow Studio GA
-date: 2026-05-16
-version: "2.4.0"
-areas: [workflows, integrations]
-summary: Workflow Studio GA and new MCP connectors.
-added:
-  - "Visual workflow editor"
-fixed:
-  - "Webhook duplicate triggers"
----
-```
-
-## Example (markdown sections)
-
-```md
----
-title: Platform patch
-date: 2026-01-10
----
-
-## Added
-- New feature
-
-## Fixed
-- Bug fix
-```
+Copy `_template.mdx` to start a new entry.
 
 ## RSS
 
-Each release is included in `/changelog/rss.xml` with its own permalink.
-
-Copy `_template.mdx` to start a new entry.
+Each file is included in `/changelog/rss.xml` with its own permalink.
