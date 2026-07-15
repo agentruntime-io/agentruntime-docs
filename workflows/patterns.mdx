@@ -152,15 +152,18 @@ Use `for_each` to process a list with bounded parallelism:
   "type": "for_each",
   "for_each_items": "{{steps.fetch-recipients.result.contacts}}",
   "for_each_max_parallel": 5,
-  "for_each_body": {
-    "type": "mcp_call",
-    "tool_name": "send_message",
-    "tool_args": {
-      "to": "{{foreach.item.phone}}",
-      "body": "{{steps.build-template.result.text}}"
-    },
-    "timeout_s": 30
-  }
+  "for_each_body_steps": [
+    {
+      "id": "send",
+      "type": "mcp_call",
+      "tool_name": "send_message",
+      "tool_args": {
+        "to": "{{foreach.item.phone}}",
+        "body": "{{steps.build-template.result.text}}"
+      },
+      "timeout_s": 30
+    }
+  ]
 }
 ```
 

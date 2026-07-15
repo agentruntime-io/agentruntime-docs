@@ -1,55 +1,65 @@
 ---
 title: Roles and permissions
-description: Project and tenant roles that control workflow, integration, and billing access in AgentRuntime.
+description: Workspace and project roles, public vs private projects, and how access is assigned in the AgentRuntime Console.
 ---
 
-AgentRuntime uses role-based access control (RBAC). Roles are assigned at the **tenant** (workspace) level and at the **project** level. Project roles govern most day-to-day Console and API access.
+AgentRuntime separates **workspace** access from **project** access. Most day-to-day builder permissions come from your **project role**; workspace roles control billing, team invites, and workspace policy.
+
+## Workspace roles
+
+| Role | What you can do |
+|------|-----------------|
+| **Member** | Belong to the workspace. On **public** projects, you get the default **Contributor** project access automatically. |
+| **Admin** | Manage team invites, billing settings, domain verification, and workspace access policy. |
+| **Owner** | Full workspace control, including billing ownership and promoting other admins or owners. |
+
+Workspace email invites set only the workspace role. They do **not** attach a specific project. After accepting, members can access **public** projects at the default contributor level.
 
 ## Project roles
 
 <CardGroup cols={3}>
-  <Card title="project_viewer" icon="eye">
+  <Card title="Contributor" icon="wrench">
+    Create and edit workflows, run and control runs, manage connections and MCP instances, and view usage. Maps to the <code>project_contributor</code> role in the API.
+  </Card>
+  <Card title="Project viewer" icon="eye">
     Read workflows, runs, analytics, Autopilot chat, and work items. Cannot edit graphs, manage connections, or start runs.
   </Card>
-  <Card title="project_contributor" icon="wrench">
-    Full builder access: create and edit workflows, run and control runs, manage connections and MCP instances, view billing usage.
-  </Card>
-  <Card title="project_admin" icon="shield">
-    Everything contributors can do, plus project member management and project-level configuration.
+  <Card title="Project admin" icon="shield">
+    Everything contributors can do, plus manage project members and toggle public vs private visibility.
   </Card>
 </CardGroup>
 
-### What each role can access
+### Capability matrix
 
-| Capability | project_viewer | project_contributor | project_admin |
-|------------|:--------------:|:-------------------:|:-------------:|
+| Capability | Viewer | Contributor | Project admin |
+|------------|:------:|:-----------:|:-------------:|
 | View workflows and runs | ✓ | ✓ | ✓ |
 | Edit and publish workflows | | ✓ | ✓ |
 | Start, pause, stop runs | | ✓ | ✓ |
-| Complete human tasks | | ✓ | ✓ |
 | Manage connections and MCP | | ✓ | ✓ |
-| Configure LLM providers | | ✓ | ✓ |
-| View analytics and usage | ✓ | ✓ | ✓ |
-| Change billing plan | | | ✓ (tenant admin) |
 | Manage project members | | | ✓ |
+| Toggle public / private project | | | ✓ |
+| Workspace billing and team | | | (workspace admin/owner) |
 
 <Info>
   Some API endpoints also require PAT scopes (for example, `workflow:run` or `mcp:execute`) in addition to the project role. See [API authentication](/api/authentication).
 </Info>
 
-## Tenant roles
+## Public vs private projects
 
-**tenant_admin** has full workspace access: all projects, billing, member invites, vault, domain verification, and workspace settings. Assign tenant admin sparingly.
+- **Public** — Visible to all workspace members. Default access is **Contributor** unless you assign an explicit project role.
+- **Private** — Hidden from the project picker unless you are a member. **Project admins** (and workspace **owners** as a backup) add members from **Project settings** (project menu ⋮).
 
-Members without tenant admin still participate in projects through their project roles.
+Workspace **owners** and **admins** can open private projects they are not members of, but by default they have **read-only** project access. Workspace admins can enable **Full access on private projects** under **Settings → Team → Workspace access policy** for IT-style workspaces that need elevated recovery access.
 
-## Assigning project roles
+## Managing access
 
-1. Open **Settings → Members** or the project's member list
-2. Find the member and select a project role
-3. Save changes
-
-Removing a project membership revokes access to that project's workflows, runs, and integrations.
+| Task | Where |
+|------|--------|
+| Invite to workspace | **Settings → Team & Members** (workspace admin/owner) |
+| Change workspace role | **Settings → Team & Members** → member list |
+| Manage project members | **Project settings → Members** (project admin) or Team when a project is selected |
+| See your own roles | **Settings → My access** (all members) |
 
 ## API and PAT scopes
 
@@ -61,7 +71,7 @@ When calling the API with a personal access token, both the user's project role 
 | `workflow:run` | Start, pause, resume, and stop runs |
 | `mcp:execute` | Invoke MCP tools during workflow execution |
 
-Create PATs from **Settings → Access tokens** (or the PAT management page in your Console version).
+Create PATs from **Settings → API keys**.
 
 ## Sysadmin access
 

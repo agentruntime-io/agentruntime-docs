@@ -1,0 +1,64 @@
+---
+title: Onboarding, Autopilot, Workflow Studio dry-run, and analytics
+date: 2026-05-22
+version: "0.1.1"
+areas:
+  - platform
+  - workflows
+  - ai
+  - integrations
+summary: Guided onboarding and product tours, Autopilot workflow editing, first server-side Studio validation, MCP connector UX, inbound webhooks, LLM catalog checks, and product analytics.
+added:
+  - "**Onboarding** — invite validation with tenant details in the response, tenant code availability check, workspace PATCH, and IntroPreview before first login **GA**"
+  - "**Autopilot** — canvas workflow editor, dynamic workflow naming, run-event analysis, and credential-error surfacing in the execution panel **Preview**"
+  - "**Workflow Studio dry-run (preview)** — `POST` validation endpoint plus Console dry-run summary card and structured execution logs **Preview**"
+  - "**Monaco log viewer** — filter and inspect workflow run logs in Studio with syntax highlighting"
+  - "**MCP connectors** — connection profile UX, instance list/detail, and catalog API improvements in Console **GA**"
+  - "**Product tours** — driver.js guided walkthroughs for key Console surfaces"
+  - "**Product analytics** — Mixpanel and PostHog hooks for Console usage tracking (operator-configured)"
+  - "**Inbound webhooks** — BFF routes for signed workflow webhook ingress **API only**"
+  - "**Workflow webhooks** — inbound and outbound webhook routing on the platform API **API only**"
+  - "**Auto-start trial** — trial period starts automatically when a workspace is provisioned"
+  - "**Tenant runs API** — list all workspace runs and fetch timeseries aggregates for Operate dashboards **API only**"
+  - "**LLM provider validation** — catalog health checks and masked key reveal for workspace admins **API only**"
+  - "**MCP profile management** — control-plane CRUD for connector configuration profiles **API only**"
+  - "**Billing action catalog** — define billable actions, record usage, and drive wallet checkout **API only**"
+  - "**PAT metadata** — personal access token introspection and idempotency release **API only**"
+  - "**Lua script steps (preview)** — custom transform nodes in workflow graphs **Preview**"
+changed:
+  - "Console **feature flags** enabled for tools, agents, chat, and vault surfaces ahead of their GA releases"
+  - "**OAuth profile claims** and password-login diagnostics — clearer failure reasons when sign-in fails"
+  - "Workflow run status treats **stopped** runs as failed in Command Center triage"
+  - "Workspace **invitation emails** with tenant name/code in the acceptance flow"
+  - "Autopilot wizards and intent handling refinements on the BFF for canvas editing sessions"
+fixed:
+  - "Authentication error handling and email-verification feedback across login and password cards"
+  - "DLQ buildup and auth retry loops in the workflow runtime under transient failures"
+---
+
+Platform **v0.1.1** — largest pre–Jun-15 increment. Engineering tags: `webapp` v0.1.1, `bff` / `agentruntime` / `go-wheelhouse` / `control-service` v0.1.1–v0.1.2 (repos tagged over May 9–22).
+
+## Console
+
+**Onboarding** became a first-class flow: accept an invite, pick an available tenant code, patch workspace settings, and preview the product in IntroPreview before landing in Console.
+
+**Autopilot** gained a workflow editor with smarter naming, better run-event analysis (including credential failures), and tighter LLM execution-panel integration — the bridge between chat intent and published workflows.
+
+**Workflow Studio** took its first step away from client-only simulation: validate graphs on the server, read dry-run summaries, and jump from a failing step back to the canvas. The Monaco log viewer made long run traces readable without leaving Studio.
+
+**MCP** connector profiles and connection management improved in Console. **Guided tours** and **analytics** (Mixpanel / PostHog) shipped for product instrumentation when operators enable them.
+
+## API and integrations
+
+Public and internal APIs added **inbound webhooks**, **workflow webhook** routing, **run listing and timeseries**, **LLM provider validation**, **billing usage recording**, and **PAT** metadata. New workspaces could **auto-start a trial** on provision.
+
+The runtime introduced **Lua script steps** for lightweight transforms — an early building block for custom logic before native step types expanded in v0.1.2.
+
+## Related docs
+
+- [Autopilot and chat](/ai/autopilot-and-chat)
+- [Workflow Studio](/workflows/studio)
+- [External triggers](/workflows/external-triggers)
+- [MCP instances](/integrations/mcp-instances)
+- [LLM providers](/ai/llm-providers)
+- [Quickstart](/platform/quickstart)

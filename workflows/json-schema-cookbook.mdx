@@ -157,12 +157,15 @@ Generate items with an LLM, then process each in parallel with Lua:
       "depends_on": ["generate-items"],
       "for_each_items": "{{steps.generate-items.result.items}}",
       "for_each_max_parallel": 10,
-      "for_each_body": {
-        "type": "lua_script",
-        "name": "Process one",
-        "script": "return { index = index, label = tostring(item) }",
-        "timeout_s": 5
-      },
+      "for_each_body_steps": [
+        {
+          "id": "process",
+          "type": "lua_script",
+          "name": "Process one",
+          "script": "return { index = index, label = tostring(item) }",
+          "timeout_s": 5
+        }
+      ],
       "timeout_s": 120
     }
   ]
@@ -170,6 +173,65 @@ Generate items with an LLM, then process each in parallel with Lua:
 ```
 
 `for_each` output includes `result.count`, `result.max_parallel`, and `result.results[]` with per-item `index` and `result` or `error`.
+
+## Example 3b — for_each multi-step body
+
+Run a pipeline per list item (agent → lua tag):
+
+```json
+{
+  "id": "triage-each",
+  "type": "for_each",
+  "name": "Triage tickets",
+  "depends_on": ["load-tickets"],
+  "for_each_items": "{{steps.load-tickets.result.tickets}}",
+  "for_each_max_parallel": 5,
+  "for_each_body_steps": [
+    {
+      "id": "triage",
+      "type": "agent_call",
+      "agent_id": "YOUR_AGENT_ID",
+      "prompt": "Triage: {{foreach.item}}"
+    },
+    {
+      "id": "tag",
+      "type": "lua_script",
+      "depends_on": ["triage"],
+      "script": "return { ticket = tostring(item), ok = true }"
+    }
+  ]
+}
+```
+
+`for_each_body_steps` is required (use a one-element array for a single inner step). Legacy `for_each_body` is rejected at validation.
+
+## Example 3c — while (refine until good)
+
+```json
+{
+  "id": "refine",
+  "type": "while",
+  "name": "Refine until score passes",
+  "while_mode": "until",
+  "while_max_iterations": 5,
+  "while_condition": "{{body.score.pass}}",
+  "while_body_steps": [
+    {
+      "id": "draft",
+      "type": "lua_script",
+      "script": "local n = loop.iteration or 0\nreturn { text = string.rep('x', (n+1)*40) }"
+    },
+    {
+      "id": "score",
+      "type": "lua_script",
+      "depends_on": ["draft"],
+      "script": "local n = #tostring(body.draft.text or '')\nreturn { pass = n >= 90 }"
+    }
+  ]
+}
+```
+
+While output includes `iteration_count`, `stopped_reason` (`condition_met` or `max_iterations`), `last` (final body map), and `iterations[]`.
 
 ## Example 4 — Human approval gate
 
@@ -197,9 +259,17 @@ Complete the task from [Command Center](/workflows/runs-and-command-center) or t
 | Syntax | Resolves to |
 |--------|-------------|
 | `{{input.field}}` | Workflow trigger payload |
-| `{{steps.step-id.result.field}}` | Upstream step output |
+| `{{steps.step-id.result.field}}` | Upstream step output (after the step completes) |
+| `{{steps.step-id.input.field}}` | Resolved parameters the step was called with (after template expansion) |
 | `{{foreach.item}}` | Current item in `for_each` body |
 | `{{foreach.index}}` | Zero-based index in `for_each` body |
+| `{{body.inner-id.field}}` | Inner step output in `while` / `for_each_body_steps` (current iteration) |
+| `{{while.iteration}}` | Current while iteration (0-based) |
+| `{{while.prev.inner-id.field}}` | Previous while iteration inner output |
+
+**Composite loops:** Inner body steps also expose `{{steps.<inner-id>.input.<field>}}` using the inner step `id` from `for_each_body_steps` or `while_body_steps`. Parent loop nodes expose their own resolved inputs, e.g. `{{steps.process-each.input.for_each_items}}` or `{{steps.refine.input.while_condition}}`.
+
+**Legacy shapes:** Do not use `for_each_body`, slug step ids, or catalog-agent-only canvas nodes. Monorepo reference: `docs/workflows/WORKFLOW_LEGACY_AND_COMPAT.md`.
 
 Hyphenated step IDs work in templates; in Lua use `steps.fetch_product` (underscore alias) or `steps["fetch-product"]`.
 

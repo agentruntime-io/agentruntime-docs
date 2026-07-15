@@ -140,9 +140,58 @@ Fan out over a list with controlled parallelism.
 
 | `for_each_max_parallel` | Max concurrent body runs (default 10, max 100) |
 
-| `for_each_body` | Nested step (`mcp_call`, `llm_call`, or `lua_script`) executed per item |
+| `for_each_body_steps` | Ordered inline inner step chain per item (`lua_script`, `llm_call`, `mcp_call`, `agent_call`) |
+
+Inner `agent_call` steps run **synchronously** inside the parent; they do not participate in episode handoff routing.
+
+Inside `for_each_body_steps`, reference resolved inner inputs with `{{steps.<inner-id>.input.<field>}}` (use the inner step `id` from the body array, not the runtime qualified key `parent#body#inner`).
+
+## while
 
 
+
+Conditional loop (L5): repeat an inline step chain until a stop condition or `while_max_iterations`.
+
+
+
+| Field | Description |
+
+|-------|-------------|
+
+| `while_mode` | `until` (stop when condition true) or `while` (continue while condition true) |
+
+| `while_max_iterations` | Hard cap on iterations (required, ≥ 1) |
+
+| `while_body_steps` | Ordered inline inner steps per iteration |
+
+| `while_condition` | Template boolean, e.g. `{{body.score.result.pass}}` |
+
+| `while_eval_script` | Lua returning `{ pass = true/false }`; wins if both condition fields are set |
+
+
+
+Template scopes inside composite bodies: `{{body.<innerId>.*}}`, `{{while.iteration}}`, `{{while.prev.<innerId>.*}}`. In Lua use `loop` (not `while`) and `body` globals.
+
+Reference resolved inner step inputs with `{{steps.<inner-id>.input.<field>}}` and parent loop inputs with `{{steps.<while-node-id>.input.while_condition}}` (and related `while_*` fields).
+
+## Template variables (Studio + JSON)
+
+Workflow Studio **Variables** drawer and autocomplete expose copyable paths. At run time the engine resolves templates after each step's inputs are prepared.
+
+| Syntax | Resolves to |
+|--------|-------------|
+| `{{input.field}}` | Workflow trigger / run-setup payload |
+| `{{steps.<step-id>.result.field}}` | Upstream step output (after completion) |
+| `{{steps.<step-id>.input.field}}` | Resolved call parameters for that step (after template expansion) |
+| `{{foreach.item}}` / `{{item}}` | Current list element in `for_each` body |
+| `{{foreach.index}}` / `{{index}}` | Zero-based index in `for_each` body |
+| `{{body.<inner-id>.field}}` | Inner step output in the **current** composite iteration |
+| `{{while.iteration}}` | Current while iteration (0-based) |
+| `{{while.prev.<inner-id>.field}}` | Previous while iteration inner output |
+
+**Composite inner steps:** `steps.<id>.input.*` uses the inner step **authoring id** from `for_each_body_steps[]` or `while_body_steps[]`. Parent `for_each` / `while` nodes use the canvas step id for their own `input.*` fields (`for_each_items`, `while_condition`, etc.).
+
+**Legacy authoring (do not use on new graphs):** `for_each_body`, slug step ids, catalog-agent-only canvas nodes. Monorepo reference: `docs/workflows/WORKFLOW_LEGACY_AND_COMPAT.md`.
 
 ## Execution controls
 

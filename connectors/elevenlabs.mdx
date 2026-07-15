@@ -1,14 +1,18 @@
 ---
 title: ElevenLabs connector
-description: List voices and synthesize speech from text with ElevenLabs text-to-speech in AgentRuntime workflows.
+description: Text-to-speech, speech-to-text, voice design, music, and conversational AI agents via the ElevenLabs API in AgentRuntime workflows.
 ---
 
-The **elevenlabs** MCP adapter connects to the [ElevenLabs API](https://elevenlabs.io/docs). List available voices and convert text to MP3 audio — ideal for podcast snippets, IVR prompts, accessibility outputs, and voice-enabled agent responses.
+The **elevenlabs** MCP adapter connects to the [ElevenLabs API](https://elevenlabs.io/docs). Synthesize and transform audio, manage voices, compose music, and build conversational AI agents — suitable for briefings, IVR, accessibility, content repurposing, and voice-enabled agent workflows.
+
+<Note>
+  Full platform parity (27 tools) ships on the Python connector. Legacy Go deployments may still expose only `list_voices` and `text_to_speech` until the catalog points at the py router.
+</Note>
 
 ## Prerequisites
 
 - An ElevenLabs account with an **API key**
-- Character quota sufficient for your synthesis volume
+- Character / usage quota sufficient for your volume (TTS, STT, and agent tools consume credits)
 - **project_contributor** access in AgentRuntime
 
 ## Connect in AgentRuntime
@@ -23,8 +27,8 @@ The **elevenlabs** MCP adapter connects to the [ElevenLabs API](https://elevenla
   <Step title="Add elevenlabs MCP instance">
     Go to **MCP**, click **Add instance** for **elevenlabs**, wire your connection on **Instance config**, set the profile **active**, and save.
   </Step>
-  <Step title="Pick a voice">
-    Run **mcp_call** → `list_voices` and note the `voice_id` for your default narrator.
+  <Step title="Discover voices">
+    Run **mcp_call** → `list_voices` or `search_voices` and note a `voice_id` for TTS steps.
   </Step>
 </Steps>
 
@@ -32,17 +36,65 @@ See [Authentication](/integrations/authentication) for binding connections to MC
 
 ## What you can build
 
-- **Daily audio brief** — LLM summarizes RSS or news → `text_to_speech` → store MP3 in cloud storage.
-- **Multilingual outreach** — Translate text step → `text_to_speech` with `eleven_multilingual_v2`.
-- **Workflow notifications** — Short spoken alert for ops team when a human_task is assigned.
-- **Content repurposing** — Blog post → LLM abridgment → audio clip for social distribution.
+- **Daily audio brief** — LLM summarizes news → `text_to_speech` → store or attach MP3.
+- **Multilingual outreach** — Translate → `text_to_speech` with `eleven_multilingual_v2`.
+- **Meeting notes** — `speech_to_text` on recorded audio with optional diarization.
+- **ConvAI agent ops** — `create_agent`, `simulate_conversation`, `make_outbound_call` for voice agent workflows.
+- **Music beds** — `compose_music` or `video_to_music` for short-form video scores.
 
 ## Tools
 
+### Speech and audio
+
 | Tool | Description |
 |------|-------------|
-| `list_voices` | List voices available to the API key |
-| `text_to_speech` | Synthesize speech from text; returns base64 MP3 |
+| `text_to_speech` | Synthesize speech from text |
+| `speech_to_text` | Transcribe audio files |
+| `speech_to_speech` | Transform audio to another voice |
+| `text_to_sound_effects` | Generate sound effects from text |
+| `isolate_audio` | Isolate voice from background noise |
+
+### Voices
+
+| Tool | Description |
+|------|-------------|
+| `list_voices` | List voices for the API key |
+| `search_voices` | Search the user's voice library |
+| `get_voice` | Get details for one voice |
+| `voice_clone` | Instant voice clone from audio files |
+| `text_to_voice` | Voice design previews from a description |
+| `create_voice_from_preview` | Save a generated preview to the library |
+| `search_voice_library` | Search the shared ElevenLabs voice library |
+
+### Models and account
+
+| Tool | Description |
+|------|-------------|
+| `list_models` | List available TTS/STT models |
+| `check_subscription` | Subscription status and usage JSON |
+
+### Conversational AI (ConvAI)
+
+| Tool | Description |
+|------|-------------|
+| `create_agent` | Create a conversational AI agent |
+| `add_knowledge_base_to_agent` | Add URL, file, or text knowledge to an agent |
+| `list_agents` | List agents |
+| `get_agent` | Agent details |
+| `get_conversation` | Conversation transcript and metadata |
+| `list_conversations` | Filtered conversation history |
+| `simulate_conversation` | Test an agent with a simulated user |
+| `make_outbound_call` | Outbound call via Twilio or SIP trunk |
+| `list_phone_numbers` | Phone numbers on the account |
+
+### Music
+
+| Tool | Description |
+|------|-------------|
+| `compose_music` | Generate music from prompt or composition plan |
+| `create_composition_plan` | Plan-only (no generation credits) |
+| `video_to_music` | Score from one or more video files |
+| `upload_music_for_inpainting` | Upload audio for music_v2 inpainting (`song_id`) |
 
 ## Example
 
@@ -68,17 +120,23 @@ Convert an LLM summary to audio:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | ElevenLabs API key (xi-api-key header) |
-| `APIBase` | No | ElevenLabs API base URL |
+| `api_key` | Yes | ElevenLabs API key |
+| `output_mode` | No | `files`, `resources` (default), or `both` for binary tool outputs |
+| `default_voice_id` | No | Default voice when TTS omits `voice_id` |
+| `api_residency` | No | `us`, `eu`, `in`, `sg`, or `global` |
+| `base_path` | No | Base directory when `output_mode=files` |
+
+Connections typically map `APIKey` → `api_key` on the MCP instance.
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Voice not found | Run `list_voices`; voice IDs differ from display names |
-| Quota exceeded | Check character usage in ElevenLabs dashboard; shorten text or upgrade plan |
-| Garbled or clipped audio | Split long text across multiple calls; respect model input limits |
-| Wrong language | Use `eleven_multilingual_v2` or a voice trained for the target language |
+| Voice not found | Run `list_voices` or `search_voices`; IDs differ from display names |
+| Quota exceeded | Check usage in ElevenLabs dashboard; shorten text or upgrade plan |
+| Garbled or clipped audio | Split long text; respect model limits |
+| Wrong language | Use `eleven_multilingual_v2` or a voice verified for the target language |
+| File path errors on STT/music | Tools that read local files need absolute paths accessible to the connector runtime |
 
 ## Related
 

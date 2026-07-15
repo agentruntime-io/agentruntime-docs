@@ -35,6 +35,10 @@ Stopping immediately cancels in-flight MCP tool calls. LLM calls are best-effort
 
 The run panel shows a live event log: step started, tool result, LLM output, failures, and pauses. Subscribe via WebSocket for sub-second updates.
 
+**Timeline** tab (Execution panel) — Gantt-style view of step durations in execution order, nested agent activity from run events, composite loop estimates, and run state markers. See [Execution Timeline](/workflows/execution-timeline).
+
+**Context** tab — static execution-order graph (step nodes + wiring) with an **Open graph** modal for interactive pan/zoom. See [Execution Timeline — Context graph](/workflows/execution-timeline#context-tab--execution-graph).
+
 ### Analytics
 
 The **Analytics** page (`/analytics`) shows workspace-level metrics:

@@ -90,6 +90,7 @@
           "workflows/step-types",
           "workflows/command-center",
           "workflows/runs-and-command-center",
+          "workflows/execution-timeline",
           "workflows/run-recovery",
           "workflows/human-tasks",
           "workflows/patterns",

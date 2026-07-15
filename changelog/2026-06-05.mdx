@@ -1,0 +1,55 @@
+---
+title: Google connections, password reset, HITL realtime, and Workspace Chat alpha
+date: 2026-06-05
+version: "0.1.3"
+areas:
+  - platform
+  - workflows
+  - integrations
+  - ai
+summary: Google account linking in Console, forgot-password flows, human-in-the-loop realtime events, Workspace Chat channel UI, and connector catalog polish.
+added:
+  - "**Google account connections** — OAuth service catalog, tenant acquisition settings, and Console UI to link Gmail and other Google Workspace scopes **GA**"
+  - "**Password reset** — forgot-password email flow and reset form in Console auth **GA**"
+  - "**Human-in-the-loop realtime** — pending approval tasks push live events to Command Center and observe streams **GA**"
+  - "**Workspace Chat (alpha)** — channels, threaded messages, reactions, presence indicators, and Radix dialog primitives in Space **Preview**"
+  - "**Execution panel** — structured failure payloads, formatted step outputs, and inline credential wire hints when debugging runs"
+  - "**Connectors refresh** — Gmail adapter auth cleanup and clearer Go MCP error messages in the catalog"
+  - "**Subscription cancellation** — self-serve cancel and trial-management refinements on the billing service"
+changed:
+  - "**Inline credential wiring** — source-spec editor when connecting MCP tools to workflow steps in Console"
+  - "**Chat routing** — workspace-scoped URLs and deep links between Console project pages and Space channels"
+  - "BFF **Google services PUT** — update linked account scopes without re-running full OAuth **API only**"
+  - "Billing **webhook consolidation** — Stripe events route through BillingWebhookService with clearer mutation defaults"
+fixed:
+  - "Billing status responses include consistent mutation defaults when checkout or plan changes are in flight"
+  - "Affiliate attribution and payment handling aligned with the new billing types"
+---
+
+Platform **v0.1.3** — integrations and chat increment. Engineering tags: `webapp` v0.1.3, `bff` / `control-service` v0.1.4, `agentruntime` / `go-wheelhouse` v0.1.4, `webapp-chat` / `connectors` v0.1.0, `chat-service` v0.1.0 (tagged Jun 3–7).
+
+## Console
+
+**Google connections** landed end-to-end: browse the service catalog, link a Google account from settings, and adjust scopes with the PUT endpoint — no full re-auth round trip for small scope changes.
+
+**Password reset** completed the auth story alongside invite and password login. The **execution panel** surfaced structured failure JSON and formatted outputs when triaging workflow runs from Studio or Autopilot.
+
+## Workflows
+
+**Human-in-the-loop** steps publish **realtime events** when a run pauses for approval — operators see pending tasks in Command Center without polling run status.
+
+## Workspace Chat
+
+Space shipped its **first channel UI**: send messages, react, see who's online, and open modals for channel settings. Mock-data mode in README lets developers run Space locally before live-mode prerequisites ship in v0.1.5.
+
+## Connectors
+
+The **Gmail** adapter and Go MCP connectors received configuration and documentation fixes — clearer errors when OAuth or tool config is misconfigured at install time.
+
+## Related docs
+
+- [MCP instances](/integrations/mcp-instances)
+- [Human tasks](/workflows/human-tasks)
+- [Autopilot and chat](/ai/autopilot-and-chat)
+- [Runs and Command Center](/workflows/runs-and-command-center)
+- [User management](/platform/user-management)

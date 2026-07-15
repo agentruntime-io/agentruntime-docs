@@ -1,0 +1,58 @@
+---
+title: Unified execution baseline — session workflows and Continue on limit
+date: 2026-06-20
+version: "0.2.0"
+areas:
+  - platform
+  - workflows
+  - ai
+summary: Platform v0.2.0 — pre-merge bridge (Work, contacts, Space ↔ work) plus session workflows, in-process agent_call steps, and Continue after tool-round limits.
+added:
+  - "Console **Work** route and **MCP bridge** UX — configure tool-server URLs and wire MCP instances per project **GA**"
+  - "Workspace Chat **contacts** directory, **tablet layout**, and **work integration** — open tasks and files from Space without leaving chat **GA**"
+  - "**User contacts** and global tenant membership for cross-workspace coordination **GA**"
+  - "Chat **preferences** — notification and conversation access settings in Space **GA**"
+  - "**Session workflow** — Autopilot DM and agent rooms bind to one workflow `run_id`; follow-up messages resume the same run **GA**"
+  - "**Continue on limit** — when a turn hits the tool-round cap, **Continue** extends the orchestrator slice instead of starting a new thread **GA**"
+  - "**Turn status API** — Workspace Chat restores limit/continue state after page refresh via `fetchTurnStatus` **API only**"
+  - "**Copilot run chip** — Space header shows the active workflow run while a session is in progress"
+changed:
+  - "Workflow **`agent_call`** steps execute inside the runtime engine (in-process turn loop) — lower latency tool rounds and tighter streaming on long episodes **GA**"
+  - "Chat-bound runs **pause at the tool-round limit**; sessions do not auto-extend without an explicit **Continue**"
+  - "Agent prompts in session chat resolve from the **latest human message**, not a stale canvas prompt"
+  - "Connectors aligned with **`agentruntime-mcp-go` v0.1.5** across Go MCP adapters"
+  - "Legacy standalone **agent-service HTTP executor** removed from the primary runtime turn path (Phase B UE merge)"
+fixed:
+  - "Multi-turn copilot conversations keep a **stable workflow run** across messages when session workflow is enabled"
+  - "Resuming a **completed** workflow run is rejected cleanly — no hung pending agent rows"
+  - "Workflow observe emits **`agent_turn_tool_round`** and **`agent_turn_limit_reached`** events for live run visibility"
+  - "Composer blocked while awaiting **Continue** so users cannot enqueue conflicting messages mid-limit"
+---
+
+First coordinated **platform v0.2.0** release after the unified agent/workflow execution merge. It includes the June pre-merge bridge (contacts, Work route, Space ↔ work) and the UE baseline below.
+
+Engineering tags: `v0.2.0` on agentruntime, bff, chat-service, webapp, webapp-chat, go-wheelhouse, control-service, connectors, work-service, database-schema, and related repos. Prior `v*-pre-ue` tags remain as rollback pins.
+
+## Workspace Chat and Console
+
+**Session workflow** is the headline UE change: send multiple messages in Autopilot DM or an agent room and the platform keeps one workflow **run** for the conversation. Command Center and run observe show the same run ID across turns.
+
+**Continue on limit** ships in v0.2.0 for both Console and Workspace Chat. When a turn stops at the configured tool-round cap, the UI shows an awaiting state and a **Continue** control; the orchestrator extends the slice and the same run resumes. Reload the page mid-stream and turn status restores from the API.
+
+The pre-merge bridge adds **contacts** (user and workspace), a **tablet layout**, and **work integration** so operators can jump to tasks and files from Space. Console gains a dedicated **Work** route and clearer **MCP bridge** setup for project tool wiring.
+
+Console Autopilot shows limit/paused run visibility in the **Execution panel**; Space shows a **TurnStreamIndicator** and blocks the composer until Continue is resolved.
+
+## Workflows
+
+Published workflows with **`agent_call`** steps use the in-process runtime loop. Handoffs, MCP tool rounds, episode pause/resume, and **`chat_agent`** alias resolution behave consistently in Workflow Studio runs and in chat-bound session workflows.
+
+Connectors on this baseline match the Go MCP SDK v0.1.5 line — tool schemas and auth flows align with Platform MCP expectations.
+
+## Related docs
+
+- [Autopilot and chat](/ai/autopilot-and-chat)
+- [Workflow Studio](/workflows/studio)
+- [Runs and Command Center](/workflows/runs-and-command-center)
+- [Run recovery](/workflows/run-recovery)
+- [Step types](/workflows/step-types)

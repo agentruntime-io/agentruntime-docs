@@ -1,0 +1,48 @@
+---
+title: Parallel workflow steps, memory kernel, and chat integration
+date: 2026-05-25
+version: "0.1.2"
+areas:
+  - workflows
+  - platform
+  - ai
+  - billing
+summary: for_each parallel steps and workflow memory, tenant-scoped billing profiles, chat microservice BFF wiring, and run summary APIs for Operate.
+added:
+  - "**for_each steps** — iterate over a collection and fan out parallel child branches inside a workflow graph **GA**"
+  - "**Memory kernel** — attach durable, workflow-scoped memory so agent episodes retain context across steps **Preview**"
+  - "**Run summaries API** — aggregate step outcomes per run without loading full execution logs **API only**"
+  - "**Tenant run listing** — paginated run list and timeseries endpoints for dashboard widgets **API only**"
+  - "**Chat microservice integration** — BFF routes and config for Workspace Chat backends ahead of Space launch **API only**"
+changed:
+  - "**Billing profiles** — tenant-scoped billing profiles with usage-dimension aggregation for multi-meter plans"
+  - "Console and platform **referral configuration** — chat and cross-product deep links between Console and Space"
+  - "Workflow **validation endpoint** — stricter step execution handling and pre-publish checks in Studio"
+  - "BFF **Autopilot** response and intent validation for multi-turn canvas editing"
+---
+
+Platform **v0.1.2** — workflow-engine and billing increment tagged May 25 across `webapp`, `bff`, `agentruntime`, `go-wheelhouse`, and `control-service`.
+
+## Workflows
+
+Authors could fan out work with **`for_each`** — pass an array into a step and run downstream nodes in parallel for each item. Combined with the new **memory kernel**, agent episodes could carry state forward across steps — foundational pieces for unified execution in v0.2.0.
+
+Command Center and early Operate APIs gained **run summary aggregation**: see pass/fail counts and step rollups without opening every log line.
+
+## Console and billing
+
+Billing moved toward **tenant-scoped profiles** with clearer usage-dimension rollups — the model later used for multi-product Stripe plans in v0.1.5.
+
+Console config picked up **chat and platform referral** URLs so Console and Space could deep-link to each other once Workspace Chat shipped in v0.1.3.
+
+## API
+
+The BFF wired **chat-service** into the public gateway with session header injection — Console auth tokens and workspace context flow through to Space APIs in the next release wave.
+
+## Related docs
+
+- [Workflow patterns](/workflows/patterns)
+- [Step types](/workflows/step-types)
+- [Runs and Command Center](/workflows/runs-and-command-center)
+- [Multi-product billing](/platform/multi-product-billing)
+- [Autopilot and chat](/ai/autopilot-and-chat)

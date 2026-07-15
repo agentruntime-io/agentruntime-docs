@@ -1,0 +1,22 @@
+---
+title: Execution Timeline in Workflow Studio
+date: 2026-07-05
+version: "0.2.3"
+areas:
+  - platform
+  - workflows
+summary: Console Execution Timeline tab — Gantt view of step durations, agent activity, and composite loop timing.
+added:
+  - "**Execution Timeline** — Gantt-style tab in the Execution panel shows step durations in run order, nested agent activity from run events, composite loop estimates (collapsible), and run state markers **GA** · Workflow Studio → Execution panel → Timeline · [Execution Timeline](/workflows/execution-timeline)"
+  - "**Context execution graph** — static step-order graph on the Context tab (read-only preview + **Open graph** modal for pan/zoom and canvas focus); builds from run events with run-context fallback for failed runs **GA** · [Execution Timeline](/workflows/execution-timeline#context-tab--execution-graph)"
+changed:
+  - "**Composite inner steps** — `for_each` / `while` body steps now emit `step_started` / `step_completed` on `workflow_run_events` with `#body#` qualified ids so Timeline and Events show real inner timing when available"
+---
+
+The **Timeline** tab complements the Events log with a duration-first view of the same run stream. Agent steps show tool-round and status sub-rows; composite loops start collapsed with estimated segments until inner lifecycle events are present.
+
+## Related docs
+
+- [Execution Timeline](/workflows/execution-timeline)
+- [Runs and Command Center](/workflows/runs-and-command-center)
+- [Workflow Studio](/workflows/studio)

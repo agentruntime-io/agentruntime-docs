@@ -1,0 +1,65 @@
+---
+title: Console Operate hub, Workflow Studio dry-run, triggers, and vault
+date: 2026-06-15
+version: "0.1.5"
+areas:
+  - platform
+  - workflows
+  - integrations
+  - ai
+  - billing
+summary: Operate hub for daily ops, server-side workflow validation, scheduled triggers and webhooks, LLM catalog in Console, vault secrets UI, multi-product billing, and Workspace Chat project linking.
+added:
+  - "**Operate hub** — runs inbox, schedules, inbound webhooks, and workspace health strip; updated command palette and Console navigation **GA**"
+  - "**Workflow Studio dry-run** — server-side validation before deploy, summary card, timestamped execution logs, and canvas focus from failing steps **GA**"
+  - "**Workflow triggers** — trigger config dialog, JSON payload editors with preview, run-setup preview, cron schedule tab, and inbound webhook settings **GA**"
+  - "**LLM catalog in Console** — browse workspace models, quick-test credentials, pick models for agent-call steps, and match stored keys **GA**"
+  - "**Vault** — list secrets, edit values in place, path breadcrumbs, and security callout in Console **GA**"
+  - "**Support cases** — open and track support requests from Console with playbook integration **GA**"
+  - "**Workflow scheduler** — cron-driven scheduled runs from the control plane **GA**"
+  - "**Google OAuth acquisition** — tenant-level settings for connecting Google Workspace services at signup **GA**"
+  - "Workspace Chat **channel ↔ project linking** — bind a Space channel to a Console project for scoped automation context **GA**"
+  - "**Playwright live-stack E2E** — dedicated QA tenant seeding and live-mode test config for Console **operator**"
+  - "Connector catalog — improved Go MCP adapter docs and actionable install error messages"
+changed:
+  - "Workflow canvas **auto-layout** (dagre), X-ray layers, template gallery, and import preview before publish"
+  - "Console **design system** — PageShell, AuthSplitLayout, design tokens, StatusBadge; auth and onboarding UI refresh"
+  - "Billing migrated to Stripe **`/internal/billing`** with multi-product **`product_code`** on plans — legacy product/price APIs removed **GA**"
+  - "Email **verification** resend and classified password-login error messages (wrong password vs wrong provider)"
+  - "Workflow **trigger management** and LLM model test API exposed on the public BFF **API only**"
+  - "Platform **events and webhooks** for operator alerting; support playbook and user-verification endpoints"
+  - "Agent-service proxy configuration for LLM tool routes (pre–in-process migration in v0.2.0)"
+fixed:
+  - "OpenTelemetry trace export over HTTP/S endpoints — operator telemetry paths no longer drop spans on TLS URLs"
+---
+
+Platform **v0.1.4 / v0.1.5** — last coordinated release before the unified execution program. Engineering tags: `webapp` v0.1.4, `bff` / `go-wheelhouse` / `control-service` / `webapp_sysadmin` v0.1.5, `webapp-chat` / `chat-service` / `connectors` / `database-schema` / `work-service` v0.1.1 ([GitHub releases](https://github.com/orgs/agentruntime-io/repositories)).
+
+## Console
+
+**Operate** is the daily operator surface: triage runs from an inbox, manage cron schedules and inbound webhooks, and glance at workspace health — without jumping through Studio for every task.
+
+**Workflow Studio** validates graphs on the server before you publish. Dry-run summaries link back to the canvas so you can fix failing steps quickly. Auto-layout, X-ray layers, and the template gallery speed up authoring for larger graphs.
+
+**Triggers and LLM** round out builder workflows: configure cron, webhook, or API triggers with payload preview; pick models from the workspace catalog; test credentials before agents use them in production runs.
+
+**Vault** gives tenants a first-class secrets UI — browse paths, edit values, and understand security boundaries before wiring credentials into workflows or MCP instances.
+
+## Workspace Chat
+
+Space gains **project linking** on channels so team chat stays scoped to the right automation context. Amplify build config and the Space design-system doc ship in this batch for live-mode deploys.
+
+## API and billing
+
+Public API adds workflow trigger management, LLM model validation, support/playbook endpoints, and platform event relay. Billing uses the multi-product Stripe integration — each plan carries a `product_code` instead of legacy product IDs.
+
+## Related docs
+
+- [Workflow Studio](/workflows/studio)
+- [Runs and Command Center](/workflows/runs-and-command-center)
+- [External triggers](/workflows/external-triggers)
+- [Run setup](/workflows/run-setup)
+- [LLM providers](/ai/llm-providers)
+- [Autopilot and chat](/ai/autopilot-and-chat)
+- [Multi-product billing](/platform/multi-product-billing)
+- [MCP instances](/integrations/mcp-instances)
