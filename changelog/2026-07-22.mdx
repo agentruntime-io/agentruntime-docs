@@ -1,0 +1,71 @@
+---
+title: MCP validation, workflow pins, and team management
+date: 2026-07-22
+version: "0.3.0"
+areas:
+  - platform
+  - workflows
+  - api
+  - integrations
+summary: Platform v0.3.0 — MCP input validation in Workflow Studio, workflow pins, OAuth2 discovery, team management, billing profile rollup, and platform announcements.
+added:
+  - "**Workflow pins** — Pin workflows from Console for quick access to frequently used graphs **GA** · Workflow Studio → pin icon · [Workflow Studio](/workflows/studio)"
+  - "**MCP input validation** — Workflow Studio validates MCP tool arguments against JSON Schema (required fields, min/max, patterns) before run; engine applies schema defaults and coercion at execution time **GA** · Workflow Studio → step config · [Step types](/workflows/step-types)"
+  - "**Platform announcements** — Operators can publish platform-wide announcement modals; tenants see them on next Console login **GA**"
+  - "**OAuth2 MCP discovery** — MCP connections support OAuth2 discovery for acquisition flows **Preview** · Connections → MCP · [Custom MCP](/integrations/custom-mcp)"
+  - "**Billing profile rollup** — Tenant hierarchy billing profiles aggregate across parent/child workspaces **API only** · [Billing](/platform/billing)"
+  - "**Audit and memory service foundations** — Database baselines for audit event storage and memory kernel persistence (enables upcoming audit and memory features) **Preview**"
+changed:
+  - "**Team management** — Tenant auth policy settings, project-level access controls, and team maintainer checks **GA** · Settings → Members · [Roles and permissions](/platform/roles-permissions)"
+  - "**Google account management** — Improved Google connection card and account linking in Connections **GA** · [Google Workspace](/integrations/google-workspace)"
+  - "**OAuth2 callback flow** — Enhanced OAuth2 integration with template ID and code verifier support for connection acquisition **GA** · Connections"
+  - "**LLM model source** — Workflow Studio shows model source and key status when configuring agent-call steps **GA** · [LLM providers](/ai/llm-providers)"
+  - "**Run token lifetime** — Default run token expiry extended to 30 days for long-running workflow sessions"
+  - "**Work file metadata** — Partial metadata updates on file patch operations return consistent semantics **API only**"
+  - "**Chat session model** — Session workflow applies chat model from message payload for consistent model selection **GA** · Workspace Chat"
+  - "**go-authz v0.2.1** — Private project elevation permissions across Go services"
+fixed:
+  - "**Chat session handling** — Session workflow edge cases resolved for model and preferences consistency"
+---
+
+**Platform v0.3.0** ships MCP validation hardening, workflow pins, team management improvements, and OAuth2 discovery for MCP connections. This release builds on [v0.2.3](/changelog/2026-07-05) (Execution Timeline) and [v0.2.2](/changelog/2026-07-04) (template resolver stability).
+
+## Workflow Studio and runs
+
+**MCP input validation** — when configuring MCP tool steps, Workflow Studio now validates arguments against the tool's JSON Schema before you start a run. The engine applies schema defaults and type coercion at execution time, reducing silent failures from malformed tool calls.
+
+**Workflow pins** — pin workflows you use frequently for one-click access from the Studio list.
+
+**LLM model source** — agent-call step configuration shows which model source and key status apply, making it easier to diagnose missing or expired API keys.
+
+## Connections and integrations
+
+**OAuth2 MCP discovery** — MCP instances that require OAuth2 can use standard discovery endpoints during connection acquisition. Google account management in Connections has improved linking and display.
+
+## Team and workspace management
+
+**Tenant auth policy** — workspace admins can configure authentication policies and project-level access controls. Team maintainer checks ensure only authorized members can manage team settings.
+
+## Billing
+
+**Billing profile rollup** — billing profiles can aggregate across tenant hierarchy nodes. Webhook handlers support billing event notifications (**API only** — Console billing UI unchanged).
+
+## Workspace Chat
+
+**Session model consistency** — chat sessions now apply the model from the user's message payload, improving consistency when switching models mid-conversation.
+
+## API and platform foundations
+
+**Audit and memory baselines** — database schema foundations for audit event storage and memory kernel persistence are in place for upcoming features (**Preview**).
+
+**Work service** — file metadata patch operations handle partial updates more consistently (**API only**).
+
+## Related docs
+
+- [Workflow Studio](/workflows/studio)
+- [Step types](/workflows/step-types)
+- [Roles and permissions](/platform/roles-permissions)
+- [Google Workspace](/integrations/google-workspace)
+- [Custom MCP](/integrations/custom-mcp)
+- [Billing](/platform/billing)
+- [Execution Timeline](/workflows/execution-timeline)
