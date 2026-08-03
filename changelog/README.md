@@ -16,6 +16,7 @@ User-facing release notes — one file per release (or rollup). Portico discover
 | `2026-07-04.mdx` | v0.2.2 | Production tag alignment, workflow template panic fix, billing rate limits, chat payload patches |
 | `2026-07-05.mdx` | v0.2.3 | Execution Timeline tab, composite inner step lifecycle events |
 | `2026-07-22.mdx` | v0.3.0 | MCP validation, workflow pins, OAuth2 discovery, team management, billing rollup |
+| `2026-08-03.mdx` | v0.3.1 | MCP-to-LLM depends_on fix, LLM step timeouts, Workspace Chat offline drafts, Google connect |
 | `_template.mdx` | — | Copy to start the next entry |
 
 **Source of truth:** GitHub release bodies (`gh release view`), cross-checked with git tags.

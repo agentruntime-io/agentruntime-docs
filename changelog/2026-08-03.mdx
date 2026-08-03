@@ -1,0 +1,45 @@
+---
+title: Workflow wiring, step timeouts, and Workspace Chat reliability
+date: 2026-08-03
+version: "0.3.1"
+areas:
+  - platform
+  - workflows
+  - integrations
+summary: Platform v0.3.1 — MCP-to-LLM workflow dependency fixes, LLM step timeouts, Workspace Chat offline drafts, and Google connect form improvements.
+changed:
+  - "**MCP-to-LLM chains** — Workflow Studio preserves field-wire dependencies in `depends_on` so MCP tool steps correctly gate linked LLM steps **GA** · Workflow Studio → graph wiring · [Workflow Studio](/workflows/studio)"
+  - "**LLM step timeouts** — workflow engine applies clearer timeout handling for LLM calls and long-running steps **GA** · [Step types](/workflows/step-types)"
+  - "**Google account connect** — improved accessibility and form structure when linking Google accounts **GA** · Connections → Google · [Google Workspace](/integrations/google-workspace)"
+  - "**Workspace Chat offline drafts** — drafts persist more reliably when connectivity drops mid-compose **GA** · Workspace Chat"
+  - "**Agent turn credentials** — turn requests carry model reference and credential context for consistent agent execution **API only**"
+fixed:
+  - "**MCP-to-LLM depends_on** — field-wired MCP → LLM chains no longer drop dependency edges at run time"
+---
+
+**Platform v0.3.1** is a focused patch on [v0.3.0](/changelog/2026-07-22): workflow wiring correctness, step timeout behavior, Workspace Chat reliability, and Connections polish.
+
+## Workflow Studio and runs
+
+**MCP-to-LLM chains** — when you wire an MCP tool step into an LLM step using field mapping, the run engine now keeps those dependencies in `depends_on`. Previously, some chains could start the LLM step before the MCP step finished supplying inputs.
+
+**LLM step timeouts** — LLM calls and long-running workflow steps use improved timeout handling, reducing hung runs when a provider stalls.
+
+## Connections
+
+**Google account connect** — the Google account connection form has better structure and accessibility for linking Workspace accounts.
+
+## Workspace Chat
+
+**Offline drafts** — message drafts are preserved more reliably when you lose connectivity while composing.
+
+## API and agents
+
+**Agent turn credentials** — agent turn requests include model reference and credential context so downstream execution picks the intended model and key (**API only** — no Console UI change).
+
+## Related docs
+
+- [Workflow Studio](/workflows/studio)
+- [Step types](/workflows/step-types)
+- [Google Workspace](/integrations/google-workspace)
+- [Runs and Command Center](/workflows/runs-and-command-center)
