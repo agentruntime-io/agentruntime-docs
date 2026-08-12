@@ -25,7 +25,7 @@ Annual plans (`pro_annual`, `plus_annual`, etc.) follow the same tier rules with
 
 View live plan details and prices in the Console **Plans** tab — catalog syncs from Stripe.
 
-Plans are scoped to the **AgentRuntime** product (`product_code = agentruntime`). The Console shows tier names (`pro`, `plus`, …) only. See [Multi-product billing](/platform/multi-product-billing) for how product lines share one platform kernel.
+Plans are scoped to the **AgentRuntime** product (`product_code = agentruntime`). The Console shows tier names (`pro`, `plus`, …) only. See [Multi-product billing](/platform/multi-product-billing) for how AgentRuntime keeps product catalogs separate.
 
 ## How credits work
 
@@ -156,15 +156,15 @@ POST /v1/billing/discounts/validate
 
 ## Multi-product billing
 
-Wheelhouse scopes the plan catalog by **`(product_code, plan_code)`**. The AgentRuntime Console (`console.agentruntime.io`) is wired to **`product_code = agentruntime`** — you see only AgentRuntime tiers in **Settings → Plans**.
+AgentRuntime's plan catalog is scoped by **`(product_code, plan_code)`**. The AgentRuntime Console (`console.agentruntime.io`) is scoped to **`product_code = agentruntime`** — you see only AgentRuntime tiers in **Settings → Plans**.
 
 | What | Scope |
 |------|-------|
-| Plan catalog | Per `product_code` (BFF filters by deployment config) |
+| Plan catalog | Per `product_code` — this Console only ever shows AgentRuntime plans |
 | Workspace subscription & credits | Per workspace — one plan and ledger per workspace |
 | Stripe sync | Each price carries `product_code` + `plan_code` metadata |
 
-Existing workspaces were migrated with `product_code = agentruntime`; plan codes and balances are unchanged. Full architecture: [Multi-product billing](/platform/multi-product-billing).
+Plan codes and balances for existing workspaces are unchanged. Full details: [Multi-product billing](/platform/multi-product-billing).
 
 ## Related resources
 

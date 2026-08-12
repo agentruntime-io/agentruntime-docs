@@ -19,14 +19,7 @@ Browse a subset of workflow and run endpoints in the marketing site's Scalar UI:
 
 ## OpenAPI specifications
 
-Hand-authored OpenAPI 3.1 specs in the monorepo (not auto-generated from handlers):
-
-| Spec | Coverage |
-|------|----------|
-| Billing API | `/v1/config/stripe`, `/v1/billing/*` |
-| Onboarding API | `/v1/onboarding/*`, `/v1/setup/*` |
-
-There is no single full-BFF OpenAPI file today. Use this page and product guides for workflows, integrations, and auth.
+Formal OpenAPI 3.1 specs exist for a subset of the API surface, including billing (`/v1/billing/*`) and onboarding (`/v1/onboarding/*`, `/v1/setup/*`) endpoints. There is no single full OpenAPI file covering every route today — use this page, [API examples](/api/examples), and the interactive explorer above for the rest of the surface.
 
 ## Authentication
 
@@ -101,15 +94,6 @@ Base path: `/v1/workflows`
 | `pause` | `run_id` | Pause scheduling |
 | `resume` | `run_id` | Resume paused run |
 | `stop` | `run_id`, optional `mode` | Stop run (`immediate` default, or `graceful`) |
-
-### Workflow connection overrides
-
-**API only** — no Console panel yet. See [Feature availability](/platform/feature-availability).
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| `GET` | `/v1/workflows/{id}/connection-overrides` | viewer+ | List overrides |
-| `PUT` | `/v1/workflows/{id}/connection-overrides` | contributor+ | Replace override map |
 
 ### Runs and human tasks
 
@@ -310,7 +294,7 @@ Base path: `/v1/billing`
 
 `GET /v1/config/stripe` — publishable Stripe config for Console checkout.
 
-`GET /v1/billing/plans` returns tiers for the BFF's configured product (AgentRuntime Console → `agentruntime`). Catalog rows are keyed by `(product_code, plan_code)` in Wheelhouse; the public response surfaces `plan_code` and pricing fields. See [Multi-product billing](/platform/multi-product-billing).
+`GET /v1/billing/plans` returns tiers scoped to your workspace's product (AgentRuntime Console → `agentruntime`). Catalog rows are keyed by `(product_code, plan_code)`; the public response surfaces `plan_code` and pricing fields. See [Multi-product billing](/platform/multi-product-billing).
 
 See [Billing and credits](/platform/billing-and-credits) and [API examples](/api/examples).
 
@@ -378,7 +362,7 @@ Console **Settings → API keys** manages the same keys for inbound webhook auto
 
 ## SDKs and collections
 
-- **Postman collections** — monorepo `docs/api/`
+- **Request/response samples** — see [API examples](/api/examples) for copy-paste requests
 - **Platform MCP** — [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp); see [Platform MCP](/api/platform-mcp)
 
 Contact [support@agentruntime.io](mailto:support@agentruntime.io) for enterprise API SLAs.

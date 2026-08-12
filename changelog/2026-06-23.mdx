@@ -1,5 +1,5 @@
 ---
-title: Composer drafts, message queue, Cedar permissions, and lifecycle accountability
+title: Composer drafts, message queue, permissions, and lifecycle accountability
 date: 2026-06-23
 version: "0.2.1"
 areas:
@@ -7,32 +7,30 @@ areas:
   - workflows
   - api
   - billing
-summary: Platform v0.2.1 — server-side message queue, composer draft sync, conversation archive, Cedar-backed API permissions, lifecycle accountability timestamps, and Console auth polish.
+summary: Platform v0.2.1 — server-side message queue, composer draft sync, conversation archive, stronger API permissions, lifecycle accountability timestamps, and Console auth polish.
 added:
   - "**Message queue** — follow-up user messages persist as `queued` server-side and dispatch when the agent lane pauses or completes **GA**"
   - "**Composer draft sync** — unsent text autosaves per conversation and thread; survives reloads and syncs across devices **GA**"
   - "**Conversation archive** — archive rooms from the header menu; archived conversations leave the active inbox without deleting history **GA**"
   - "**Turn reload recovery** — refresh mid-stream and Space restores in-flight turn status from the turn-status API **GA**"
-  - "**Copilot execution lanes** — per-starter `chat_workflow_binding` so DM and agent rooms use isolated workflow starters **GA**"
+  - "**Copilot execution lanes** — DM and agent rooms use isolated workflow starters so parallel chat surfaces do not share run state **GA**"
   - "Console **Resend verification email** with classified errors (wrong password, wrong provider) — no support CTA on expected mistakes **GA**"
   - "Account **password change** and improved OAuth-linked profile updates in workspace settings **GA**"
   - "**Stop session workflow** — graceful stop for an in-flight chat-bound run without orphan pending rows **GA**"
 changed:
-  - "Public API **`/v1/*` routes** enforce **Cedar-backed permissions** — capabilities on membership or PAT scopes replace legacy role-only checks **GA**"
-  - "Console **AuthSessionLifecycle** — centralized token refresh and expiry handling for long-lived sessions"
+  - "Public API **`/v1/*` routes** enforce stronger permission checks — capabilities on membership or PAT scopes replace legacy role-only checks **GA**"
+  - "Console session handling — centralized token refresh and expiry handling for long-lived sessions"
   - "**Lifecycle accountability** — `archived_at`/`archived_by`, `deleted_at`/`deleted_by`, `created_by`/`updated_by` on workspace entities; legacy `is_deleted` / `is_archived` flags retired"
-  - "Chat **authz helper** — conversation membership checks before enqueue, draft, and archive operations"
-  - "BFF **auth login modes** — `ropc` / `oauth` / `gateway` per environment INI; rate limiting on login and verification endpoints"
+  - "Conversation membership checks added before enqueue, draft, and archive operations in chat"
+  - "Rate limiting added on login and verification endpoints"
   - "Billing context resolver enriched with permission-aware entitlements on context load"
 fixed:
   - "Multi-turn Autopilot no longer **finalizes the workflow run on resume** when the graph uses a `chat_agent` step alias"
-  - "Verification email resend surfaces a clear operator-facing error when Keycloak rejects a redirect URI"
+  - "Verification email resend surfaces a clear error when a redirect URI is rejected during sign-in"
   - "Membership **reactivate** when re-adding a soft-deleted member instead of creating duplicates"
 ---
 
 **Platform v0.2.1** builds on [v0.2.0](/changelog/2026-06-20) (session workflow and Continue on limit).
-
-Deploy requires coordinated schema migrations before rolling services — chat-service **`000008`–`000010`** (lifecycle columns, execution lanes, composer drafts) and wheelhouse **`000024`–`000026`** (accountability columns). Operators should follow the internal lifecycle and UE merge runbooks.
 
 ## Workspace Chat
 
@@ -42,25 +40,21 @@ Deploy requires coordinated schema migrations before rolling services — chat-s
 
 **Archive** moves conversations out of the active inbox while preserving history and recording who archived and when.
 
-**Reload recovery** and **Continue on limit** sidebar UX work together: after refresh, Space hydrates the Continue CTA from persisted agent payload and turn-status metadata.
+**Reload recovery** and **Continue on limit** sidebar UX work together: after refresh, Space restores the Continue prompt from persisted turn state.
 
 **Execution lanes** bind each copilot starter (DM vs agent room) to its own workflow binding so parallel chat surfaces do not share run state incorrectly.
 
 ## Console
 
-**Resend verification email**, clearer auth error copy, **password change**, and centralized session refresh. Auth login mode (`ropc` / `oauth` / `gateway`) is configurable per environment — align Console INI with BFF settings after deploy.
+**Resend verification email**, clearer auth error copy, **password change**, and centralized session refresh reduce friction in sign-in and account recovery flows.
 
 ## API and permissions
 
-Public BFF routes now enforce **Cedar-backed permissions** aligned with membership capabilities and PAT scopes. If an integration suddenly receives `403`, verify the token's scopes and the user's project or tenant permissions — not only legacy role names.
+Public API routes now enforce stronger permission checks aligned with membership capabilities and PAT scopes. If an integration suddenly receives `403`, verify the token's scopes and the user's project or tenant permissions — not only legacy role names.
 
 OAuth profile updates, password change, PAT creation, MCP execute, onboarding, and billing handlers all participate in the same permission model.
 
 **Lifecycle accountability** gives admins a clearer audit trail: who archived a conversation, who deleted a message, and when entity state changed — without relying on boolean `is_deleted` flags.
-
-## Workflows and runs
-
-Operators validating this release should run the UE merge acceptance gates on a dev stack before production cutover. Chat observe streams continue to emit tool-round and limit-reached events for live triage.
 
 ## Related docs
 

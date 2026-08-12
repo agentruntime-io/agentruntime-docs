@@ -16,24 +16,20 @@ added:
   - "**LLM catalog in Console** — browse workspace models, quick-test credentials, pick models for agent-call steps, and match stored keys **GA**"
   - "**Vault** — list secrets, edit values in place, path breadcrumbs, and security callout in Console **GA**"
   - "**Support cases** — open and track support requests from Console with playbook integration **GA**"
-  - "**Workflow scheduler** — cron-driven scheduled runs from the control plane **GA**"
+  - "**Workflow scheduler** — cron-driven scheduled workflow runs **GA**"
   - "**Google OAuth acquisition** — tenant-level settings for connecting Google Workspace services at signup **GA**"
   - "Workspace Chat **channel ↔ project linking** — bind a Space channel to a Console project for scoped automation context **GA**"
-  - "**Playwright live-stack E2E** — dedicated QA tenant seeding and live-mode test config for Console **operator**"
   - "Connector catalog — improved Go MCP adapter docs and actionable install error messages"
 changed:
   - "Workflow canvas **auto-layout** (dagre), X-ray layers, template gallery, and import preview before publish"
   - "Console **design system** — PageShell, AuthSplitLayout, design tokens, StatusBadge; auth and onboarding UI refresh"
-  - "Billing migrated to Stripe **`/internal/billing`** with multi-product **`product_code`** on plans — legacy product/price APIs removed **GA**"
+  - "Billing migrated to Stripe with multi-product **`product_code`** on plans — legacy product/price APIs removed **GA**"
   - "Email **verification** resend and classified password-login error messages (wrong password vs wrong provider)"
-  - "Workflow **trigger management** and LLM model test API exposed on the public BFF **API only**"
-  - "Platform **events and webhooks** for operator alerting; support playbook and user-verification endpoints"
-  - "Agent-service proxy configuration for LLM tool routes (pre–in-process migration in v0.2.0)"
-fixed:
-  - "OpenTelemetry trace export over HTTP/S endpoints — operator telemetry paths no longer drop spans on TLS URLs"
+  - "Workflow **trigger management** and LLM model test API exposed on the public API **API only**"
+  - "Platform **events and webhooks**; support playbook and user-verification endpoints"
 ---
 
-Platform **v0.1.4 / v0.1.5** — last coordinated release before the unified execution program. Engineering tags: `webapp` v0.1.4, `bff` / `go-wheelhouse` / `control-service` / `webapp_sysadmin` v0.1.5, `webapp-chat` / `chat-service` / `connectors` / `database-schema` / `work-service` v0.1.1 ([GitHub releases](https://github.com/orgs/agentruntime-io/repositories)).
+Platform **v0.1.4 / v0.1.5** — the last coordinated release before the unified execution program described in [v0.2.0](/changelog/2026-06-20).
 
 ## Console
 
@@ -47,7 +43,7 @@ Platform **v0.1.4 / v0.1.5** — last coordinated release before the unified exe
 
 ## Workspace Chat
 
-Space gains **project linking** on channels so team chat stays scoped to the right automation context. Amplify build config and the Space design-system doc ship in this batch for live-mode deploys.
+Space gains **project linking** on channels so team chat stays scoped to the right automation context.
 
 ## API and billing
 

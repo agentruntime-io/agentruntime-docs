@@ -12,7 +12,7 @@ description: Connect Cursor, Claude, and other MCP clients to AgentRuntime workf
 | **Transport** | Streamable HTTP (MCP) |
 
 <Warning>
-  Platform MCP is different from **connector MCP instances** used in workflow runs. Connector tools run at `router.agentruntime.io` during execution. Platform MCP drives the **Console API** from your IDE.
+  Platform MCP is different from **connector MCP instances** used inside workflow runs — those tools execute as part of the workflow runtime, not through Platform MCP. Platform MCP drives the **Console API** from your IDE.
 </Warning>
 
 ## Quick setup (Cursor)
@@ -143,17 +143,6 @@ Paths containing `/credentials` require the **risk** group to be enabled.
 - Prefer a dedicated PAT for IDE use — revoke it without affecting production automation
 - Do not enable **risk** tools unless you need vault, PAT, or credential management from the IDE
 - Rotate PATs if they appear in logs or shared configs
-
-## Local development
-
-For local Platform MCP development, run the server from `dev_tools/agentruntime-platform-mcp` with:
-
-```
-AGENTRUNTIME_BFF_URL=https://api-dev.agentruntime.io
-AGENTRUNTIME_PAT=pat_...
-```
-
-Point your MCP client at `http://127.0.0.1:8340/mcp` (default local port).
 
 ## Related docs
 

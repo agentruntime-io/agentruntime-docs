@@ -82,10 +82,6 @@ Examples: Resend, GitHub, Shopify, Postgres DSN, Notion integration token.
   Deleting a connection breaks MCP instances whose active profile still references it. Rewire profiles first.
 </Warning>
 
-## Per-workflow connection overrides
-
-The API supports workflow-level connection overrides (`GET/PUT /v1/workflows/{id}/connection-overrides`) so one graph can target sandbox vs production credentials without duplicating the workflow. The Console does not expose a dedicated overrides panel today — use the API or Platform MCP if you need per-workflow credential routing.
-
 ## Related
 
 - [MCP instances](/integrations/mcp-instances) — install connectors and config profiles

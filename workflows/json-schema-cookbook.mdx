@@ -5,6 +5,8 @@ description: Copy-paste workflow graph examples — MCP chains, Lua transforms, 
 
 Workflow graphs are JSON documents describing a directed acyclic graph of steps. Author them in **Workflow Studio** or submit them via `POST /v1/workflows`.
 
+For editing graphs in the Console, see [JSON editor](/workflows/json-editor) (Canvas \| JSON mode, IntelliSense, **Apply to canvas**).
+
 **JSON Schema:** [agentruntime.io/schemas/workflow-graph.schema.json](https://agentruntime.io/schemas/workflow-graph.schema.json)
 
 ## Graph structure
@@ -269,7 +271,7 @@ Complete the task from [Command Center](/workflows/runs-and-command-center) or t
 
 **Composite loops:** Inner body steps also expose `{{steps.<inner-id>.input.<field>}}` using the inner step `id` from `for_each_body_steps` or `while_body_steps`. Parent loop nodes expose their own resolved inputs, e.g. `{{steps.process-each.input.for_each_items}}` or `{{steps.refine.input.while_condition}}`.
 
-**Legacy shapes:** Do not use `for_each_body`, slug step ids, or catalog-agent-only canvas nodes. Monorepo reference: `docs/workflows/WORKFLOW_LEGACY_AND_COMPAT.md`.
+**Legacy shapes:** Do not use `for_each_body`, slug step ids, or catalog-agent-only canvas nodes.
 
 Hyphenated step IDs work in templates; in Lua use `steps.fetch_product` (underscore alias) or `steps["fetch-product"]`.
 

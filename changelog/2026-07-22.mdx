@@ -12,8 +12,8 @@ added:
   - "**Workflow pins** — Pin workflows from Console for quick access to frequently used graphs **GA** · Workflow Studio → pin icon · [Workflow Studio](/workflows/studio)"
   - "**MCP input validation** — Workflow Studio validates MCP tool arguments against JSON Schema (required fields, min/max, patterns) before run; engine applies schema defaults and coercion at execution time **GA** · Workflow Studio → step config · [Step types](/workflows/step-types)"
   - "**Platform announcements** — Operators can publish platform-wide announcement modals; tenants see them on next Console login **GA**"
-  - "**OAuth2 MCP discovery** — MCP connections support OAuth2 discovery for acquisition flows **Preview** · Connections → MCP · [Custom MCP](/integrations/custom-mcp)"
-  - "**Billing profile rollup** — Tenant hierarchy billing profiles aggregate across parent/child workspaces **API only** · [Billing](/platform/billing)"
+  - "**OAuth2 MCP discovery** — MCP connections support OAuth2 discovery for acquisition flows **Preview** · Connections → MCP · [Custom MCP servers](/integrations/custom-mcp-servers)"
+  - "**Billing profile rollup** — Tenant hierarchy billing profiles aggregate across parent/child workspaces **API only** · [Billing and credits](/platform/billing-and-credits)"
   - "**Audit and memory service foundations** — Database baselines for audit event storage and memory kernel persistence (enables upcoming audit and memory features) **Preview**"
 changed:
   - "**Team management** — Tenant auth policy settings, project-level access controls, and team maintainer checks **GA** · Settings → Members · [Roles and permissions](/platform/roles-permissions)"
@@ -23,7 +23,7 @@ changed:
   - "**Run token lifetime** — Default run token expiry extended to 30 days for long-running workflow sessions"
   - "**Work file metadata** — Partial metadata updates on file patch operations return consistent semantics **API only**"
   - "**Chat session model** — Session workflow applies chat model from message payload for consistent model selection **GA** · Workspace Chat"
-  - "**go-authz v0.2.1** — Private project elevation permissions across Go services"
+  - "**Private project permissions** — Elevation permission checks hardened across backend services"
 fixed:
   - "**Chat session handling** — Session workflow edge cases resolved for model and preferences consistency"
 ---
@@ -58,7 +58,7 @@ fixed:
 
 **Audit and memory baselines** — database schema foundations for audit event storage and memory kernel persistence are in place for upcoming features (**Preview**).
 
-**Work service** — file metadata patch operations handle partial updates more consistently (**API only**).
+**Work files** — file metadata patch operations handle partial updates more consistently (**API only**).
 
 ## Related docs
 
@@ -66,6 +66,6 @@ fixed:
 - [Step types](/workflows/step-types)
 - [Roles and permissions](/platform/roles-permissions)
 - [Google Workspace](/integrations/google-workspace)
-- [Custom MCP](/integrations/custom-mcp)
-- [Billing](/platform/billing)
+- [Custom MCP servers](/integrations/custom-mcp-servers)
+- [Billing and credits](/platform/billing-and-credits)
 - [Execution Timeline](/workflows/execution-timeline)

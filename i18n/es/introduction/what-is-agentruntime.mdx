@@ -24,5 +24,49 @@ Piensa en ello como **Airflow para IA**: ejecución de flujos orientada a evento
 | **API BFF** | API pública en [api.agentruntime.io](https://api.agentruntime.io) — autenticación, flujos, ejecuciones, facturación, integraciones |
 | **Runtime de flujos** | Ejecuta grafos de flujos, gestiona paralelismo, reintentos y pausas con humano en el bucle |
 | **Capa MCP** | Catálogo de servidores de herramientas; **instancias** por inquilino con perfiles de configuración y enlaces de conexión |
-| **Servicio de agentes** | Ejecuta turnos de agentes integrados en chat y salas de canal |
+| **Agentes de plataforma** | Definiciones de agentes reutilizables que ejecutan conversaciones de varios turnos en salas de chat y canal |
 | **MCP de plataforma** | Expone las APIs de la Consola como herramientas MCP para IDEs en [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp) |
+
+## Cómo funciona en conjunto
+
+```mermaid
+flowchart LR
+  subgraph you [Tú]
+    Console[Consola]
+    API[API / PAT]
+    IDE[IDE vía Platform MCP]
+  end
+  subgraph platform [AgentRuntime]
+    BFF[API BFF]
+    RT[Runtime de flujos]
+    MCP[Conectores MCP]
+  end
+  Console --> BFF
+  API --> BFF
+  IDE --> BFF
+  BFF --> RT
+  RT --> MCP
+```
+
+## Conceptos clave
+
+- **Espacio de trabajo (inquilino)** — Tu organización. Contiene proyectos, miembros, facturación e integraciones.
+- **Proyecto** — Donde viven los flujos, las ejecuciones y las instancias MCP. Los roles se asignan por proyecto.
+- **Flujo** — Un DAG versionado de pasos. Se crea en Workflow Studio y se valida antes de publicar.
+- **Ejecución** — Una ejecución de una versión publicada del flujo. Transmite eventos por WebSocket.
+- **Conexión** — Credenciales guardadas (Google OAuth, WhatsApp, claves API) vinculadas a instancias MCP.
+- **Instancia MCP** — Un servidor de herramientas desplegado en tu proyecto con configuración y credenciales conectadas.
+
+Consulta [Conceptos clave](/platform/key-concepts) para el modelo completo, o ve directo a [Inicio rápido](/platform/quickstart) para crear tu primer flujo.
+
+## Para quién es AgentRuntime
+
+AgentRuntime está diseñado para equipos que pasan de experimentos con IA a **cargas de trabajo en producción**:
+
+- Equipos de ingeniería que automatizan operaciones, datos e integraciones con flujos de agentes
+- Equipos de producto que necesitan puntos de aprobación humana antes de que los agentes actúen
+- Organizaciones que requieren control de acceso multi-inquilino, medición de uso y auditoría
+
+<Note>
+  AgentRuntime está orientado a API. La Consola es la interfaz principal para los operadores, pero cada funcionalidad de los flujos también está disponible a través de la API REST y Platform MCP para uso programático.
+</Note>

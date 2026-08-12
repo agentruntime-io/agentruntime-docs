@@ -31,7 +31,7 @@ The Console sets these automatically. API clients must send them on scoped endpo
 
 | Area | Base path | Notes |
 |------|-----------|-------|
-| Workflows | `/v1/workflows` | CRUD, versions, validate, connection overrides |
+| Workflows | `/v1/workflows` | CRUD, versions, validate |
 | Run commands | `/v1/workflows/{id}/command` | `start`, `pause`, `resume`, `stop` |
 | Runs feed | `/v1/runs` | Tenant-wide run list |
 | Events | `/v1/workflows/{id}/runs/{runID}/events` | Step log |
@@ -84,7 +84,7 @@ For IDE integrations, use **Platform MCP** at `https://mcp.agentruntime.io/mcp` 
 
 ## Internal services
 
-Control-service, agentruntime workflow engine, and chat-service are **internal**. Customer integrations should always go through the BFF — not direct internal URLs.
+AgentRuntime's engine and backend services are **internal** and not part of the public API surface. Customer integrations should always go through the public API (`https://api.agentruntime.io`) — never call internal service URLs directly.
 
 ## Rate limits and errors
 

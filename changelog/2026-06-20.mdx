@@ -21,7 +21,6 @@ changed:
   - "Chat-bound runs **pause at the tool-round limit**; sessions do not auto-extend without an explicit **Continue**"
   - "Agent prompts in session chat resolve from the **latest human message**, not a stale canvas prompt"
   - "Connectors aligned with **`agentruntime-mcp-go` v0.1.5** across Go MCP adapters"
-  - "Legacy standalone **agent-service HTTP executor** removed from the primary runtime turn path (Phase B UE merge)"
 fixed:
   - "Multi-turn copilot conversations keep a **stable workflow run** across messages when session workflow is enabled"
   - "Resuming a **completed** workflow run is rejected cleanly — no hung pending agent rows"
@@ -29,9 +28,7 @@ fixed:
   - "Composer blocked while awaiting **Continue** so users cannot enqueue conflicting messages mid-limit"
 ---
 
-First coordinated **platform v0.2.0** release after the unified agent/workflow execution merge. It includes the June pre-merge bridge (contacts, Work route, Space ↔ work) and the UE baseline below.
-
-Engineering tags: `v0.2.0` on agentruntime, bff, chat-service, webapp, webapp-chat, go-wheelhouse, control-service, connectors, work-service, database-schema, and related repos. Prior `v*-pre-ue` tags remain as rollback pins.
+**Platform v0.2.0** unifies agent and workflow execution. It includes the June pre-merge bridge (contacts, Work route, Space ↔ work) and the unified execution baseline below.
 
 ## Workspace Chat and Console
 
@@ -39,9 +36,9 @@ Engineering tags: `v0.2.0` on agentruntime, bff, chat-service, webapp, webapp-ch
 
 **Continue on limit** ships in v0.2.0 for both Console and Workspace Chat. When a turn stops at the configured tool-round cap, the UI shows an awaiting state and a **Continue** control; the orchestrator extends the slice and the same run resumes. Reload the page mid-stream and turn status restores from the API.
 
-The pre-merge bridge adds **contacts** (user and workspace), a **tablet layout**, and **work integration** so operators can jump to tasks and files from Space. Console gains a dedicated **Work** route and clearer **MCP bridge** setup for project tool wiring.
+The pre-merge bridge adds **contacts** (user and workspace), a **tablet layout**, and **work integration** so you can jump to tasks and files from Space. Console gains a dedicated **Work** route and clearer **MCP bridge** setup for project tool wiring.
 
-Console Autopilot shows limit/paused run visibility in the **Execution panel**; Space shows a **TurnStreamIndicator** and blocks the composer until Continue is resolved.
+Console Autopilot shows limit/paused run visibility in the **Execution panel**; Space shows a status indicator and blocks the composer until Continue is resolved.
 
 ## Workflows
 

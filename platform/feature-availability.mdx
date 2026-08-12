@@ -25,12 +25,11 @@ Some capabilities are fully supported in the Console; others are API-only, featu
 | Billing & credits | **GA** | Settings → **Billing Overview**, **Plans**, **Usage & History** | Plan catalog syncs from Stripe; scoped to `product_code = agentruntime` on this Console |
 | Analytics | **Flagged** | `/analytics` when `enableAnalyticsNav` is on | KPIs + timeseries from runs and billing events |
 | Memory (search, index, extract) | **Preview** | No dedicated Memory nav in prod (`enableMemory` off) | Use [Memory API](/ai/memory) and Autopilot tools where enabled |
-| Workflow connection overrides | **API only** | — | `PUT /v1/workflows/{id}/connection-overrides` |
 | Slack connector | **Placeholder** | MCP catalog | Install + token OK; **no messaging tools** yet — see [slack](/connectors/slack) |
 | Healthcare connector | **Preview** | MCP catalog | **Mock APIs only** — not for production PHI |
 | Referrals (promoter program) | **Flagged** | `/referrals` when `enablePlatformReferrals` is on | Cash commissions + signup link |
 | Settings → Affiliates | **Flagged** | Settings tab when `enableSettingsAffiliates` is on | Maintainer payout ops — not promoter self-service |
-| Agents / Marketplace / Tools nav | **Flagged** | Sidebar when `enableAgents`, etc. | May be off in your workspace |
+| Agents / Marketplace / Tools nav | **Flagged** | Sidebar when `enableAgents`, etc. | Marketplace **Bundles** tab lists Workspace Copilot; Autopilot session graph is platform-managed — optional **editable copy** in Workflow Studio |
 
 ## How to check your workspace
 

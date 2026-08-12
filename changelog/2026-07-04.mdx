@@ -9,11 +9,11 @@ areas:
   - billing
 summary: Platform v0.2.2 — tags production deployments; workflow template panic fix, billing rate limits, chat payload patches, and MCP authorization hardening.
 added:
-  - "**Billing rate limits** — BFF throttles abusive billing API traffic before it reaches wheelhouse **GA**"
+  - "**Billing rate limits** — throttles abusive billing API traffic **GA**"
   - "**Starter message payload merge** — patch operations shallow-merge JSON payloads on chat starter messages **GA**"
 changed:
   - "**Workflow template resolution** — optional empty template fields fail the step with a clear error instead of stalling the run **GA**"
-  - "MCP execute paths use improved service-name extraction and Cedar-backed authorization checks in control-service"
+  - "MCP execute paths use improved service-name extraction and stronger authorization checks"
   - "Discount validation and membership backfill hardening on billing checkout paths"
   - "Work document patch API returns consistent partial-update semantics **API only**"
 fixed:
@@ -21,11 +21,11 @@ fixed:
   - "Chat session and preferences endpoints return clearer validation errors"
 ---
 
-**Platform v0.2.2** records what is **live in production** as of 4 July 2026. Engineering tags were applied to each service's `production` branch tip where it had moved ahead of the prior release tag. This release builds on [v0.2.1](/changelog/2026-06-23) (message queue, Cedar permissions, lifecycle accountability).
+**Platform v0.2.2** records what is **live in production** as of 4 July 2026. This release builds on [v0.2.1](/changelog/2026-06-23) (message queue, stronger API permissions, lifecycle accountability).
 
 ## Workflows and runs
 
-**Template resolver hardening** — if a workflow step uses a text template with an optional input left empty, the step now **fails with an explicit error** instead of interrupting run processing. Runs should no longer remain stuck in **Running** for this condition. See the [25 June incident summary](/platform/troubleshooting) if you observed stuck runs before this deploy.
+**Template resolver hardening** — if a workflow step uses a text template with an optional input left empty, the step now **fails with an explicit error** instead of interrupting run processing. Runs should no longer remain stuck in **Running** for this condition. See [Troubleshooting](/platform/troubleshooting) if you observed stuck runs before this deploy.
 
 ## Workspace Chat
 
@@ -35,21 +35,21 @@ Session and preferences APIs return clearer validation errors when required fiel
 
 ## Console and billing
 
-**Billing rate limits** on the BFF protect checkout and entitlement endpoints from burst traffic. Operators should still monitor wheelhouse logs for repeated `429` responses from integrations.
+**Billing rate limits** protect checkout and entitlement endpoints from burst traffic. If your integration receives repeated `429` responses, back off and retry rather than hammering the endpoint.
 
-Discount code validation and membership backfill paths in wheelhouse were tightened to reduce inconsistent tenant billing state after signup edge cases.
+Discount code validation and membership backfill were tightened to reduce inconsistent tenant billing state after signup edge cases.
 
 ## API and integrations
 
 MCP catalog execute routes benefit from improved authorization checks and service-name extraction — integrations using PATs should verify scopes if they suddenly receive `403` after deploy.
 
-**Work service** document patch semantics are more consistent for partial field updates (**API only** — no dedicated Console UI yet).
+**Work files** document patch semantics are more consistent for partial field updates (**API only** — no dedicated Console UI yet).
 
 ## Related docs
 
 - [Runs and Command Center](/workflows/runs-and-command-center)
 - [Workflow Studio](/workflows/studio)
 - [Autopilot and chat](/ai/autopilot-and-chat)
-- [Billing](/platform/billing)
+- [Billing and credits](/platform/billing-and-credits)
 - [API reference](/api/reference)
 - [Troubleshooting](/platform/troubleshooting)

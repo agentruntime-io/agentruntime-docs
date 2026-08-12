@@ -78,7 +78,7 @@ Call a large language model with a prompt.
 
 
 
-In Workflow Studio, use the **LLM Call** palette node and pick model + source in the node config; the editor writes these fields on save. Resolution uses **Providers** keys and control-service `model_ref` routing at run time.
+In Workflow Studio, use the **LLM Call** palette node and pick model + source in the node config; the editor writes these fields on save. At run time, the platform resolves `model_ref` against your **Providers** keys automatically.
 
 
 
@@ -191,7 +191,7 @@ Workflow Studio **Variables** drawer and autocomplete expose copyable paths. At 
 
 **Composite inner steps:** `steps.<id>.input.*` uses the inner step **authoring id** from `for_each_body_steps[]` or `while_body_steps[]`. Parent `for_each` / `while` nodes use the canvas step id for their own `input.*` fields (`for_each_items`, `while_condition`, etc.).
 
-**Legacy authoring (do not use on new graphs):** `for_each_body`, slug step ids, catalog-agent-only canvas nodes. Monorepo reference: `docs/workflows/WORKFLOW_LEGACY_AND_COMPAT.md`.
+**Legacy authoring (do not use on new graphs):** `for_each_body`, slug step ids, catalog-agent-only canvas nodes.
 
 ## Execution controls
 

@@ -15,13 +15,13 @@ added:
   - "**Monaco log viewer** — filter and inspect workflow run logs in Studio with syntax highlighting"
   - "**MCP connectors** — connection profile UX, instance list/detail, and catalog API improvements in Console **GA**"
   - "**Product tours** — driver.js guided walkthroughs for key Console surfaces"
-  - "**Product analytics** — Mixpanel and PostHog hooks for Console usage tracking (operator-configured)"
-  - "**Inbound webhooks** — BFF routes for signed workflow webhook ingress **API only**"
+  - "**Product analytics** — Mixpanel and PostHog hooks for Console usage tracking"
+  - "**Inbound webhooks** — signed workflow webhook ingress **API only**"
   - "**Workflow webhooks** — inbound and outbound webhook routing on the platform API **API only**"
   - "**Auto-start trial** — trial period starts automatically when a workspace is provisioned"
   - "**Tenant runs API** — list all workspace runs and fetch timeseries aggregates for Operate dashboards **API only**"
   - "**LLM provider validation** — catalog health checks and masked key reveal for workspace admins **API only**"
-  - "**MCP profile management** — control-plane CRUD for connector configuration profiles **API only**"
+  - "**MCP profile management** — manage connector configuration profiles **API only**"
   - "**Billing action catalog** — define billable actions, record usage, and drive wallet checkout **API only**"
   - "**PAT metadata** — personal access token introspection and idempotency release **API only**"
   - "**Lua script steps (preview)** — custom transform nodes in workflow graphs **Preview**"
@@ -30,13 +30,13 @@ changed:
   - "**OAuth profile claims** and password-login diagnostics — clearer failure reasons when sign-in fails"
   - "Workflow run status treats **stopped** runs as failed in Command Center triage"
   - "Workspace **invitation emails** with tenant name/code in the acceptance flow"
-  - "Autopilot wizards and intent handling refinements on the BFF for canvas editing sessions"
+  - "Autopilot wizards and intent handling refinements for canvas editing sessions"
 fixed:
   - "Authentication error handling and email-verification feedback across login and password cards"
-  - "DLQ buildup and auth retry loops in the workflow runtime under transient failures"
+  - "Message backlog and auth retry loops in the workflow runtime during transient failures"
 ---
 
-Platform **v0.1.1** — largest pre–Jun-15 increment. Engineering tags: `webapp` v0.1.1, `bff` / `agentruntime` / `go-wheelhouse` / `control-service` v0.1.1–v0.1.2 (repos tagged over May 9–22).
+Platform **v0.1.1** — the largest release before mid-June 2026, shipped over May 9–22.
 
 ## Console
 
@@ -46,11 +46,11 @@ Platform **v0.1.1** — largest pre–Jun-15 increment. Engineering tags: `webap
 
 **Workflow Studio** took its first step away from client-only simulation: validate graphs on the server, read dry-run summaries, and jump from a failing step back to the canvas. The Monaco log viewer made long run traces readable without leaving Studio.
 
-**MCP** connector profiles and connection management improved in Console. **Guided tours** and **analytics** (Mixpanel / PostHog) shipped for product instrumentation when operators enable them.
+**MCP** connector profiles and connection management improved in Console. **Guided tours** and **analytics** (Mixpanel / PostHog) shipped for product instrumentation.
 
 ## API and integrations
 
-Public and internal APIs added **inbound webhooks**, **workflow webhook** routing, **run listing and timeseries**, **LLM provider validation**, **billing usage recording**, and **PAT** metadata. New workspaces could **auto-start a trial** on provision.
+The public API added **inbound webhooks**, **workflow webhook** routing, **run listing and timeseries**, **LLM provider validation**, **billing usage recording**, and **PAT** metadata. New workspaces could **auto-start a trial** on provision.
 
 The runtime introduced **Lua script steps** for lightweight transforms — an early building block for custom logic before native step types expanded in v0.1.2.
 

@@ -1,147 +1,50 @@
 ---
 title: Execution Timeline (Console)
-description: How the workflow run Timeline tab mirrors the Events tab and maps run events to Gantt rows.
+description: How the workflow run Timeline tab visualizes step durations, agent activity, and loop iterations.
 ---
 
 # Execution Timeline
 
-The **Timeline** tab in the workflow execution panel shows a Gantt-style view of step durations in **execution order**. It uses the **same event grouping** as the **Events** tab — no new backend event types are required.
-
-## Design principle
-
-> If the Events tab shows activity under a step, the Timeline may show it as a nested row under that step's bar.
-
-Timeline is **not** a Jaeger trace viewer. It is a **run-event timeline** with Jaeger-like nesting where persisted `workflow_run_events` already carry timestamps.
-
-## Shared grouping (`buildRunStepGroups`)
-
-Both tabs consume `buildRunStepGroups()` from the Console (`webapp/src/lib/workflowRunEventGroups.ts`).
-
-Each **step group** contains:
-
-| Field | Source |
-| --- | --- |
-| `stepId`, `stepName`, `status` | `step_started` / terminal step events |
-| `startTime`, `endTime` | `occurred_at`, `data.started_at`, `data.completed_at` |
-| `agentTurnActivity[]` | `agent_turn_status`, `agent_turn_tool_round`, `agent_turn_limit_reached`, live `Workflow.AgentTurn` |
-| `events[]` | Raw events attached to the group (Events tab detail) |
-
-Non-step events (`graph_updated`, etc.) land in **non-step groups** and appear on the Events tab only. **`state_changed`** events appear as **vertical markers** on the Timeline axis.
+The **Timeline** tab in the workflow execution panel (Workflow Studio → open a run → **Execution panel** → **Timeline**) shows a Gantt-style view of step durations in execution order. It's a duration-first companion to the **Events** tab — the same run activity, laid out on a timeline instead of a log.
 
 ## What Timeline shows
 
-### Always — one row per step group
+### One row per step
 
-- Label: `stepName`
-- Bar: `startTime` → `endTime` (live `now` while running)
-- Status colors match Events tab semantics
+Every step in the run gets a row: its name as the label, and a bar spanning from start to end (or to "now" while it's still running). Bar color matches the step's status, using the same colors as the Events tab.
 
-### Under `agent_call` steps — child rows from `agentTurnActivity`
+### Agent activity sub-rows
 
-Labels mirror the Events tab **Agent activity** list:
+Steps of type `agent_call` show nested child rows for what happened during that agent's turn:
 
-| Activity kind | Label | Bar timing |
-| --- | --- | --- |
-| `tool_round` | `Round N · tool` (+ summary in tooltip) | `occurred_at[i]` → `occurred_at[i+1]` |
-| `status` | `phase: message` | same pairing |
-| `limit_reached` | `Limit: message` | short marker at `occurred_at` |
+| Activity | What it shows |
+|----------|----------------|
+| Tool round | Each round of tool calls, labeled `Round N · tool` with a summary on hover |
+| Status change | Phase transitions during the turn |
+| Limit reached | A marker when the turn hits its configured tool-round limit |
 
-Child row end time falls back to: next activity → parent step end → live `now`. Tooltips note **Timing from run events (occurred_at)**.
+### Composite loop segments (`for_each` / `while`)
 
-### Composite loops (`for_each` / `while`) — estimated segments
+For loop steps, Timeline shows estimated iteration segments once the loop completes — collapsed by default, expandable with the chevron on the parent row. Segments are marked as **estimated** until precise per-iteration timing is available, at which point they become exact.
 
-When a composite step completes, Timeline derives **estimated** iteration and inner-body bars from the parent `step_completed` result. These rows are marked **synthetic** in tooltips.
+### Run state markers
 
-- **Collapsed by default** — expand with the chevron on the composite parent row
-- Parent label shows `(N)` when N estimated segments are hidden
-- Inner timing is evenly subdivided across the parent bar until the runtime emits per-inner-step lifecycle events
+Vertical colored lines mark run-level state transitions (paused, resumed, failed, stopped) so you can see at a glance where in the timeline the run's state changed. Hover a marker for the transition and timestamp.
 
-### Run state markers (`state_changed`)
+### What's not shown
 
-Vertical colored lines span the row area at each `state_changed` timestamp:
-
-| Transition | Marker color (approx.) |
-| --- | --- |
-| → `paused` | Amber |
-| → `draining` | Orange |
-| → `running` (resume) | Green |
-| → `failed` / `stopped` | Red |
-| Other | Violet |
-
-Hover for label (e.g. `Running → Paused`) and timestamp. The blue **now** line (live runs only) is separate — it marks current time, not run state.
-
-### Not shown
-
-- `graph_updated` and other generic non-step buckets
-- Approval Gate / MCP / LLM / human_task with no `agentTurnActivity` — parent bar only
-
-## Event types reference
-
-Persisted run event types (see `agentruntime/workflow/event_types.go`):
-
-| Event | Timeline role |
-| --- | --- |
-| `step_started` | Step bar start |
-| `step_completed` / `step_failed` / `step_cancelled` | Step bar end + status |
-| `agent_turn_*` | Agent sub-rows (via `agentTurnActivity`) |
-| `run_started` / `run_rejected` | Run-level only (Events tab) |
-| `state_changed` | Vertical axis marker |
-
-## Composite loops (`#body#`)
-
-Runtime qualified IDs (`parent#body#inner`) are **current**, not deprecated. Composite **inner steps emit** `step_started` / `step_completed` on `workflow_run_events` (runtime v0.2.3+) with qualified `step_id`. Timeline nests those rows under the parent composite step. When inner events are absent (older runs), estimated segments from the parent result still appear (collapsible).
-
-## Trace UI (reserved, not in Console yet)
-
-Runs store the OpenTelemetry trace id from start on `workflow_runs.request_id` (API field `request_id`). The Console **does not** show an Open trace link in Timeline today. When enabled later, configure `[observability]` in `config/webapp.{VITE_ENV}.ini`:
-
-- `TraceExplorerProvider` — `none` (default), `jaeger`, or `grafana-jaeger`
-- `JaegerUiUrl`, `JaegerQueryBasePath` — local Jaeger (e.g. `http://localhost:16686/jaeger`)
-- `GrafanaUrl`, `GrafanaJaegerDatasourceUid` — Grafana Explore (prod; VPN)
-- `TraceExplorerUrlTemplate` — optional `{trace_id}` override
-
-See `webapp/README.md` and `webapp/src/lib/workflowRunTraceLink.ts`.
+- Generic, non-step platform events (these stay on the Events tab)
+- Steps with no agent activity just show as a single bar — there's nothing to expand
 
 ## Context tab — execution graph
 
-The **Context** tab includes a **static execution graph** preview (read-only — scroll-friendly). Use **Open graph** for an interactive modal with pan, zoom, and click-to-focus on the canvas.
+The **Context** tab includes a static preview of the run's step graph. Click **Open graph** for an interactive modal where you can pan, zoom, and click a step to focus it on the Workflow Studio canvas.
 
-### Data sources
-
-The graph uses the same step grouping as Events and Timeline (`buildRunStepGroups`), with fallbacks when persisted events are incomplete:
-
-| Source | When used |
-| --- | --- |
-| **Run events** | Primary — `step_started` / terminal step events from `workflow_run_events` |
-| **Run context steps** | Fallback — `runContext.steps` and `variables.steps` (merged) when events are empty or still loading |
-| **Canvas wiring** | Optional — Studio flow edges color the graph when the workflow is open in the editor |
-
-Nodes are numbered in runtime order and colored by step status (`completed`, `failed`, `running`, etc.).
-
-### Edge styles
-
-| Style | Meaning |
-| --- | --- |
-| Solid | Workflow canvas wiring |
-| Dashed | Runtime execution-order fallback |
-| Violet | Composite loop `#body#` inner steps |
-
-### UX notes
-
-- The inline preview is **not interactive** (scroll passes through) — avoids fighting the Context panel scroll.
-- The preview **snapshots** when you open Context or switch runs; it does not jump on every live event.
-- **Open graph** opens a modal with the live graph; click a step to focus it on the canvas and close the modal.
-
-### E2E coverage
-
-Mocked Playwright specs (PR CI, no secrets):
-
-- `webapp/e2e/execution-timeline.spec.ts` — Timeline tab bars
-- `webapp/e2e/execution-context-graph.spec.ts` — Context static graph, **Open graph** modal, and context-only failed-run fallback
-
-Run from `webapp/`: `npm run e2e -- e2e/execution-context-graph.spec.ts`
+Edges are styled to distinguish workflow wiring from execution-order fallbacks and from loop-body steps, so you can tell at a glance whether an edge reflects your graph design or the actual order steps ran in.
 
 ## Related docs
 
-- [Workflow event streaming architecture](../runtime-lifecycle/WORKFLOW_EVENT_STREAMING_ARCHITECTURE.md)
-- [Workflow agent coordination](../agent/WORKFLOW_AGENT_COORDINATION.md)
+- [Runs and Command Center](/workflows/runs-and-command-center)
+- [Workflow Studio](/workflows/studio)
+- [Step types](/workflows/step-types)
+- [Run recovery](/workflows/run-recovery)

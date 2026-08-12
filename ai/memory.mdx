@@ -28,7 +28,7 @@ Extracted knowledge is scoped by **tenant** and **project**.
 |----------|----------|
 | Agent recalls past decisions | Search memory before LLM steps (prepare-step or explicit search) |
 | Onboard context from chat history | Index key conversations after milestones |
-| Document Q&A across uploads | Index files from work-service, search at query time |
+| Document Q&A across uploads | Index uploaded files, search at query time |
 | Workflow learns from prior runs | `run_step` episodes capture step outputs automatically |
 
 Memory complements — does not replace — workflow state. Step results in `{{steps.*}}` templates are run-scoped. Memory persists across runs.
@@ -72,7 +72,7 @@ Returns a job ID. Poll `GET /v1/memory/extract/{jobId}` for status.
 
 ### Index a file
 
-Index a work-service file for extraction:
+Index an uploaded work file for extraction:
 
 ```
 POST /v1/memory/index-file
@@ -148,12 +148,11 @@ See [Billing and credits](/platform/billing-and-credits).
 
 ## Auto-indexing (when enabled)
 
-BFF can auto-index chat when memory is saved, controlled by deployment config:
+When memory is enabled for your workspace, AgentRuntime can automatically index chat conversations as they happen, so later searches and workflow steps can draw on that context without an explicit indexing call.
 
-- `ChatMemoryAutoIndexMode` — `off`, `episode_narrow`, or `full_ltm`
-- `ChatEpisodeOnTurn` — episode append behavior per turn
-
-These are operator settings, not Console toggles today.
+<Note>
+  Auto-indexing behavior is configured per workspace by AgentRuntime — it is not yet a Console toggle. Contact [support](mailto:support@agentruntime.io) if you want auto-indexing enabled or adjusted for your workspace.
+</Note>
 
 ## Limitations
 
@@ -168,7 +167,7 @@ These are operator settings, not Console toggles today.
 |-------|-----|
 | `503 memory kernel not configured` | Memory service not deployed in this environment |
 | `queue unavailable` | Extract worker or Redis queue down — contact support |
-| `work file not found` | Verify `file_id` exists in work-service |
+| `work file not found` | Verify `file_id` exists and the file is still available |
 | Search returns nothing | Confirm indexing job completed (`GET /v1/memory/extract/{jobId}`) |
 | High credit usage | Prefer bulk extraction for large backfills; set indexing scope narrowly |
 

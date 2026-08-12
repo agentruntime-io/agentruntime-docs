@@ -1,36 +1,20 @@
 ---
 title: Multi-product billing
-description: How product_code scopes plans, workspaces, and Stripe catalog rows on the shared AgentRuntime platform.
+description: How product_code keeps plan catalogs separate on the AgentRuntime platform.
 ---
 
-AgentRuntime's billing kernel (**Wheelhouse**) can host **multiple commercial products** on one database. Each product has its own plan catalog, trial policies, and workspace lineage — keyed by **`product_code`**.
+AgentRuntime's billing platform can host **multiple commercial products** on shared infrastructure. Each product has its own plan catalog, trial policies, and workspace lineage, identified by a **`product_code`**.
 
-The [Console](https://console.agentruntime.io) you use today is scoped to **`agentruntime`**. You do not pick a product in the UI; your deployment's BFF filters plans and onboarding to that code automatically.
+The [Console](https://console.agentruntime.io) you use today is scoped to **`agentruntime`**. You do not pick a product in the UI — it is set automatically when your workspace is created.
 
 ## Concepts
 
 | Term | Meaning |
 |------|---------|
-| **`product_code`** | Stable slug for a commercial product line (`agentruntime`, or a future SaaS on the same platform) |
+| **`product_code`** | Stable identifier for a commercial product line (`agentruntime`, or a future product on the same platform) |
 | **`plan_code`** | Tier within that product (`free`, `pro`, `plus`, `max`, `enterprise`) |
-| **Catalog key** | `(product_code, plan_code)` — the same tier name can exist on different products without collision |
+| **Catalog key** | `(product_code, plan_code)` — the same tier name can exist on different products without colliding |
 | **Workspace** | Each workspace (`tenant`) is stamped with one `product_code` at creation |
-
-```mermaid
-flowchart TB
-  subgraph catalog [Plan catalog]
-    P1["agentruntime / pro"]
-    P2["agentruntime / plus"]
-    P3["future_product / pro"]
-  end
-  subgraph workspaces [Workspaces]
-    T1["acme — product_code: agentruntime"]
-    T2["beta-co — product_code: agentruntime"]
-  end
-  P1 --> T1
-  P2 --> T1
-  catalog --> workspaces
-```
 
 ## What you see in the Console
 
@@ -41,30 +25,28 @@ For **console.agentruntime.io**:
 - Plan cards show tier names (`pro`, `plus`, …) — not the internal `product_code`
 
 <Note>
-  The public BFF filters the catalog using deployment config (`PRODUCT_CODE = agentruntime`). You will not see another product's plans in this Console even though they may share the same Wheelhouse database.
+  You will not see another product's plans in this Console, even if AgentRuntime launches additional products in the future — each Console deployment is scoped to one product.
 </Note>
 
 ### Workspace creation
 
 When you create a workspace on the AgentRuntime Console:
 
-1. The workspace is stored with `product_code = agentruntime`
+1. The workspace is stamped with `product_code = agentruntime`
 2. Onboarding auto-trial and default plan selection consider only **agentruntime** catalog rows
-3. Your tenant list in the workspace switcher shows only workspaces for **this** product's BFF deploy
+3. Your workspace switcher shows only workspaces for this product
 
-A global user account (email / Google) can belong to workspaces on **different** products in the future — each workspace is independent; credits and subscriptions do not cross product boundaries.
+A global user account (email or Google) can belong to workspaces on **different** products in the future — each workspace is independent; credits and subscriptions never cross product boundaries.
 
 ## Plans and Stripe
 
-Plans sync from Stripe into Wheelhouse. Each Stripe **Price** or **Product** carries metadata:
+Plans sync from Stripe. Each Stripe **Price** or **Product** carries metadata:
 
 | Metadata key | Required | Example |
 |--------------|----------|---------|
 | `product_code` | Yes (multi-product) | `agentruntime` |
 | `plan_code` | Yes | `pro` |
 | `included_microcredits_per_cycle` | Recommended | `5000000` |
-
-Sync upserts `plans` and `plan_policies` on **`(product_code, plan_code)`**. Trial length, PAYG rules, and credit gates live in `plan_policies` per pair.
 
 Self-serve tiers for AgentRuntime today:
 
@@ -81,27 +63,25 @@ See [Billing and credits](/platform/billing-and-credits) for buckets, metering, 
 
 ## Credits and subscriptions
 
-Multi-product does **not** split credits inside one workspace:
+Multi-product billing does **not** split credits inside one workspace:
 
 | Scope | Behavior |
 |-------|----------|
 | **Per workspace** | One active plan, trial state, and credit ledger (trial → included → PAYG) |
-| **Per product** | Separate plan catalog and policies; workspaces only consume plans from their `product_code` |
-| **PAYG balance** | Still persists across plan changes within the same workspace |
+| **Per product** | Separate plan catalog and policies; workspaces only consume plans from their own `product_code` |
+| **PAYG balance** | Persists across plan changes within the same workspace |
 
-Usage metering (`workflow.step.execute`, memory jobs, etc.) debits the workspace ledger the same way regardless of `product_code`.
+Usage metering (`workflow.step.execute`, memory jobs, etc.) debits your workspace ledger the same way regardless of `product_code`.
 
 ## API behavior
 
-Customer integrations call **`https://api.agentruntime.io`** — the BFF attaches product scope to Wheelhouse internally:
+Customer integrations call **`https://api.agentruntime.io`**:
 
-- `GET /v1/billing/plans` — Returns plans for the deployment's `product_code` only
-- `POST /v1/billing/subscription`, trial, and top-up endpoints — Resolve catalog against the workspace's product
-- Onboarding and workspace create — Stamp `product_code` from BFF config
+- `GET /v1/billing/plans` — Returns plans scoped to your workspace's `product_code` automatically
+- `POST /v1/billing/subscription`, trial, and top-up endpoints — Resolve against your workspace's own catalog
+- Onboarding and workspace creation stamp `product_code` for you — it is never something you set directly
 
-The Console-facing plan JSON emphasizes `plan_code`, `amount`, and trial fields. `product_code` is implicit for this deployment (`agentruntime`).
-
-**Sysadmin / operator APIs** can list all products' plans when called with appropriate scope — not exposed in the standard Console.
+The plan JSON returned to your integration emphasizes `plan_code`, `amount`, and trial fields. `product_code` is implicit for this deployment (`agentruntime`).
 
 ### Example catalog response shape
 
@@ -130,48 +110,27 @@ The Console-facing plan JSON emphasizes `plan_code`, `amount`, and trial fields.
 
 Values like `trial_credits_granted` are in **microcredits**. See [API examples](/api/examples#billing-usage-snapshot).
 
-## Migration (existing workspaces)
+## Existing workspaces
 
-Production migrated existing data with `product_code = 'agentruntime'` on:
+Workspaces created before multi-product billing shipped were assigned `product_code = agentruntime` automatically. **No action required** — plan codes (`pro`, `plus`, …) and credit balances are unchanged.
 
-- All workspaces (`tenant.product_code`)
-- All `plans` / `plan_policies` rows
-- Pending signup rows
-
-**No action required** for current customers. Plan codes (`pro`, `plus`, …) and credit balances are unchanged.
-
-## Future second product on the platform
-
-When another product launches on the shared Wheelhouse kernel:
+## If AgentRuntime launches another product
 
 | Area | Expected behavior |
 |------|-------------------|
-| **Console URL** | Separate BFF deploy with its own `PRODUCT_CODE` and DNS (for example `console.otherproduct.io`) |
+| **Console URL** | A separate Console for that product (for example `console.otherproduct.io`) |
 | **Plans** | That Console shows only its product's catalog |
-| **Users** | Same email can create a workspace on each product; memberships are per workspace |
-| **Stripe** | Typically one Stripe account per Wheelhouse environment; prices distinguished by `product_code` metadata |
+| **Users** | The same email can create a workspace on each product; memberships are per workspace |
 | **Referrals** | Program rules may gain per-product configuration later |
-
-Hostname → `product_code` routing on a **single** shared BFF is explicitly **out of scope** for v1 — product is determined by deployment config, not by request Host header.
-
-## What stays shared
-
-One Wheelhouse environment still shares:
-
-- Stripe webhook endpoint and account (unless you adopt Connect per product)
-- Global `User` identity in the auth realm
-- Instance-level kill switches (for example `TRIALS_ENABLED` in Wheelhouse config)
-
-Tenant-scoped tables (projects, workflows, usage events, PATs) inherit product through **`tenant.product_code`** — they do not duplicate the column.
 
 ## Troubleshooting
 
 | Question | Answer |
 |----------|--------|
-| Why don't I see `product_code` in the Console? | It's a platform partition key, not a user setting. This Console is AgentRuntime only. |
+| Why don't I see `product_code` in the Console? | It's a platform-level identifier, not a user setting. This Console is AgentRuntime only. |
 | Can I move a workspace to another product? | Not self-serve. Products are fixed at workspace creation. |
-| Do plan codes collide across products? | No — catalog uniqueness is `(product_code, plan_code)`. |
-| Which source of truth for my plan? | **Settings → Plans** and `GET /v1/billing/plans` on your Console's API host. |
+| Do plan codes collide across products? | No — catalog uniqueness is `(product_code, plan_code)`, so the same tier name can exist independently on each product. |
+| What's the source of truth for my plan? | **Settings → Plans** and `GET /v1/billing/plans` on your Console's API host. |
 
 ## Related
 

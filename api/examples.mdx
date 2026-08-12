@@ -186,7 +186,7 @@ See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
 {
   "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "form-leads",
-  "automation_pat_id": "pat-wheelhouse-id"
+  "automation_pat_id": "pat-abc123"
 }
 ```
 
@@ -196,7 +196,7 @@ See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
 {
   "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "form-leads",
-  "automation_pat_id": "pat-wheelhouse-id",
+  "automation_pat_id": "pat-abc123",
   "automation_bearer": "pat_…"
 }
 ```
@@ -235,50 +235,6 @@ curl -X POST "$AR_API/v1/inbound-webhooks/$SUBSCRIPTION_ID" \
   -H "Authorization: Bearer $AR_TOKEN" \
   -H "X-Agentruntime-Signature: sha256=$SIG" \
   -d "$BODY"
-```
-
----
-
-## Workflow connection overrides
-
-`PUT /v1/workflows/{id}/connection-overrides` — **project_contributor** (API only — no Console panel)
-
-**Request:**
-
-```json
-{
-  "overrides": [
-    {
-      "instance_id": "mcp-instance-uuid",
-      "connection_id": "connection-uuid-for-prod"
-    }
-  ]
-}
-```
-
-**Response** (`200`):
-
-```json
-{
-  "status": "ok"
-}
-```
-
-**List:**
-
-```
-GET /v1/workflows/{id}/connection-overrides
-```
-
-```json
-{
-  "overrides": [
-    {
-      "instance_id": "mcp-instance-uuid",
-      "connection_id": "connection-uuid-for-prod"
-    }
-  ]
-}
 ```
 
 ---

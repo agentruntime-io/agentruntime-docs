@@ -37,7 +37,7 @@ This page walks through the **Console UI** for inbound webhooks. For the securit
 
 ### PAT paste fallback
 
-If the BFF cannot read the PAT secret from Vault (legacy key, Vault unavailable, or `pat_secret_not_in_vault`), the UI prompts you to **paste the PAT secret once**. The plaintext is used only for subscription setup and is not shown again.
+If AgentRuntime cannot read the PAT secret automatically (for example, an older key created before secret storage changed), the UI prompts you to **paste the PAT secret once**. The plaintext is used only for subscription setup and is not shown again.
 
 This same fallback appears in Autopilot's wizard and matches the API's optional `automation_bearer` field.
 

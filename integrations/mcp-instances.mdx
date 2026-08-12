@@ -60,10 +60,6 @@ When you **Import** a workflow JSON from another workspace or a template:
 
 Shared graphs should include **`server_url`** (portable). **`instance_id`** values from the source workspace are remapped on import.
 
-## Connection overrides (API)
-
-Workflow-level overrides (`PUT /v1/workflows/{id}/connection-overrides`) let one graph target different credentials per environment. Configure via API today; see [API reference](/api/reference#workflow-connection-overrides).
-
 ## Custom MCP servers
 
 Register tenant-owned MCP servers you operate (**MCP → Add connectors → Add connector**) and deploy instances the same way as catalog adapters. See the [Custom MCP servers](/integrations/custom-mcp-servers) guide for the full wizard, API flow, and troubleshooting.

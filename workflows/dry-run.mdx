@@ -1,0 +1,55 @@
+---
+title: Dry-run validation
+description: Compile-time workflow validation before you run — what it checks and what it does not.
+---
+
+Dry-run (**Validate** in Workflow Studio) checks that your graph is **well-formed** before execution. It does not run tools or call models.
+
+## Compile vs execute
+
+| | Dry-run | Run |
+|---|---------|-----|
+| Purpose | Compile the workflow | Execute the workflow |
+| Calls MCP / LLM | No | Yes |
+| Produces step outputs | No | Yes |
+
+## What dry-run checks
+
+- Graph structure and step configuration
+- Dependency cycles and broken `depends_on` links
+- Template **syntax** and **wiring** (`{{steps.*}}` points to a real upstream step)
+- `{{input.*}}` resolves against your **run setup** / start params when provided
+- Lua syntax
+- MCP instance bindings
+
+## Template variables
+
+### `{{input.*}}`
+
+Validated against start input (`trigger_payload`, `trigger_steps`). If you reference `{{input.email}}` but did not provide `email` in run setup, dry-run fails.
+
+### `{{steps.<step-id>.…}}`
+
+Dry-run checks that the referenced step exists and is wired in `depends_on`. It does **not** require that upstream step has already produced data — that only happens during a real run.
+
+Inside **`for_each`** / **`while`** steps, loop-scope templates (`{{foreach.item}}`, `{{body.prep.item}}`, `{{while.prev.score.feedback}}`, etc.) are also compile-only at dry-run — runtime provides that scope when the loop runs.
+
+Example chain that **passes** dry-run when wired correctly:
+
+```
+RSS fetch → LLM (uses {{steps.rss.result.items}}) → Lua → Gmail (uses {{steps.lua.result.html}})
+```
+
+A successful run will not be contradicted by dry-run errors on those `steps.*` references alone.
+
+## Dry Run tab vs run history
+
+The execution panel **Dry Run** tab shows the latest validation for the **current graph**, not a replay of the selected run. A green **Success** badge on a past run and red dry-run errors can both be correct: the run worked; the validation summary may be from a separate Validate click or a stricter check on the canvas.
+
+## API
+
+```
+POST /v1/workflows/{workflow_id}/validate
+```
+
+Returns `valid`, `checks_performed`, and `issues` with step ids and codes.

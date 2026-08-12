@@ -100,10 +100,6 @@ Google OAuth tokens refresh automatically. If a user revokes access or changes t
 
 Each adapter requests the minimum Google API scopes it needs. Enabling a service on the connection grants the scopes for that adapter. If you add a new service later, the Console may prompt for additional consent.
 
-## Per-environment overrides
-
-Use workflow **connection overrides** to point the same graph at different Google accounts — for example, a sandbox account in development and a production account in prod.
-
 ## Troubleshooting
 
 | Issue | Fix |
@@ -111,7 +107,7 @@ Use workflow **connection overrides** to point the same graph at different Googl
 | **Reconnect** banner | Re-authorize OAuth; check Google Admin policy allows the app |
 | `403` insufficient scopes | Enable the service on the connection; reconnect to grant new scopes |
 | `404` not found | Verify file ID, calendar ID, or spreadsheet ID in `tool_args` |
-| Works in dev, fails in prod | Check connection override points to the correct account |
+| Works in dev, fails in prod | Use a separate MCP instance wired to the prod connection, or duplicate the workflow with the correct `instance_id` on MCP steps |
 
 See [Troubleshooting](/platform/troubleshooting) for binding and auth errors.
 

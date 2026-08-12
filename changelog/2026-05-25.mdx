@@ -13,15 +13,15 @@ added:
   - "**Memory kernel** — attach durable, workflow-scoped memory so agent episodes retain context across steps **Preview**"
   - "**Run summaries API** — aggregate step outcomes per run without loading full execution logs **API only**"
   - "**Tenant run listing** — paginated run list and timeseries endpoints for dashboard widgets **API only**"
-  - "**Chat microservice integration** — BFF routes and config for Workspace Chat backends ahead of Space launch **API only**"
+  - "**Chat integration foundations** — routing and config for Workspace Chat ahead of Space launch **API only**"
 changed:
   - "**Billing profiles** — tenant-scoped billing profiles with usage-dimension aggregation for multi-meter plans"
   - "Console and platform **referral configuration** — chat and cross-product deep links between Console and Space"
   - "Workflow **validation endpoint** — stricter step execution handling and pre-publish checks in Studio"
-  - "BFF **Autopilot** response and intent validation for multi-turn canvas editing"
+  - "**Autopilot** response and intent validation improvements for multi-turn canvas editing"
 ---
 
-Platform **v0.1.2** — workflow-engine and billing increment tagged May 25 across `webapp`, `bff`, `agentruntime`, `go-wheelhouse`, and `control-service`.
+Platform **v0.1.2** — a workflow-engine and billing increment shipped May 25.
 
 ## Workflows
 
@@ -37,7 +37,7 @@ Console config picked up **chat and platform referral** URLs so Console and Spac
 
 ## API
 
-The BFF wired **chat-service** into the public gateway with session header injection — Console auth tokens and workspace context flow through to Space APIs in the next release wave.
+The public API gained session header injection for chat — Console auth tokens and workspace context flow through to Workspace Chat APIs in the next release wave.
 
 ## Related docs
 

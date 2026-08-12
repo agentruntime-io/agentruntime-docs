@@ -1,0 +1,173 @@
+---
+title: JSON editor
+description: Edit workflow graphs as JSON in Workflow Studio — Canvas vs JSON mode, IntelliSense, script overlay, and Apply to canvas.
+sidebarTitle: JSON editor
+---
+
+Workflow Studio has two center-panel views for the same workflow graph:
+
+| View | Best for |
+|------|----------|
+| **Canvas** | Visual layout, loop boxes, drag-and-drop steps, per-step config panels |
+| **JSON** | Bulk edits, copy-paste graphs, dependency wiring, MCP `tool_args`, loop bodies |
+
+Both views edit the **same draft graph**. Changes in JSON mode are not on the canvas until you click **Apply to canvas**.
+
+## Switch views
+
+In the workflow toolbar (top right, next to **JSON** menu):
+
+1. Click **Canvas** — visual React Flow editor (default).
+2. Click **JSON** — Monaco JSON editor for the backend graph.
+
+The toggle shows a dot on **JSON** when you have **unapplied** edits.
+
+You can also open JSON mode from **JSON → Edit JSON** in the same toolbar menu.
+
+<Note>
+  **View JSON** (same menu) opens a **read-only** modal with search — it does not switch the center panel and does not accept edits. Use **JSON** view or **Edit JSON** to change the graph.
+</Note>
+
+## JSON menu actions
+
+| Action | What it does |
+|--------|----------------|
+| **Export JSON** | Download the current graph |
+| **Import** | Load `{ "nodes", "edges" }` or `{ "steps": [] }` from file or clipboard; review MCP instance mapping before applying |
+| **Edit JSON** | Switch center panel to **JSON** mode |
+| **View JSON** | Read-only modal with search (no Apply step) |
+
+## Authoring in JSON mode
+
+<Steps>
+  <Step title="Open JSON mode">
+    Click **JSON** in the toolbar (or **JSON → Edit JSON**).
+  </Step>
+  <Step title="Edit the graph">
+    The editor shows the same backend-shaped graph as **View JSON** — typically `workflow_id`, `nodes`, `edges`, and compiled `steps`.
+  </Step>
+  <Step title="Check the header">
+    The bar under **Workflow JSON** shows validation: e.g. **2 steps, 2 edges** when the graph can be loaded, or a parse/structure error when it cannot.
+  </Step>
+  <Step title="Apply to canvas">
+    Click **Apply to canvas** when the header is green. Studio parses the JSON, loads it onto the canvas (with auto-layout), and clears the unsaved badge.
+  </Step>
+  <Step title="Save or publish">
+    Use **Save** / **Publish** as usual after applying — JSON edits are not persisted until they are on the canvas and saved.
+  </Step>
+</Steps>
+
+### Reset and unsaved changes
+
+| Control | Behavior |
+|---------|----------|
+| **Unsaved** badge | JSON text differs from the last canvas sync (entering JSON mode or last successful Apply) |
+| **Reset** | Reload JSON from the **current canvas** (discards unapplied JSON edits) |
+| **Apply to canvas** | Disabled when JSON is invalid or unchanged |
+
+Switching back to **Canvas** with unapplied JSON edits prompts you to **discard** or keep editing.
+
+## IntelliSense (Ctrl+Space)
+
+JSON mode includes **workflow-aware completions** — not generic JSON schema hover (that is disabled in the Console to avoid a stuck loading state in local dev).
+
+Trigger suggestions with **Ctrl+Space** (or type inside strings and property keys).
+
+### Property names
+
+When typing a key (after `"` or `, "`), Studio suggests workflow fields:
+
+`id`, `type`, `name`, `depends_on`, `tool_name`, `instance_id`, `for_each_items`, `for_each_body_steps`, `script`, `nodes`, `edges`, `steps`, and more.
+
+### Step types
+
+When the cursor is in `"type": "`, suggestions include:
+
+`mcp_call`, `lua_script`, `llm_call`, `agent_call`, `for_each`, `while`, `human_task`
+
+Inner loop steps also suggest: `lua_script`, `llm_call`, `agent_call`, `mcp_call`.
+
+### Template snippets
+
+Inside string values (e.g. `tool_args`, `prompt`, `for_each_items`):
+
+| Insert | Meaning |
+|--------|---------|
+| `{{input.key}}` | Workflow shared input |
+| `{{steps.step_id.result.field}}` | Upstream step output |
+| `{{item}}` / `{{index}}` | Current for_each item / index (shorthand) |
+| `{{steps.for_each_id.item}}` | Loop item (canonical path) |
+
+See also [Template intellisense](/workflows/template-intellisense) for canvas field helpers.
+
+### Step IDs in depends_on
+
+Inside `"depends_on": ["`, Studio lists step ids already present in the file (top-level steps, node ids, and ids inside `for_each_body_steps`).
+
+### New step snippets
+
+On a new line in a `steps` array (after `[` or `,`), suggestions include:
+
+- **new mcp_call step**
+- **new lua_script step**
+- **new for_each step**
+- **new llm_call step**
+
+Each inserts a starter object you can tab through.
+
+## Collapse blocks (`{` / `[`)
+
+Hover in the **left gutter** next to a line with `{` or `[` to reveal fold chevrons. Click to collapse that object or array.
+
+Folding uses bracket matching in the editor (not the JSON language worker), so it works in local dev and ignores braces inside `"script"` strings.
+
+## Edit Lua scripts
+
+Lua in JSON is stored as an **escaped string** (`\n`, `\"`) — hard to read in the raw JSON.
+
+1. Place the cursor **inside** any `"script": "..."` value (top-level steps or `for_each_body_steps` / `while_body_steps`).
+2. Click **Edit script** in the JSON toolbar.
+3. Edit in the **Lua editor** (same completions as the canvas step panel: `steps`, `input`, `item`, `index`).
+4. Click **Save to JSON** — the script is written back into the JSON document.
+5. Click **Apply to canvas** to update the visual graph.
+
+<Tip>
+  For long scripts, many authors prefer **Canvas** → click the Lua step → edit in the config panel. JSON mode is best when you are already editing the surrounding graph structure.
+</Tip>
+
+## Supported JSON shapes
+
+**Apply to canvas** accepts the same shapes as **Import**:
+
+| Shape | Example |
+|-------|---------|
+| Backend graph | `{ "workflow_id", "nodes", "edges", "steps" }` (what **View JSON** shows) |
+| Steps only | `{ "steps": [ ... ] }` |
+| Canvas import | `{ "nodes": [ ... ], "edges": [ ... ] }` |
+
+Studio normalizes and auto-layouts after apply.
+
+## What JSON mode does not do (yet)
+
+| Not available | Workaround |
+|---------------|------------|
+| Schema hover docs on hover | Use this page and [Step types](/workflows/step-types) |
+| Red squiggles from JSON Schema | Read the header validation line; run **Dry-run** after Apply |
+| Deep nested canvas-only keys in completions | Type `mcpStepPayload`, `builtinStepPayload`, `position` manually, or edit on **Canvas** |
+| Auto-sync canvas → JSON while typing on canvas | Re-enter **JSON** mode or click **Reset** to refresh from canvas |
+
+## Recommended workflow
+
+```text
+Structure (deps, MCP args, loops)  →  JSON mode + Apply
+Lua / long prompts                 →  Canvas config or Edit script
+Quick inspect / search             →  View JSON modal
+Share / API / git                  →  Export JSON or backend graph
+```
+
+## Related
+
+- [Workflow Studio](/workflows/studio) — authoring loop
+- [Template intellisense](/workflows/template-intellisense) — `{{…}}` on the canvas
+- [Workflow JSON cookbook](/workflows/json-schema-cookbook) — copy-paste examples
+- [For-each step](/workflows/step-types) — loop bodies and `for_each_body_steps`

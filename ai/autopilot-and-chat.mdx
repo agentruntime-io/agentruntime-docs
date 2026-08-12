@@ -40,15 +40,15 @@ Threads are separate from workflow runs, but messages can reference runs, workfl
 
 ## Platform agents
 
-**Agents** (sidebar, feature-flagged in some environments) are reusable agent definitions installed in your project. They participate in `dm` and `channel` rooms through the agent service — distinct from Autopilot.
+**Agents** (sidebar, feature-flagged in some environments) are reusable agent definitions installed in your project. They participate in `dm` and `channel` rooms — distinct from Autopilot.
 
-Platform agents run multi-turn loops with MCP tools and memory, orchestrated by agent-service rather than the workflow DAG engine.
+Platform agents run multi-turn loops with MCP tools and memory, using AgentRuntime's chat runtime rather than the workflow DAG engine.
 
 ## Workspace chat (space)
 
-The team workspace at [space.agentruntime.io](https://space.agentruntime.io) provides Slack-shaped channels, Autopilot DM, threads, and workflow system cards. It uses the chat-service API and shares authentication with the Console via `.agentruntime.io` cookies.
+The team workspace at [space.agentruntime.io](https://space.agentruntime.io) provides Slack-shaped channels, Autopilot DM, threads, and workflow system cards. It shares authentication with the Console via `.agentruntime.io` cookies, so signing in to one signs you in to the other.
 
-Use Console Chat for operator copilot tasks; use workspace chat for team coordination and agent room participation.
+Use Console Chat for your own copilot tasks; use workspace chat for team coordination and agent room participation.
 
 ## Memory (knowledge layer)
 

@@ -11,23 +11,23 @@ added:
   - "**Stripe checkout** — wallet top-up and plan checkout on the billing service with pre-release tenant provisioning fixes"
   - "**Usage and plans API** — foundations for recording billable actions and resolving workspace entitlements **API only**"
 changed:
-  - "Console **metadata and configuration** refresh — environment-specific settings for dev, local, and production deploys"
-  - "Public API gateway **logging, rate limiting, and context enforcement** for production traffic"
-  - "MCP **credential path handling** in the control plane — connector instances resolve secrets from the correct vault path"
-  - "Workflow runtime **structured logging** baseline for Command Center and operator diagnostics"
+  - "Console **metadata and configuration** refresh across environments"
+  - "Public API **logging, rate limiting, and context enforcement** hardening for production traffic"
+  - "MCP **credential path handling** — connector instances resolve secrets from the correct vault path"
+  - "Workflow runtime **structured logging** baseline supporting Command Center"
 ---
 
-Platform **v0.1.0** — initial semver tags across core services (`webapp`, `bff`, `go-wheelhouse`, `control-service`, `agentruntime`). Repos were tagged incrementally in late April / early May 2026; no GitHub release pages were published for this wave.
+Platform **v0.1.0** — the first coordinated release across AgentRuntime's services, shipped in late April / early May 2026.
 
 ## Console
 
-Tenants could manage **subscriptions and billing status** from Console for the first time. The UI wired through the BFF to Stripe-backed checkout on the billing service — the starting point for later multi-product billing and usage dimensions in v0.1.1+.
+Tenants could manage **subscriptions and billing status** from Console for the first time. The UI connects to Stripe-backed checkout — the starting point for later multi-product billing and usage dimensions in v0.1.1+.
 
-## API and control plane
+## API and platform
 
-The BFF received production-oriented **logging, rate limiting, and server configuration** so Console and early API consumers could run against shared dev and staging stacks reliably.
+The public API received production-oriented **logging, rate limiting, and server configuration** so Console and early API consumers could run reliably.
 
-The control plane tightened **MCP connection credential** resolution so tenant connector instances pick up the right secret paths when workflows call tools.
+AgentRuntime tightened **MCP connection credential** resolution so tenant connector instances pick up the right secret paths when workflows call tools.
 
 ## Workflows
 

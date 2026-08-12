@@ -32,7 +32,7 @@ See [Run setup](/workflows/run-setup) for Save defaults, Manual Run, and field o
 
 ~~Default: merge **on** unless `use_run_setup_defaults: false`.~~
 
-**Deprecated 2026-06-28.** New schedules and integrations should send **full start params** explicitly. Existing deployments may still merge until migrated — see internal [Run setup evolution log](https://github.com/agentruntime-io/agentruntime/blob/develop/docs/workflows/WORKFLOW_RUN_SETUP_EVOLUTION.md).
+**Deprecated 2026-06-28.** New schedules and integrations should send **full start params** explicitly. Existing deployments may still merge until migrated — contact [support](mailto:support@agentruntime.io) if you're unsure whether your integration is affected.
 
 ## Inbound webhooks
 
@@ -54,7 +54,7 @@ Studio pre-fills the Inbound editor from saved defaults; **fire time** uses what
 
 ## Cron (`workflow_triggers`)
 
-Scheduler + dispatcher run in control-service. REST: `GET/POST/PATCH/DELETE /workflows/{id}/triggers`.
+AgentRuntime runs the schedule and dispatches the trigger automatically. REST: `GET/POST/PATCH/DELETE /workflows/{id}/triggers`.
 
 **Target schedule config** (same Start steps model as Manual):
 

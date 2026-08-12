@@ -84,6 +84,8 @@
         "expanded": true,
         "pages": [
           "workflows/studio",
+          "workflows/json-editor",
+          "workflows/dry-run",
           "workflows/template-intellisense",
           "workflows/run-setup",
           "workflows/external-triggers",

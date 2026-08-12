@@ -14,7 +14,7 @@ Start runs from:
 - **Inbound webhooks** — Signed external triggers (see [Inbound webhooks](/integrations/inbound-webhooks))
 - **Autopilot** — Chat command to run a workflow by name
 
-Runs inherit the workflow's published graph, connection overrides, and input `params`.
+Runs inherit the workflow's published graph and input `params`. MCP credentials resolve from each step's `instance_id` and catalog instance wiring.
 
 ## Run controls
 

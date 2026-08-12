@@ -24,7 +24,7 @@ Think of it as **Airflow for AI**: event-driven workflow execution with native t
 | **BFF API** | Public API at [api.agentruntime.io](https://api.agentruntime.io) — auth, workflows, runs, billing, integrations |
 | **Workflow runtime** | Executes workflow graphs, manages parallelism, retries, and human-in-the-loop pauses |
 | **MCP layer** | Catalog of tool servers; tenant **instances** with config profiles and connection bindings |
-| **Agent service** | Runs built-in agent turns in chat and channel rooms |
+| **Platform agents** | Reusable agent definitions that run multi-turn conversations in chat and channel rooms |
 | **Platform MCP** | Exposes Console APIs as MCP tools for IDEs at [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp) |
 
 ## How it fits together
@@ -38,15 +38,13 @@ flowchart LR
   end
   subgraph platform [AgentRuntime]
     BFF[BFF API]
-    CS[Control service]
     RT[Workflow runtime]
     MCP[MCP connectors]
   end
   Console --> BFF
   API --> BFF
   IDE --> BFF
-  BFF --> CS
-  CS --> RT
+  BFF --> RT
   RT --> MCP
 ```
 
@@ -57,7 +55,7 @@ flowchart LR
 - **Workflow** — A versioned DAG of steps. Authored in Workflow Studio, validated before publish.
 - **Run** — One execution of a published workflow snapshot. Streams events over WebSocket.
 - **Connection** — Saved credentials (Google OAuth, WhatsApp, API keys) bound to MCP instances.
-- **MCP instance** — A deployed tool server in your project with configuration and connection overrides.
+- **MCP instance** — A deployed tool server in your project with configuration and connection wiring.
 
 See [Key concepts](/platform/key-concepts) for the full model, or jump to the [Quickstart](/platform/quickstart) to create your first workflow.
 
