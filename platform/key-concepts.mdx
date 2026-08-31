@@ -17,7 +17,18 @@ Workspaces are identified by a unique **slug** used in URLs and API calls (`X-Te
 
 ## Projects
 
-**Projects** are the primary unit of work inside a workspace. Workflows, runs, MCP instances, analytics, and billing context are scoped to a project. You can create multiple projects per workspace, and the same user can belong to multiple projects with different roles in each.
+**Projects** isolate workflows and optionally other resources inside a workspace. Each workspace has a **default project** (configurable in the workspace switcher) used when an API or MCP tool does not specify `project_id`.
+
+| Resource | Default scope | Optional project scope |
+|----------|---------------|------------------------|
+| **Workflows** | Always live in one project (home project) | — |
+| **Runs & tasks** | Inherit the workflow's project | — |
+| **Agents** | Workspace-wide | Set a home `project_id` when creating |
+| **MCP connections & instances** | Workspace-wide (shared) | Opt in to project scope when creating |
+| **Vault secrets** | Choose `tenant`, `project`, or `user` scope | — |
+| **Memory** | Project-scoped | — |
+
+Project-scoped resources are visible only to members who have access to that project. Workspace-wide resources are shared across the workspace unless you opt into project isolation.
 
 <Info>
   Project-level roles take precedence within that project. A user who is a **project viewer** in one project can be a **project contributor** in another.
@@ -32,7 +43,7 @@ AgentRuntime uses role-based access control (RBAC) at both the tenant and projec
 | Role | Typical access |
 |------|----------------|
 | **project_viewer** | Read workflows, runs, analytics, and chat. Cannot edit graphs or manage integrations. |
-| **project_contributor** | Create and edit workflows, run workflows, manage connections and MCP instances, view billing usage. |
+| **project_contributor** | Create and edit workflows, run workflows, manage connections and MCP instances (workspace-wide or project-scoped), view billing usage. |
 | **project_admin** | Full project control including member management within the project. |
 
 ### Tenant roles
@@ -67,7 +78,7 @@ Pending human tasks across all runs appear in **Command Center**.
 
 ## MCP servers and instances
 
-An **MCP server** is a catalog entry describing a tool server (platform-provided or custom). An **MCP instance** is your project's deployment of that server — with config profiles, environment variables, and **connection bindings** that supply credentials at runtime.
+An **MCP server** is a catalog entry describing a tool server (platform-provided or custom). An **MCP instance** is your workspace's deployment of that server — with config profiles, environment variables, and **connection bindings** that supply credentials at runtime. By default, instances and connections are **workspace-wide**; you can opt into **project scope** when creating them if you need isolation.
 
 Workflow **mcp_call** steps target a tool on an MCP instance (`instance_id` + `server_url` in Studio). Shared graphs can use **`server_url` only** — import remaps to your workspace instances.
 

@@ -51,11 +51,11 @@ flowchart LR
 ## Key concepts
 
 - **Workspace (tenant)** — Your organization. Holds projects, members, billing, and integrations.
-- **Project** — Where workflows, runs, and MCP instances live. Roles are scoped per project.
+- **Project** — Isolates workflows (always project-scoped). Agents, connections, and MCP resources default to workspace-wide; opt into project scope when needed.
 - **Workflow** — A versioned DAG of steps. Authored in Workflow Studio, validated before publish.
-- **Run** — One execution of a published workflow snapshot. Streams events over WebSocket.
-- **Connection** — Saved credentials (Google OAuth, WhatsApp, API keys) bound to MCP instances.
-- **MCP instance** — A deployed tool server in your project with configuration and connection wiring.
+- **Run** — One execution of a published workflow snapshot. Inherits the workflow's project. Streams events over WebSocket.
+- **Connection** — Saved credentials (Google OAuth, WhatsApp, API keys) bound to MCP instances. Workspace-wide by default.
+- **MCP instance** — A deployed tool server with configuration and connection wiring. Workspace-wide by default; optional project scope.
 
 See [Key concepts](/platform/key-concepts) for the full model, or jump to the [Quickstart](/platform/quickstart) to create your first workflow.
 

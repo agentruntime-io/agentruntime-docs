@@ -50,6 +50,22 @@ curl "https://api.agentruntime.io/v1/workflows" \
 
 PATs are validated against your user identity and project role. A PAT with `workflow:run` still requires **project_contributor** on the target project.
 
+## Console Bearer JWT (mobile and IDE clients)
+
+Native clients (mobile app, VS Code workbench) sign in with Keycloak OAuth and send the access token as:
+
+```http
+Authorization: Bearer <keycloak_access_token>
+X-Tenant-Id: <workspace_uuid>
+X-Project-Id: <optional_project_uuid>
+```
+
+The BFF resolves the user from the JWT via Wheelhouse `token-session`. **`X-Tenant-Id` overrides the default workspace** so one login can act in different tenants (for example, separate VS Code windows). Membership is validated on every request.
+
+When `X-Tenant-Id` is omitted, the BFF falls back to the user's default workspace (same behavior as mobile). If no workspace can be resolved, protected routes return `400 X-Tenant-Id required` (except `/v1/me` during onboarding).
+
+Platform MCP forwards `X-Tenant-Id` and `X-Project-Id` from the MCP HTTP request to the BFF when present.
+
 ## Platform MCP
 
 Connect Cursor or other MCP clients to:

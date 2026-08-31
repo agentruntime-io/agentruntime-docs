@@ -18,10 +18,10 @@ Use AgentRuntime product terms consistently:
 | **AgentRuntime** | Product name (one word, capital R). Not "Agent Runtime". |
 | **Console** | Web UI at console.agentruntime.io |
 | **Workspace / tenant** | Top-level org container; prefer **workspace** in user-facing prose |
-| **Project** | Unit that scopes workflows, runs, MCP instances |
+| **Project** | Isolates workflows; optional scope for agents, connections, and MCP resources |
 | **Workflow Studio** | Visual workflow editor |
 | **Command Center** | Human task and run inbox |
-| **MCP instance** | Installed tool server in a project |
+| **MCP instance** | Installed tool server in the workspace (optionally project-scoped) |
 | **Connection** | Saved integration credentials |
 | **Run** | Single workflow execution |
 | **Autopilot** | Console copilot in Chat |

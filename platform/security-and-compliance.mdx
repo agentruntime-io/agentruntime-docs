@@ -39,11 +39,11 @@ Customer integrations should always use **`https://api.agentruntime.io`**. Do no
 
 | Layer | Isolation |
 |-------|-----------|
-| **Workspace (tenant)** | Billing, members, vault paths, and default project scope |
-| **Project** | Workflows, runs, MCP instances, connections, inbound subscriptions |
+| **Workspace (tenant)** | Billing, members, vault paths, workspace-wide MCP resources |
+| **Project** | Workflows (required home project); optional scope for agents, connections, inbound subscriptions |
 | **Roles** | `tenant_admin`, `project_admin`, `project_contributor`, `project_viewer` — see [Roles and permissions](/platform/roles-permissions) |
 
-API requests require `X-Tenant-Id` and `X-Project-Id` for scoped operations. PATs are validated against user identity and project role.
+API requests require `X-Tenant-Id`. Project-scoped writes (for example workflow create) accept an explicit `project_id` or resolve the workspace **default project**. PATs are validated against user identity and project role.
 
 ## Secrets and credentials
 
