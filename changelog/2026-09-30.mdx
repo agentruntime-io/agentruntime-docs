@@ -1,0 +1,34 @@
+---
+title: Copilot session v2 and workflow graph dry-run
+date: 2026-09-30
+version: "0.10.5"
+areas:
+  - platform
+  - workflows
+  - ai
+summary: Workspace Copilot runs on an updated session workflow (Ask vs Act), Studio graph dry-run validation, and Chat client actions for Autopilot.
+added:
+  - "**Copilot session v2** — platform session workflow uses turn_prepare plus Ask and Act agent steps with skip_when **GA** · Workspace Chat"
+  - "**Graph dry-run** — validate workflow graphs from Studio with structured validation evidence **GA** · Workflow Studio"
+changed:
+  - "**Autopilot client actions** — Workspace Chat can apply copilot_navigate and related UI actions from agent responses **GA** · Workspace Chat"
+  - "**Session binding** — chat sessions bind to the workspace Copilot session workflow for consistent turn handling **GA** · Workspace Chat"
+---
+
+**Platform v0.10.5** ships Copilot session v2 across control, engine, chat, BFF, Console, and Workspace Chat.
+
+## Workspace Chat and Copilot
+
+**Ask vs Act** — each turn prepares mode from the user message; Ask answers read-only, Act may use Platform MCP and Console UI action tools.
+
+**Client actions** — Act-mode responses can drive navigation and Studio spotlight behavior in the Console when embedded with Workspace Chat.
+
+## Workflow Studio
+
+**Graph dry-run** — run validation from Studio before publish; evidence is stored with workflow versions when the control migration is applied.
+
+## Related docs
+
+- [Autonomous episodes](/workflows/autonomous-episodes)
+- [Dry run](/workflows/dry-run)
+- [Autopilot and chat](/ai/autopilot-and-chat)

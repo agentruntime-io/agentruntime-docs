@@ -19,6 +19,7 @@ User-facing release notes — one file per release (or rollup). Portico discover
 | `2026-08-03.mdx` | v0.3.1 | MCP-to-LLM depends_on fix, LLM step timeouts, Workspace Chat offline drafts, Google connect |
 | `2026-09-19.mdx` | v0.3.2 | for_each fan-out (inner workflow_call), iteration budgets, loop-body Sub-workflow drag, child approval polling |
 | `2026-09-29.mdx` | v0.10.4 | workflow_call parent input, skip_when, shared inbound connections, trial billing UX, work file base64 upload |
+| `2026-09-30.mdx` | v0.10.5 | Copilot session v2, graph dry-run, Workspace Chat client actions |
 | `_template.mdx` | — | Copy to start the next entry |
 
 **Source of truth:** GitHub release bodies (`gh release view`), cross-checked with git tags.

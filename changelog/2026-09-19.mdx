@@ -1,0 +1,39 @@
+---
+title: Batch agents, for_each fan-out, and loop Studio polish
+date: 2026-09-19
+version: "0.3.2"
+areas:
+  - platform
+  - workflows
+summary: Platform v0.3.2 — fan out one child workflow run per list item inside for_each, iteration budgets, child approval polling, and Studio loop-body drag for Sub-workflow steps.
+added:
+  - "**Batch agent (one run per item)** — Workflow Studio template runs a published child workflow for each list item inside a for_each loop **GA** · Workflow Studio → New from template · [Step types](/workflows/step-types#for_each)"
+  - "**for_each fan-out** — Inner Sub-workflow steps inside for_each or while loops start a separate child run per item when wait is enabled **GA** · Workflow Studio → loop body · [Step types](/workflows/step-types)"
+  - "**Iteration budgets** — for_each_max_parallel, for_each_item_timeout_s, while_iteration_timeout_s, and for_each_error_policy (continue_on_error) on composite loops **GA** · Workflow Studio → loop step config"
+changed:
+  - "**Loop body palette** — Drag Sub-workflow from the built-in palette into a for_each or while loop body (same as Lua, LLM, and Agent steps) **GA** · Workflow Studio"
+  - "**Child workflow approvals** — Parent workflow_call steps in wait mode poll through pending human tasks on each child run; approve children from Tasks as usual **GA** · Operate → Tasks"
+---
+
+**Platform v0.3.2** ships batch-agent fan-out for connected workflows: each list item can invoke a published child workflow with its own run id, iteration timeouts, and parallel limits.
+
+## Workflow Studio and runs
+
+**Batch agent template** — start from **Batch agent (one run per item)** to wire a for_each loop with an inner Sub-workflow step. Publish the child workflow first, then set its id on the inner step.
+
+**for_each fan-out** — add a Sub-workflow step inside a for_each or while body to run a child workflow once per item. When **Wait for child** is on, the parent collects `child_run_id` and terminal output per iteration.
+
+**Iteration budgets** — cap parallelism, per-item timeouts, and error policy (fail fast vs continue on error) on the loop step. Set inner Sub-workflow timeouts at or below the loop item timeout when both apply.
+
+**Loop body drag** — drag **Sub-workflow** from the built-in palette onto a loop body region instead of using JSON import only.
+
+## Operate and approvals
+
+**Child workflow approvals** — if a child run pauses on a human task, the parent wait step keeps polling until the child completes or times out. Open the child run from Tasks to approve.
+
+## Related docs
+
+- [Step types — for_each](/workflows/step-types#for_each)
+- [Step types](/workflows/step-types)
+- [Workflow Studio](/workflows/studio)
+- [Runs and Command Center](/workflows/runs-and-command-center)

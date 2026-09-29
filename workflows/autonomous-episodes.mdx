@@ -179,11 +179,13 @@ Chat uses the same episode machinery:
 
 ```text
 User message → start/resume session workflow (same run_id)
-  → trigger_steps: { chat_agent: { human_message: ... } }
-  → GrantEntryOnResume + ResetStepForReentry
+  → trigger_steps: { entry_step_id: { human_message, copilot_mode, … } }
+  → GrantEntryOnResume + reset entry + downstream depends_on closure (chat session replay)
   → Agent runs → pauses (awaiting_chat) if no done: true
   → Next message resumes same run
 ```
+
+**Target model:** [COPILOT_SESSION_TARGET_MODEL.md](../../docs/agent/COPILOT_SESSION_TARGET_MODEL.md). Platform v2 uses **`entry_step_id: turn_prepare`** (not only a single `chat_agent` step).
 
 Platform template (`workspace-copilot-session`):
 
