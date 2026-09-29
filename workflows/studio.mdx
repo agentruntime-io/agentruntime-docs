@@ -39,11 +39,13 @@ description: Author, validate, version, and run workflow graphs in the AgentRunt
 Steps pass data downstream through template strings:
 
 ```
-{{steps.fetch-leads.result.contacts}}
+{{steps.<step-id>.result.contacts}}
 {{input.customer_email}}
 ```
 
-Use these in `tool_args`, LLM `prompt` fields, `for_each_items`, and Lua `script` inputs. Upstream step results are available under `steps.<step-id>.result`.
+Use the step **Step ID** from the node config (UUID on Studio canvas nodes), not the canvas display name. See [Template intellisense](/workflows/template-intellisense#step-id-vs-display-name).
+
+Use these in `tool_args`, LLM `prompt` fields, `for_each_items`, and Lua `script` inputs. Upstream step results are available under `steps.<step-id>.result` in `{{…}}` fields; in Lua use `steps["<step-id>"].result` or dot form when the id is identifier-safe.
 
 Studio suggests variables as you type — see [Template intellisense](/workflows/template-intellisense) for search tips, the variable picker, and the **Variables** reference tab.
 

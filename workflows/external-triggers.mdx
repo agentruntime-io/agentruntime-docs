@@ -52,6 +52,31 @@ See [Run setup](/workflows/run-setup) for Save defaults, Manual Run, and field o
 
 Studio pre-fills the Inbound editor from saved defaults; **fire time** uses what is stored on the subscription and in the POST body.
 
+## Platform events (`workflow_triggers.type = platform_event`)
+
+AgentRuntime starts workflows when tenant platform events fire — no partner `execute` call. Configure in Workflow Studio → **Run setup → Events**.
+
+REST: same trigger CRUD as cron — `GET/POST/PATCH/DELETE /workflows/{id}/triggers` with `"type": "platform_event"`.
+
+**Example config** (Embedded Connect Gmail bootstrap on connect):
+
+```json
+{
+  "event_type": "connection.created",
+  "provider_filter": "google_account",
+  "automation_pat_id": "...",
+  "trigger_payload": {
+    "backfill_after": "2026/01/01"
+  },
+  "trigger_steps": {},
+  "excluded_step_ids": []
+}
+```
+
+At fire time the platform merges `connection_id`, `mailbox_email`, and `synced_at` into `trigger_payload`, and sets `run.external_user_id` from the event. MCP steps with `connection_resolution: principal` resolve automatically.
+
+**Supported events (v1):** `principal.created`, `connection.created`, `connection.revoked`, `principal.suspended`, `principal.deleted`.
+
 ## Cron (`workflow_triggers`)
 
 AgentRuntime runs the schedule and dispatches the trigger automatically. REST: `GET/POST/PATCH/DELETE /workflows/{id}/triggers`.

@@ -99,10 +99,44 @@ Data returned by an earlier step on the canvas.
 {{steps.505d4d95-dcb2-4a9f-a3a7-007c062898f4.result.message}}
 ```
 
-- **`<step-id>`** — the step's **Step ID** (UUID in the step config panel).
+- **`<step-id>`** — the step's **Step ID** (UUID in the step config panel on Studio canvas nodes).
 - **`.result.<field>`** — a field on that step's output.
 
 You can reference **nested** data when the runtime provides it — for example `{{steps.<id>.result.items.0.title}}` — even if Studio does not list every nested key in the dropdown.
+
+## Step ID vs display name
+
+Every step has two names in Studio:
+
+| Field | Where you see it | Use in templates? |
+|-------|------------------|-------------------|
+| **Display name / label** | Node title on the canvas (e.g. `Lua transform`) | **No** — search only in intellisense |
+| **Step ID** | Step config header (UUID on top-level nodes) | **Yes** — this is `<step-id>` in `{{steps.<step-id>.result.*}}` |
+
+Hand-authored JSON may use slug ids (e.g. `fetch_leads`) on imported graphs; **inner loop steps** use short ids from the body definition. Always use **`id`**, never the **`name`** field from the published graph.
+
+## Mustache (`{{…}}`) vs Lua `steps[…]`
+
+| Context | Syntax | Example |
+|---------|--------|---------|
+| MCP **tool_args**, LLM **prompt**, run setup templates | Dot paths inside `{{…}}` only | `{{steps.<step-id>.result.user_id}}` |
+| **Lua transform** script | Dot or bracket with **step id** | `steps["<step-id>"].result` or `steps.<id>.result` |
+
+<Warning>
+  Patterns like `{{steps['Lua transform'].output.field}}` do **not** work: bracket form is not parsed inside `{{…}}`, and the label is not the step id. Dry-run reports **`template_unresolved`**; a run would send literal `{{…}}` text to the tool.
+</Warning>
+
+Use **`.result.`** in templates (canonical). Do not rely on `.output.` in hand-typed paths.
+
+## Common dry-run errors (`template_unresolved`)
+
+| What you see | Typical cause | Fix |
+|--------------|---------------|-----|
+| `tool_args[rows[0].field]: template could not be fully resolved` with `steps['…']` in the template | Bracket or display name in `{{…}}` | Rewrite to `{{steps.<step-id>.result.field}}` (use intellisense or Step ID from the node) |
+| Same code on `{{input.email}}` | Missing run-start field | Add the key in **Run setup** or use `{{input.email \| omit}}` / a literal default |
+| Wired upstream step, dot syntax, correct id | Rare — check `depends_on` / data wiring | See [Dry-run validation](/workflows/dry-run) — valid `steps.*` refs do not require upstream output at validate time |
+
+Dry-run shows a **suggestion** line under each issue when the engine recognizes the mistake.
 
 ## Common fields in suggestions
 
@@ -153,7 +187,8 @@ These work at run time inside the loop body. They are not in the Studio suggesti
 
 | Topic | Guidance |
 |-------|----------|
-| **Display names** | Search by step name in Studio; saved templates always use the step's **Step ID** (UUID). |
+| **Display names** | Search by step name in Studio; saved templates always use the step's **Step ID** (UUID on canvas nodes). Never paste the canvas label into `{{steps.…}}`. |
+| **Lua vs {{…}}** | Bracket `steps["id"]` is for Lua scripts only. MCP and LLM fields need `{{steps.<step-id>.result.field}}`. |
 | **Deep JSON paths** | Suggestions cover common top-level fields; nested paths can be typed by hand. |
 | **Valid syntax** | One `{{`, a path, one `}}`. Broken text like `{{input.topic{{input.topic}}}}` will not resolve — fix before you run. |
 | **Undo (Ctrl+Z)** | Restores the previous whole field value. Use **Ctrl+Shift+Z** or **Ctrl+Y** to redo. |

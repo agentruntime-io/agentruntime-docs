@@ -1,0 +1,366 @@
+---
+title: Autonomous episodes
+description: How gated agents, handoffs, episode close (done and terminal), and chat session runs work in AgentRuntime workflows.
+---
+
+AgentRuntime uses **one workflow engine** for fixed pipelines and dynamic multi-agent runs. An **episode** is a single workflow run where some steps are **gated** (they wait for permission to start) and agents can **route** work to each other at runtime.
+
+You do not pick a separate "episode workflow type." Episode behavior is controlled by per-step flags — mainly `no_auto_start`, `terminal`, and handoff routing on `agent_call` steps.
+
+<Note>
+  Episode mode activates when **any** step in the graph has `no_auto_start: true`. If no step uses that flag, the run uses classic **connected** finalize: every step in the graph must complete.
+</Note>
+
+## Connected vs episode mode
+
+| | **Connected** (default DAG) | **Episode** (autonomous / mixed) |
+|---|---|---|
+| **Start** | All roots with empty `depends_on` run at t=0 | Same, plus gated steps need an **entry grant** |
+| **Routing** | Static `depends_on` only | Agents can **hand off** to other steps at runtime |
+| **Run ends when** | Every step completes | Episode is **closed** (`done: true` or a `terminal` step) |
+| **Steps never started** | Must still complete or be skipped | Can stay **out of scope** — ignored at finalize |
+
+**Mixed graphs** combine both: a connected spine (fetch → report) plus optional gated agents on the side. Always provide an explicit **exit** on mixed graphs (see [Avoid stuck runs](#avoid-stuck-runs-c3)).
+
+## Two axes: when vs what
+
+Every step has two independent concerns. Do not mix them.
+
+```text
+COMMAND (when?)          DATA (what?)
+─────────────────        ─────────────────
+depends_on               trigger_payload (global)
+no_auto_start            trigger_steps (per-step input)
+handoff → runtime dep    {{steps.*}} templates
+entry grant              handoff payload
+input_allowlist          data wires (field edges in Studio)
+```
+
+| Axis | Question | Mechanisms |
+|------|----------|------------|
+| **Command** (when?) | When may this step run? | `depends_on`, `no_auto_start`, entry grant, handoff → runtime route |
+| **Data** (what?) | What values does it read? | `trigger_payload`, `trigger_steps`, `{{steps.*}}` templates, handoff `payload` |
+
+`depends_on` controls **order only** — it does not pass values. Data flows through templates, `trigger_steps`, and handoff payloads merged into `run.input._steps[step_id]`.
+
+## Key fields
+
+### `no_auto_start` — require entry grant
+
+When `true`, a step does not run at workflow start even if it has no `depends_on`. It starts only when:
+
+1. Its id appears in **`trigger_steps`** at start or resume (key presence = grant), or
+2. Another agent **hands off** to it at runtime.
+
+**Chat session workflows** use this pattern: the `chat_agent` step is gated and receives a new `trigger_steps` entry on each user message.
+
+In Workflow Studio, enable **Require entry grant** under **Episode scheduling** on the step config panel.
+
+### `trigger_steps` — grant + per-step input
+
+```json
+{
+  "trigger_steps": {
+    "chat_agent": {
+      "human_message": {
+        "text": "What's the weather?",
+        "message_id": "msg-uuid"
+      }
+    }
+  }
+}
+```
+
+- **Key presence** → entry grant for that step (when it has `no_auto_start`)
+- **Value** → per-step input overlay merged before the step runs
+
+At t=0, auto-start roots **and** granted gated steps can run (additive union).
+
+### `input_allowlist` — who may send to this step
+
+ACL on the **receiver**: which step ids (or `"human"`) may route input or a handoff **to** this step. Empty = unrestricted.
+
+Configure in Studio under **Accepts input from** on any step type.
+
+### Handoff — dynamic routing between agents
+
+When an `agent_call` completes, its result can include:
+
+```json
+{
+  "message": "Routing to analyst",
+  "handoff": {
+    "to": "analyst_b",
+    "payload": { "topic": "billing" }
+  },
+  "done": false
+}
+```
+
+The engine:
+
+1. Validates ACL (`input_allowlist` on the target must include the sender)
+2. Adds a **runtime dependency** (sender → target)
+3. Brings the target **into scope**
+4. Merges `payload` into `run.input._steps[target]` for the next execution
+
+No static `depends_on` edge is required between choosable agents.
+
+### `terminal` — close episode when this step completes
+
+When `true` on any step type, **completing that step closes the episode**. No agent JSON required.
+
+Typical pattern: a mandatory tail step — e.g. `report` with `terminal: true` and `depends_on: ["coordinator"]`.
+
+In Workflow Studio, enable **Episode terminal** under **Episode scheduling**.
+
+### `done: true` — agent signals episode end
+
+An `agent_call` can end the episode by including `done: true` in its structured reply (see [How episode close works](#how-episode-close-works)).
+
+## Runtime state (`custom.episode`)
+
+During a run, the engine tracks episode bookkeeping in run context (not visible in Studio):
+
+```text
+custom.episode
+├── entry_granted      { "router": true, "chat_agent": true }
+├── in_scope           { "fetch": true, "router": true }
+├── runtime_depends_on { "analyst": ["router"] }   // handoff-created
+└── episode_closed     true | false
+```
+
+The scheduler's readiness check (`CanExecuteStepEffective`) requires all of the following:
+
+1. Step is **in scope**
+2. All **effective deps** are satisfied (`published depends_on` ∪ `runtime_depends_on` from handoffs)
+3. If `no_auto_start` with no deps → must have an **entry grant**
+
+## Lifecycle walkthrough
+
+### 1. Start
+
+```text
+Workflow.Start
+  → SeedEpisodeScope()
+      - Auto-start roots → in_scope
+      - trigger_steps keys → entry_granted + in_scope
+  → Scheduler runs ready steps
+```
+
+### 2. Agent completes with handoff
+
+```text
+agent_call "router" completes
+  → ExtractHandoffs(result)
+  → ValidateHandoffs (ACL)
+  → AddRuntimeRoute(router → analyst)
+  → MergeHandoffPayloadsIntoRunContext
+  → ExpandEpisodeScope
+  → Scheduler picks up "analyst" when ready
+```
+
+### 3. Agent completes with done (or terminal step completes)
+
+```text
+agent_call "writer" completes with done: true
+  OR step with terminal: true completes
+  → closeEpisode() → episode_closed = true
+  → maybeFinalizeEpisodeRun()
+      - Skip out-of-scope steps
+      - Run → completed (when in-scope work is settled)
+```
+
+Closing the episode does **not** instantly set the run to `completed`. The engine still waits for in-scope steps to finish (for example a mandatory `terminal` tail) before finalizing.
+
+### 4. Chat session
+
+Chat uses the same episode machinery:
+
+```text
+User message → start/resume session workflow (same run_id)
+  → trigger_steps: { chat_agent: { human_message: ... } }
+  → GrantEntryOnResume + ResetStepForReentry
+  → Agent runs → pauses (awaiting_chat) if no done: true
+  → Next message resumes same run
+```
+
+Platform template (`workspace-copilot-session`):
+
+- One step: `chat_agent` with `no_auto_start: true`, `input_allowlist: ["human"]`
+- `agent_id` injected per tenant at run start
+
+## How episode close works
+
+Both paths converge when **any step completes** — the engine calls `applyRuntimeRoutesAndClose`:
+
+```text
+shouldClose = (result has done: true) OR (step has terminal: true)
+
+if shouldClose AND graph uses episode mode:
+    closeEpisode()
+      → episode_closed = true
+      → skip pending out-of-scope steps
+```
+
+Then `maybeFinalizeRun` checks that all in-scope steps are `completed` or `skipped` before setting run status to `completed`.
+
+### Path A: Agent emits `done: true`
+
+**1. Agent reply shape**
+
+For workflow `agent_call` steps, the agent's final text can be JSON:
+
+```json
+{
+  "message": "All tasks finished.",
+  "done": true
+}
+```
+
+With an optional handoff instead of closing:
+
+```json
+{
+  "message": "Routing to analyst",
+  "handoff": { "to": "analyst_b", "payload": { "topic": "billing" } },
+  "done": false
+}
+```
+
+**2. Turn runner parses JSON**
+
+When the LLM finishes (no more tool calls), the agent turn runner parses the reply and extracts `done` into step metadata.
+
+**3. Step result stored**
+
+```json
+{
+  "message": "All tasks finished.",
+  "turn_id": "turn-uuid",
+  "result": {
+    "done": true,
+    "message": "All tasks finished."
+  }
+}
+```
+
+**4. Engine reads `done`**
+
+The workflow handler checks `result.done` or `result.result.done`. If true and the graph is in episode mode → `closeEpisode()`.
+
+<Warning>
+  **Chat session caveat:** When a turn is bound to a chat conversation (`observation_conversation_id`), the turn runner may **not** parse `done` from JSON in the agent's text reply. For chat copilot sessions, prefer a `terminal: true` step on the session graph, or ensure `done` is present in step result metadata through your integration path. Headless workflow `agent_call` steps (no conversation binding) get full JSON parsing.
+</Warning>
+
+### Path B: Step has `terminal: true`
+
+**1. Authoring**
+
+Mark the step in graph JSON or Studio:
+
+```json
+{
+  "id": "writer",
+  "type": "agent_call",
+  "terminal": true,
+  "no_auto_start": true
+}
+```
+
+Works on **any step type** — `lua_script`, `mcp_call`, `llm_call`, not only agents.
+
+**2. On step complete**
+
+When that step completes, `senderDef.Terminal == true` sets `shouldClose = true` — no `done` in the result needed.
+
+**3. Same `closeEpisode` path**
+
+Identical to the `done: true` path from there.
+
+### Comparison
+
+| Mechanism | Who sets it | When it fires | Typical use |
+|-----------|-------------|---------------|-------------|
+| `done: true` | Agent JSON reply | When that `agent_call` completes | Dynamic "I'm finished" from the agent |
+| `terminal: true` | Graph author (Studio / JSON) | When **that step** completes | Fixed sink: report, writer, coordinator tail |
+
+Both require **episode mode** (`no_auto_start` on at least one step).
+
+## Chat session behavior
+
+| Agent result | What happens |
+|--------------|--------------|
+| No `done: true` | Run → **paused** (`awaiting_chat`). Same `run_id` on the next message. |
+| `done: true` in step result | No pause. Run finalizes if episode closed and in-scope work is done. |
+
+## Three graph modes (same engine)
+
+```text
+CONNECTED          fetch → transform → report
+                   (no no_auto_start anywhere)
+
+AUTONOMOUS         router (gated) ⇄ analyst ⇄ writer (terminal)
+                   handoffs pick the path; done/terminal ends run
+
+MIXED              fetch → report (auto spine)
+                   + router/analyst (gated side agents)
+                   mandatory tail still uses depends_on
+```
+
+**Mixed** is the tricky one: a connected spine can finish while gated agents never ran. If nothing calls `done` or hits a `terminal` step, the run stays `running` forever — the **C3 anti-pattern** (see below).
+
+## Visual summary
+
+```mermaid
+flowchart TB
+  subgraph start [At workflow start]
+    AS[Auto-start roots] --> IS[in_scope]
+    TS[trigger_steps keys] --> EG[entry_granted]
+    TS --> IS
+  end
+
+  subgraph runtime [During run]
+    AC[agent_call completes] --> HO{handoff?}
+    HO -->|yes| RT[runtime_depends_on + in_scope]
+    HO -->|done:true| CL[episode_closed]
+    TERM[terminal step completes] --> CL
+  end
+
+  subgraph end [Finalize]
+    CL --> FIN{in-scope steps done?}
+    FIN -->|yes| DONE[run completed]
+    FIN -->|out-of-scope| SKIP[skipped]
+  end
+
+  start --> runtime
+  runtime --> end
+```
+
+## Avoid stuck runs (C3)
+
+A common authoring mistake: a **connected spine completes** while gated episode agents never run and nothing closes the episode. The run stays **`running`** forever.
+
+**Fixes:**
+
+- Add `terminal: true` on the last spine step (e.g. `report`)
+- Add a coordinator agent that emits `done: true` after the spine
+- Split into separate workflows (connected pipeline vs autonomous episode)
+
+Workflow Studio dry-run reports **`episode_c3_spine_without_close`** as an **error** (publish is blocked). Use the **Mixed episode coordinator** template or add `terminal: true` on a spine sink.
+
+## Practical authoring rules
+
+1. Use `no_auto_start` on agent roots that should not fire until a human or another agent invites them.
+2. Set `input_allowlist` on receivers so handoffs are ACL-controlled.
+3. Always provide an **exit**: `terminal: true` on a sink step, or an agent that emits `done: true`.
+4. For mandatory tails (e.g. "report must always run"), use static `depends_on` — do not rely on handoffs alone.
+5. For chat bots, use the session workflow pattern: gated `chat_agent`, pause between turns, same `run_id`.
+
+## Related
+
+- [Step types](/workflows/step-types) — `agent_call` and execution wrapper fields
+- [Workflow patterns](/workflows/patterns) — approve-then-send, webhooks, and production recipes
+- [Run setup](/workflows/run-setup) — `trigger_steps` and `trigger_payload`
+- [Dry-run validation](/workflows/dry-run) — episode warnings before publish
+- [Autopilot and chat](/ai/autopilot-and-chat) — Console chat and session workflows

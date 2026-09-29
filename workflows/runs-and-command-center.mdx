@@ -59,6 +59,21 @@ Project contributors can access analytics APIs at `/v1/analytics/*`.
 | `GET /v1/workflows/{id}/runs` | Runs for one workflow |
 | `GET /v1/workflows/{id}/runs/{runID}/events` | Step event log |
 | `GET /v1/workflows/{id}/runs/{runID}/context` | Step state and variables |
+| `GET /v1/workflows/{id}/runs/{runID}/steps/{stepID}/turns/{turnID}/stream` | Agent turn replay (NDJSON; late-join snapshot from run events) |
+
+### Replay and traces
+
+There is no separate “replay” POST API. **Run replay** means paginating persisted events:
+
+```http
+GET /v1/workflows/{id}/runs/{runID}/events?cursor=...
+```
+
+**Agent turn replay** uses the turn stream endpoint above when a step stores `turn_id` in its result. Workflow Studio **Watch LLM** consumes the same stream.
+
+**Distributed traces:** When OpenTelemetry is enabled, `workflow_runs.request_id` holds the trace id. Studio Execution panel shows an external **Trace** link when Jaeger/Grafana is configured.
+
+Episode runs also expose `custom.episode` in run context (`in_scope`, `entry_granted`, `episode_closed`) — see [Autonomous episodes](/workflows/autonomous-episodes).
 
 ## Command Center
 

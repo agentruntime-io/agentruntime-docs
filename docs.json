@@ -90,6 +90,7 @@
           "workflows/run-setup",
           "workflows/external-triggers",
           "workflows/step-types",
+          "workflows/autonomous-episodes",
           "workflows/command-center",
           "workflows/runs-and-command-center",
           "workflows/execution-timeline",

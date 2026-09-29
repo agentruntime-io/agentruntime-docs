@@ -44,6 +44,8 @@ Threads are separate from workflow runs, but messages can reference runs, workfl
 
 Platform agents run multi-turn loops with MCP tools and memory, using AgentRuntime's chat runtime rather than the workflow DAG engine.
 
+Session workflows (one `run_id` across chat turns, pause between messages) use **autonomous episode** scheduling. See [Autonomous episodes](/workflows/autonomous-episodes) for `no_auto_start`, `done: true`, `terminal`, and handoffs.
+
 ## Workspace chat (space)
 
 The team workspace at [space.agentruntime.io](https://space.agentruntime.io) provides Slack-shaped channels, Autopilot DM, threads, and workflow system cards. It shares authentication with the Console via `.agentruntime.io` cookies, so signing in to one signs you in to the other.

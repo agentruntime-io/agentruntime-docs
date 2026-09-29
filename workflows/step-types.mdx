@@ -116,7 +116,7 @@ Run inline Lua to transform upstream data.
 
 |-------|-------------|
 
-| `script` | Lua source (max 64 KB). Access upstream via `steps.<id>.result` and trigger input via `input.<field>`. Must return a table. |
+| `script` | Lua source (max 64 KB). Upstream: `steps["<step-id>"].result` or `steps.<id>.result` (use graph **id**, not the display **name**). Trigger input: `input.<field>`. Must return a table. |
 
 
 
@@ -140,7 +140,9 @@ Fan out over a list with controlled parallelism.
 
 | `for_each_max_parallel` | Max concurrent body runs (default 10, max 100) |
 
-| `for_each_body_steps` | Ordered inline inner step chain per item (`lua_script`, `llm_call`, `mcp_call`, `agent_call`) |
+| `for_each_item_timeout_s` | Optional per-item wall-clock cap for the inner chain (max 3600s) |
+
+| `for_each_body_steps` | Ordered inline inner step chain per item (`lua_script`, `llm_call`, `mcp_call`, `agent_call`, `workflow_call`) |
 
 Inner `agent_call` steps run **synchronously** inside the parent; they do not participate in episode handoff routing.
 
@@ -162,7 +164,9 @@ Conditional loop (L5): repeat an inline step chain until a stop condition or `wh
 
 | `while_max_iterations` | Hard cap on iterations (required, ≥ 1) |
 
-| `while_body_steps` | Ordered inline inner steps per iteration |
+| `while_iteration_timeout_s` | Optional per-iteration wall-clock cap for the inner chain (max 3600s) |
+
+| `while_body_steps` | Ordered inline inner steps per iteration (`lua_script`, `llm_call`, `mcp_call`, `agent_call`, `workflow_call`) |
 
 | `while_condition` | Template boolean, e.g. `{{body.score.result.pass}}` |
 
@@ -181,7 +185,7 @@ Workflow Studio **Variables** drawer and autocomplete expose copyable paths. At 
 | Syntax | Resolves to |
 |--------|-------------|
 | `{{input.field}}` | Workflow trigger / run-setup payload |
-| `{{steps.<step-id>.result.field}}` | Upstream step output (after completion) |
+| `{{steps.<step-id>.result.field}}` | Upstream step output (after completion). `<step-id>` is the graph step id, not the display name. Dot syntax only in `{{…}}` fields. |
 | `{{steps.<step-id>.input.field}}` | Resolved call parameters for that step (after template expansion) |
 | `{{foreach.item}}` / `{{item}}` | Current list element in `for_each` body |
 | `{{foreach.index}}` / `{{index}}` | Zero-based index in `for_each` body |
@@ -216,6 +220,8 @@ All step types support:
 | `no_auto_start` | When `true` on a root, block auto-start until `trigger_steps` grants entry |
 
 | `terminal` | When `true`, completing this step may close an autonomous/mixed episode |
+
+See [Autonomous episodes](/workflows/autonomous-episodes) for gated agents, handoffs, `done: true`, chat session runs, and how episode close works end to end.
 
 
 

@@ -1,0 +1,41 @@
+---
+title: Sub-workflow input, skip_when, and shared inbound connections
+date: 2026-09-29
+version: "0.10.4"
+areas:
+  - platform
+  - workflows
+  - integrations
+summary: Pass parent input into child workflows, skip steps with skip_when, pick inbound Telegram connections already in use, and clearer trial billing callouts.
+added:
+  - "**Parent input on Sub-workflow** — workflow_call steps can pass the parent run's input into the child workflow **GA** · Workflow Studio → Sub-workflow step"
+  - "**skip_when** — skip a step when a condition is true (Studio config + dry-run hints) **GA** · Workflow Studio"
+  - "**Shared inbound connection** — Inbound setup lists connections already wired on another workflow (same Telegram bot / vendor ingress) **GA** · Workflow setup → Inbound"
+changed:
+  - "**Dry-run suggestions** — validation issues can include a suggested fix in Studio **GA** · Workflow Studio → Dry run"
+  - "**Trial billing** — Plans shows when a Pro trial is ending or has ended and what happens next **GA** · Settings → Plans"
+  - "**Work file upload (API)** — Platform MCP can upload work files from base64 via work-service **GA** · agents using Work tools"
+---
+
+**Platform v0.10.4** (Console **v0.21.0**, work-service **v0.5.0**) improves connected workflows, conditional steps, and inbound webhook setup when reusing the same integration connection.
+
+## Workflow Studio
+
+**Sub-workflow input** — when a child workflow should see the parent's trigger payload, enable passing parent `input` on the Sub-workflow step instead of copying fields manually.
+
+**skip_when** — mark steps that should not run when a Lua/expression condition is true; dry run surfaces actionable suggestions when templates or guards look wrong.
+
+## Inbound webhooks
+
+**Shared connection** — if a Telegram (or other vendor) inbound route already exists for a connection on another workflow, pick that connection on a new workflow to attach another subscription on the same vendor URL (fan-out).
+
+## Billing
+
+**Trial status** — workspace admins see clearer messaging before trial end and after trial expiry on Plans.
+
+## Related docs
+
+- [Step types](/workflows/step-types)
+- [External triggers](/workflows/external-triggers)
+- [Dry run](/workflows/dry-run)
+- [Workflow Studio](/workflows/studio)

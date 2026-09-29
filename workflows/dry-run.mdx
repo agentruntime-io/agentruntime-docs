@@ -42,6 +42,18 @@ RSS fetch → LLM (uses {{steps.rss.result.items}}) → Lua → Gmail (uses {{st
 
 A successful run will not be contradicted by dry-run errors on those `steps.*` references alone.
 
+### When dry-run reports `template_unresolved`
+
+The issue means the validator still sees literal `{{…}}` text (or required `{{input.*}}` could not be satisfied). Common fixes:
+
+| Symptom | Likely cause | What to do |
+|---------|--------------|------------|
+| Message mentions `steps['…']` or `steps["…"]` | Bracket syntax inside `{{…}}` | Use dot form: `{{steps.<step-id>.result.field}}` with the graph **Step ID**, not the display name ([details](/workflows/template-intellisense#mustache-vs-lua-steps)) |
+| `{{input.*}}` on a required field | Key missing from **Run setup** | Add the field under shared/per-step start input, or use a pipe default / `\| omit` |
+| Correct dot path to an upstream step | Missing dependency or typo in step id | Confirm the step exists and appears in `depends_on` / canvas wiring |
+
+Each issue includes a **suggestion** line in the Dry Run panel when the engine can infer the fix. **`steps.*`** templates with valid dot syntax are **compile-only** at dry-run (upstream output is not required to validate).
+
 ## Dry Run tab vs run history
 
 The execution panel **Dry Run** tab shows the latest validation for the **current graph**, not a replay of the selected run. A green **Success** badge on a past run and red dry-run errors can both be correct: the run worked; the validation summary may be from a separate Validate click or a stricter check on the canvas.
