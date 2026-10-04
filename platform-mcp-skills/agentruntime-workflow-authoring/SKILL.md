@@ -53,7 +53,7 @@ Optional request fields: `mapper_fixtures`, `mock_lua_scopes`, `mock_step_output
 
 **Studio:** Import → map MCP + child workflows at Review import → Dry-run → Save → Publish → re-read graph.
 
-**No offline scripts in this bundle.** In-repository CI maintenance uses `.cursor/skills/agentruntime-workflow-authoring/scripts/` (not shipped here).
+**No offline scripts in this bundle.** Use server dry-run / `workflows_validate` (see [validation.md](references/validation.md)).
 
 ## Reviews
 
@@ -62,5 +62,3 @@ Return an issue table: file, step id, exact path, rule, fix. Distinguish confirm
 ## Import
 
 Resolve `REPLACE_*` MCP instance placeholders and `REPLACE_CHILD_*` child `workflow_id` values at Studio **Review import**. Publish children before orchestrators. Workflow JSON is source of truth — no patch generators.
-
-For in-repo maintenance, compare [Cursor companion skill](../../../.cursor/skills/agentruntime-workflow-authoring/SKILL.md) (optional link; absent in standalone archives).

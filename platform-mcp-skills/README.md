@@ -1,7 +1,6 @@
 # Platform MCP authoring skills (public)
 
-Machine-readable **authoring skills** for external agents using [Platform MCP](https://mcp.agentruntime.io/mcp).  
-Public in [agentruntime-docs](https://github.com/agentruntime-io/agentruntime-docs) — no access to private `agentruntime-platform-mcp` required.
+**Single source of truth** for external-agent skill markdown. Edit here only; do not maintain duplicate trees in the private platform-mcp repo or `.cursor/skills/`.
 
 ## Raw fetch (no auth)
 
@@ -14,8 +13,10 @@ Base: `https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/
 | Workflows | [agentruntime-workflow-authoring/SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-workflow-authoring/SKILL.md) |
 | Surfaces | [agentruntime-surfaces-authoring/SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-surfaces-authoring/SKILL.md) |
 
-Docs index: https://docs.agentruntime.io/api/platform-mcp-authoring-skills
+Human index: https://docs.agentruntime.io/api/platform-mcp-authoring-skills
 
-## Sync
+Platform MCP **`ar_get_started`** returns the same raw URLs (`public_skill_urls.go` in agentruntime-platform-mcp).
 
-From monorepo: `dev_tools/agentruntime-platform-mcp/scripts/sync-skills-to-public-docs.ps1`
+## JSON schemas
+
+Under `schemas/` — also returned by MCP `tenantdata_logical_schema` and `surfaces_schema_catalog`. When you change a schema file here, update matching **go:embed** copies in private `agentruntime-platform-mcp/tools/` before the next platform-mcp release.

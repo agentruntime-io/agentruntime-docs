@@ -3,8 +3,8 @@
   "reconciles_changes_from": "server-dry-run-2026-09-11",
   "recorded_at": "2026-09-13T00:00:00+00:00",
   "scope": "Portable skill — Platform MCP catalog discovery + server dry-run; offline lint scripts not in this bundle.",
-  "hosted_skill_url": "https://github.com/agentruntime-io/agentruntime-platform-mcp/tree/main/skills/agentruntime-workflow-authoring",
-  "hosted_skill_raw_url": "https://raw.githubusercontent.com/agentruntime-io/agentruntime-platform-mcp/main/skills/agentruntime-workflow-authoring/SKILL.md",
+  "hosted_skill_url": "https://github.com/agentruntime-io/agentruntime-docs/tree/main/platform-mcp-skills/agentruntime-workflow-authoring",
+  "hosted_skill_raw_url": "https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-workflow-authoring/SKILL.md",
   "derived_from": "Cursor agentruntime-workflow-authoring; runtime validate.go tenantdata_upsert + lua_fixture extensions.",
   "repositories": {
     "agentruntime": "e2c2cf405b23d6c04734f18448f8177526c730ea",
@@ -32,5 +32,5 @@
     "scripts/validate-tenantdata-fixtures.mjs",
     "scripts/tenantdata-fixture-runner.go"
   ],
-  "ci_lint_scripts": ".cursor/skills/agentruntime-workflow-authoring/scripts/"
+  "ci_lint_scripts": "removed — use agentruntime/workflow Go tests and server dry-run; scripts were not part of the public skill bundle"
 }

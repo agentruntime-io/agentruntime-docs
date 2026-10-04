@@ -96,6 +96,16 @@ ai/                 LLM providers, Autopilot, chat, memory (mark preview if Cons
 api/                REST overview, authentication, examples, reference, Platform MCP
 ```
 
+### Platform MCP authoring skills (canonical)
+
+Plain Markdown under **`platform-mcp-skills/`** (listed in `.mintignore` — not Mintlify pages). External agents fetch via **raw GitHub**:
+
+`https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/...`
+
+- Edit skills here first; push `main` on this repo.
+- Index page: `api/platform-mcp-authoring-skills.mdx`
+- Monorepo: link from `docs/` only — do not duplicate skill trees under platform-mcp or `.cursor/skills/`. After schema changes under `platform-mcp-skills/schemas/`, sync embed JSON in platform-mcp `tools/` (see monorepo `docs/mcp/PLATFORM_MCP_SKILLS_PUBLIC_HOSTING.md`).
+
 ## Connector guides
 
 Published pages live in `connectors/{adapter-slug}.mdx` and are **hand-maintained**.
