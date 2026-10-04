@@ -1,0 +1,441 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentruntime:workflow-authoring-profile:2026-09-10",
+  "title": "AgentRuntime portable workflow authoring profile",
+  "description": "Conservative authoring profile for import envelopes. Canonical step field schema: GET /api/v1/workflows/schema or Platform MCP workflows_graph_schema (workflow/schema.go GraphJSONSchemaHash). On conflict, API schema and ValidateDryRun win. Compare workflows_graph_schema.schema_hash after fetch.",
+  "type": "object",
+  "required": [
+    "steps"
+  ],
+  "properties": {
+    "canonical_schema_ref": {
+      "type": "object",
+      "description": "Documentation only — not stored on published workflows.",
+      "properties": {
+        "schema_url": {
+          "const": "/api/v1/workflows/schema"
+        },
+        "platform_mcp_tool": {
+          "const": "workflows_graph_schema"
+        }
+      },
+      "additionalProperties": false
+    },
+    "workflow_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Workflow identifier metadata; importing does not itself select or update this workflow."
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "input_schema": {
+      "$ref": "#/$defs/InputSchema"
+    },
+    "example_trigger_payload": {
+      "type": "object",
+      "description": "Documentation / test defaults only. Not a substitute for input_schema.properties.*.default.",
+      "additionalProperties": true
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Step"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "InputSchema": {
+      "type": "object",
+      "required": [
+        "type",
+        "properties"
+      ],
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/InputProperty"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "InputProperty": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "object",
+            "array"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": {},
+        "form_visible": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ConnectionResolution": {
+      "type": "string",
+      "enum": [
+        "principal",
+        "workspace",
+        "inherit"
+      ]
+    },
+    "StepId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "DependsOn": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/StepId"
+      },
+      "uniqueItems": true
+    },
+    "McpCallBody": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "tool_name"
+      ],
+      "properties": {
+        "type": {
+          "const": "mcp_call"
+        },
+        "id": {
+          "$ref": "#/$defs/StepId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/DependsOn"
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_args": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "server_url": {
+          "type": "string"
+        },
+        "server_id": {
+          "type": "string",
+          "description": "Discovered connector catalog slug"
+        },
+        "instance_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Preferred binding for tenant runs"
+        },
+        "connection_resolution": {
+          "$ref": "#/$defs/ConnectionResolution"
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "instance_id"
+          ]
+        },
+        {
+          "required": [
+            "server_url"
+          ]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "LuaScriptBody": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "script"
+      ],
+      "properties": {
+        "type": {
+          "const": "lua_script"
+        },
+        "id": {
+          "$ref": "#/$defs/StepId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/DependsOn"
+        },
+        "script": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "InnerStep": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/McpCallBody"
+        },
+        {
+          "$ref": "#/$defs/LuaScriptBody"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "id"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "llm_call",
+                "agent_call"
+              ]
+            },
+            "id": {
+              "$ref": "#/$defs/StepId"
+            },
+            "name": {
+              "type": "string"
+            },
+            "depends_on": {
+              "$ref": "#/$defs/DependsOn"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "WhileBody": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "while_mode",
+        "while_max_iterations",
+        "while_body_steps"
+      ],
+      "properties": {
+        "type": {
+          "const": "while"
+        },
+        "id": {
+          "$ref": "#/$defs/StepId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/DependsOn"
+        },
+        "while_mode": {
+          "type": "string",
+          "enum": [
+            "until",
+            "while"
+          ]
+        },
+        "while_max_iterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "while_condition": {
+          "type": "string"
+        },
+        "while_eval_script": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "while_body_steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/InnerStep"
+          }
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "while_condition"
+          ]
+        },
+        {
+          "required": [
+            "while_eval_script"
+          ]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "ForEachBody": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "for_each_items",
+        "for_each_body_steps"
+      ],
+      "properties": {
+        "type": {
+          "const": "for_each"
+        },
+        "id": {
+          "$ref": "#/$defs/StepId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/DependsOn"
+        },
+        "for_each_items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "for_each_max_parallel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "for_each_error_policy": {
+          "type": "string",
+          "enum": [
+            "fail_fast",
+            "continue_on_error",
+            "pause",
+            "human_review"
+          ]
+        },
+        "for_each_body_steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/InnerStep"
+          }
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Step": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/McpCallBody"
+        },
+        {
+          "$ref": "#/$defs/LuaScriptBody"
+        },
+        {
+          "$ref": "#/$defs/ForEachBody"
+        },
+        {
+          "$ref": "#/$defs/WhileBody"
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "type",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/StepId"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "llm_call",
+                "agent_call",
+                "human_task",
+                "workflow_call",
+                "external_agent"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "depends_on": {
+              "$ref": "#/$defs/DependsOn"
+            },
+            "no_auto_start": {
+              "type": "boolean"
+            },
+            "terminal": {
+              "type": "boolean"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    }
+  }
+}

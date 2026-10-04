@@ -1,0 +1,14 @@
+{
+  "name": "Scope contract smoke",
+  "steps": [
+    {"id":"seed","name":"Seed items","type":"lua_script","script":"return { items = {1, 2} }"},
+    {"id":"each","name":"Map items","type":"for_each","depends_on":["seed"],"for_each_items":"{{steps.seed.result.items}}","for_each_body_steps":[
+      {"id":"map_item","name":"Map item","type":"lua_script","script":"return { value = item * 2 }"},
+      {"id":"consume","name":"Read inner result","type":"lua_script","depends_on":["map_item"],"script":"return { value = body.map_item.value }"}
+    ]},
+    {"id":"paginate","name":"Repeat twice","type":"while","depends_on":["each"],"while_mode":"until","while_max_iterations":3,"while_eval_script":"return { pass = body.capture.count >= 2 }","while_body_steps":[
+      {"id":"capture","name":"Increment count","type":"lua_script","script":"local prev = (loop.prev and loop.prev.capture) or {}\nreturn { count = (prev.count or 0) + 1 }"}
+    ]},
+    {"id":"finish","name":"Read completed loop","type":"lua_script","depends_on":["paginate"],"script":"return { count = steps.paginate.result.last.capture.count }"}
+  ]
+}

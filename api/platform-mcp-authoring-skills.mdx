@@ -1,0 +1,44 @@
+---
+title: Platform MCP authoring skills
+description: Public skill bundles for external AI agents — Tenant Data, workflows, Surfaces, and end-to-end design on Platform MCP.
+---
+
+External agents (ChatGPT, Codex, Claude) should call **`ar_get_started`** on [Platform MCP](/api/platform-mcp) first, then load skill markdown from the **public** tree below (no access to the private platform-mcp GitHub repo required).
+
+## Raw fetch (recommended for agents)
+
+Base URL:
+
+```
+https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/
+```
+
+| Skill | URL |
+|-------|-----|
+| **Platform design** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-platform-design/SKILL.md) |
+| **Tenant Data** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-tenant-data-authoring/SKILL.md) |
+| **Workflow authoring** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-workflow-authoring/SKILL.md) |
+| **Surfaces apps** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-surfaces-authoring/SKILL.md) |
+
+Browse the full tree on GitHub: [platform-mcp-skills](https://github.com/agentruntime-io/agentruntime-docs/tree/main/platform-mcp-skills).
+
+## JSON schemas (embedded contracts)
+
+| Schema | Raw URL |
+|--------|---------|
+| Tenant Data `{ tables[] }` | [tenantdata-logical.schema.json](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/schemas/tenantdata-logical.schema.json) |
+| Surfaces v1 | [surfaces-v1.schema.json](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/schemas/surfaces/surfaces-v1.schema.json) |
+
+Or call Platform MCP **`tenantdata_logical_schema`** and **`surfaces_schema_catalog`** — they return the same public URLs.
+
+## Typical order
+
+1. `ar_get_started` — tenant, playbooks, `embedded_schema_tools`
+2. Load **platform-design** SKILL, then tenant-data → workflow → surfaces as needed
+3. `workflows_validate` with `tenantdata_schema` before run
+4. For Surfaces apps: publish workflows first, then set **`workflow_ref` to published UUIDs** (avoid **Import pending** in Console)
+
+## Related
+
+- [Platform MCP](/api/platform-mcp) — endpoint, auth, tool groups
+- [Workflow dry-run](/workflows/dry-run) — user-facing validate concepts

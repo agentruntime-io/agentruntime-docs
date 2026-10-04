@@ -195,7 +195,8 @@
           "api/authentication",
           "api/examples",
           "api/reference",
-          "api/platform-mcp"
+          "api/platform-mcp",
+          "api/platform-mcp-authoring-skills"
         ]
       }
     ]

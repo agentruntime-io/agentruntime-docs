@@ -1,2 +1,4 @@
 # Staging connector drafts — not published; hand-maintained pages live in connectors/
 .generated/
+# Raw skill markdown for agents (indexed via api/platform-mcp-authoring-skills.mdx)
+platform-mcp-skills/

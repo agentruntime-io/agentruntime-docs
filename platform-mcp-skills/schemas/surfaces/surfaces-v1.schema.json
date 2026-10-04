@@ -1,0 +1,635 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentruntime.io/schemas/surfaces-v1.schema.json",
+  "title": "AgentRuntime Surfaces v1",
+  "description": "Canonical JSON Schema for Surfaces apps, views, marketplace packages, query definitions, and render API. Architecture: docs/surfaces/SURFACES_ARCHITECTURE.md",
+  "$defs": {
+    "SchemaVersion": {
+      "type": "string",
+      "const": "1"
+    },
+    "Identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "WorkflowRef": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "workflow_definitions.id (UUID only). No slugs or binding keys in saved artifacts."
+    },
+    "NodeId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Workflow step id from published graph."
+    },
+    "TransformOp": {
+      "type": "string",
+      "enum": ["eq", "neq", "gt", "gte", "lt", "lte", "empty", "not_empty"]
+    },
+    "Transform": {
+      "description": "Compare resolved binding value before passing to component prop.",
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^(eq|neq|gt|gte|lt|lte|empty|not_empty):",
+          "description": "Shorthand: \"eq:pending\", \"neq:completed\", \"empty:\""
+        },
+        {
+          "type": "object",
+          "required": ["op"],
+          "properties": {
+            "op": { "$ref": "#/$defs/TransformOp" },
+            "value": {}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "BindStatic": {
+      "type": "object",
+      "required": ["source", "value"],
+      "properties": {
+        "source": { "const": "static" },
+        "value": {}
+      },
+      "additionalProperties": false
+    },
+    "BindWorkflowNodeOutput": {
+      "type": "object",
+      "required": ["source", "workflow_ref", "node_id", "path"],
+      "properties": {
+        "source": { "const": "workflow.node.output" },
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "node_id": { "$ref": "#/$defs/NodeId" },
+        "path": { "type": "string", "minLength": 1 },
+        "transform": { "$ref": "#/$defs/Transform" }
+      },
+      "additionalProperties": false
+    },
+    "BindWorkflowNodeState": {
+      "type": "object",
+      "required": ["source", "workflow_ref", "node_id", "path"],
+      "properties": {
+        "source": { "const": "workflow.node.state" },
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "node_id": { "$ref": "#/$defs/NodeId" },
+        "path": { "type": "string", "minLength": 1 },
+        "transform": { "$ref": "#/$defs/Transform" }
+      },
+      "additionalProperties": false
+    },
+    "BindWorkflowRun": {
+      "type": "object",
+      "required": ["source", "workflow_ref", "path"],
+      "properties": {
+        "source": { "const": "workflow.run" },
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "path": { "type": "string", "minLength": 1 },
+        "transform": { "$ref": "#/$defs/Transform" }
+      },
+      "additionalProperties": false
+    },
+    "BindDatabaseQuery": {
+      "type": "object",
+      "required": ["source", "query_id"],
+      "properties": {
+        "source": { "const": "database.query" },
+        "query_id": { "$ref": "#/$defs/Identifier" },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "BindConnectionRead": {
+      "type": "object",
+      "required": ["source", "connection_id", "tool"],
+      "properties": {
+        "source": { "const": "connection.read" },
+        "connection_id": { "type": "string", "minLength": 1 },
+        "tool": { "type": "string", "minLength": 1 },
+        "args": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "BindTenantConfig": {
+      "type": "object",
+      "required": ["source", "key"],
+      "properties": {
+        "source": { "const": "tenant.config" },
+        "key": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "BindExpression": {
+      "description": "Read-only data binding. Writes use Action bindings.",
+      "oneOf": [
+        { "$ref": "#/$defs/BindStatic" },
+        { "$ref": "#/$defs/BindWorkflowNodeOutput" },
+        { "$ref": "#/$defs/BindWorkflowNodeState" },
+        { "$ref": "#/$defs/BindWorkflowRun" },
+        { "$ref": "#/$defs/BindDatabaseQuery" },
+        { "$ref": "#/$defs/BindConnectionRead" },
+        { "$ref": "#/$defs/BindTenantConfig" }
+      ]
+    },
+    "BoundValue": {
+      "type": "object",
+      "required": ["bind"],
+      "properties": {
+        "bind": { "$ref": "#/$defs/BindExpression" }
+      },
+      "additionalProperties": false
+    },
+    "PropValue": {
+      "description": "Literal value or bound expression.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": {}
+        },
+        {
+          "type": "object",
+          "not": {
+            "required": ["bind"]
+          }
+        },
+        { "$ref": "#/$defs/BoundValue" }
+      ]
+    },
+    "ContextEditRef": {
+      "type": "object",
+      "required": ["step_id", "path"],
+      "properties": {
+        "step_id": { "$ref": "#/$defs/NodeId" },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Dot path under step result, e.g. result.text"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["text", "html", "markdown"],
+          "default": "text"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ComponentProps": {
+      "type": "object",
+      "properties": {
+        "editable": {
+          "type": "boolean",
+          "description": "When true, local draft until action submit. Pair with context_edit on the same prop key."
+        },
+        "context_edit": {
+          "$ref": "#/$defs/ContextEditRef",
+          "description": "Maps this prop to context_edits on workflow.operation approve."
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/PropValue"
+      }
+    },
+    "WorkflowOperation": {
+      "type": "string",
+      "enum": ["approve", "reject", "trigger"]
+    },
+    "ActionWorkflowOperation": {
+      "type": "object",
+      "required": ["type", "workflow_ref", "node_id", "operation"],
+      "properties": {
+        "type": { "const": "workflow.operation" },
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "node_id": { "$ref": "#/$defs/NodeId" },
+        "operation": { "$ref": "#/$defs/WorkflowOperation" },
+        "collect_context_edits": {
+          "type": "boolean",
+          "default": false,
+          "description": "On approve: collect all props with context_edit in this view subtree."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ParamFromSelection": {
+      "type": "object",
+      "required": ["from", "path"],
+      "properties": {
+        "from": { "const": "selection" },
+        "path": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "ActionWorkflowRun": {
+      "type": "object",
+      "required": ["type", "workflow_ref"],
+      "properties": {
+        "type": { "const": "workflow.run" },
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "array" },
+              { "$ref": "#/$defs/ParamFromSelection" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ActionWorkflowCancel": {
+      "type": "object",
+      "required": ["type", "workflow_ref", "run_id"],
+      "properties": {
+        "type": { "const": "workflow.cancel" },
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "run_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "Action": {
+      "oneOf": [
+        { "$ref": "#/$defs/ActionWorkflowOperation" },
+        { "$ref": "#/$defs/ActionWorkflowRun" },
+        { "$ref": "#/$defs/ActionWorkflowCancel" }
+      ]
+    },
+    "EventHandler": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": { "$ref": "#/$defs/Action" }
+      },
+      "additionalProperties": false
+    },
+    "ComponentEvents": {
+      "type": "object",
+      "properties": {
+        "onClick": { "$ref": "#/$defs/EventHandler" },
+        "onSubmit": { "$ref": "#/$defs/EventHandler" },
+        "onChange": { "$ref": "#/$defs/EventHandler" },
+        "onSelectionAction": { "$ref": "#/$defs/EventHandler" }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "ComponentKind": {
+      "type": "string",
+      "enum": [
+        "Stack",
+        "Grid",
+        "Section",
+        "Tabs",
+        "Divider",
+        "Label",
+        "Text",
+        "Badge",
+        "Metric",
+        "Image",
+        "Video",
+        "FilePreview",
+        "TextField",
+        "TextArea",
+        "Select",
+        "Checkbox",
+        "Switch",
+        "Table",
+        "List",
+        "Card",
+        "Timeline",
+        "Button",
+        "Link",
+        "IconButton"
+      ]
+    },
+    "ComponentNode": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "kind": { "$ref": "#/$defs/ComponentKind" },
+        "props": { "$ref": "#/$defs/ComponentProps" },
+        "events": { "$ref": "#/$defs/ComponentEvents" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ComponentNode" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ViewWorkflowHint": {
+      "type": "object",
+      "required": ["workflow_ref"],
+      "properties": {
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "role": {
+          "type": "string",
+          "enum": ["primary", "data", "action"],
+          "description": "Studio hint only. Bindings remain authoritative."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ViewDocument": {
+      "type": "object",
+      "required": ["schema_version", "id", "root"],
+      "properties": {
+        "schema_version": { "$ref": "#/$defs/SchemaVersion" },
+        "id": { "$ref": "#/$defs/Identifier" },
+        "name": { "type": "string", "minLength": 1 },
+        "workflows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ViewWorkflowHint" },
+          "uniqueItems": true
+        },
+        "root": { "$ref": "#/$defs/ComponentNode" }
+      },
+      "additionalProperties": false
+    },
+    "AppViewEntry": {
+      "type": "object",
+      "required": ["id", "definition"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Identifier" },
+        "name": { "type": "string" },
+        "route": {
+          "type": "string",
+          "pattern": "^/.*",
+          "default": "/",
+          "description": "Relative route inside app shell, not platform URL."
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Relative path to view JSON within app bundle."
+        }
+      },
+      "additionalProperties": false
+    },
+    "NavItem": {
+      "type": "object",
+      "required": ["label", "view_id"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "view_id": { "$ref": "#/$defs/Identifier" },
+        "icon": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "AppDocument": {
+      "type": "object",
+      "required": ["schema_version", "id", "name"],
+      "properties": {
+        "schema_version": { "$ref": "#/$defs/SchemaVersion" },
+        "id": { "$ref": "#/$defs/Identifier" },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "default_view_id": { "$ref": "#/$defs/Identifier" },
+        "navigation": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/NavItem" }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Thin app manifest. View bodies live in surface_app_views (SSOT)."
+    },
+    "InstallConnectionRequirement": {
+      "type": "object",
+      "required": ["service"],
+      "properties": {
+        "service": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "purpose": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "WorkflowTemplateRef": {
+      "type": "object",
+      "required": ["template_id"],
+      "properties": {
+        "template_id": { "type": "string", "minLength": 1 },
+        "fork_name": { "type": "string" },
+        "placeholder_ref": {
+          "type": "string",
+          "description": "Placeholder token in package view templates; rewritten to forked workflow UUID on install."
+        }
+      },
+      "additionalProperties": false
+    },
+    "FileRef": {
+      "type": "object",
+      "required": ["$ref"],
+      "properties": {
+        "$ref": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "MarketplacePackageDocument": {
+      "type": "object",
+      "required": ["schema_version", "package_id", "package_slug", "type", "app_template"],
+      "properties": {
+        "schema_version": { "$ref": "#/$defs/SchemaVersion" },
+        "package_id": { "type": "string", "minLength": 1 },
+        "package_slug": { "$ref": "#/$defs/Identifier" },
+        "type": { "const": "app" },
+        "visibility": {
+          "type": "string",
+          "enum": ["public", "platform", "unlisted"]
+        },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "install_requirements": {
+          "type": "object",
+          "properties": {
+            "connections": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/InstallConnectionRequirement" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "workflow_templates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/WorkflowTemplateRef" }
+        },
+        "app_template": { "$ref": "#/$defs/FileRef" },
+        "view_templates": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/FileRef" }
+        },
+        "on_install": {
+          "type": "object",
+          "properties": {
+            "fork_app": { "type": "boolean" },
+            "fork_workflows": { "type": "boolean" },
+            "wire_suggested_workflow_keys": { "type": "boolean" },
+            "rewrite_workflow_ref_placeholders": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryParamDef": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean"]
+        },
+        "default": {}
+      },
+      "additionalProperties": false
+    },
+    "QueryDefinitionDocument": {
+      "type": "object",
+      "required": ["schema_version", "id", "sql"],
+      "properties": {
+        "schema_version": { "$ref": "#/$defs/SchemaVersion" },
+        "id": { "$ref": "#/$defs/Identifier" },
+        "name": { "type": "string" },
+        "sql": { "type": "string", "minLength": 1 },
+        "params": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/QueryParamDef" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "RenderHost": {
+      "type": "string",
+      "enum": ["page", "inline", "panel", "embed", "inbox", "preview"]
+    },
+    "InteractionMode": {
+      "type": "string",
+      "enum": ["editable", "read_only", "closed"]
+    },
+    "ViewRenderMode": {
+      "type": "string",
+      "enum": ["run", "browse", "start"]
+    },
+    "RenderContext": {
+      "type": "object",
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1 },
+        "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+        "task_id": {
+          "type": "string",
+          "description": "human_tasks id when host is inbox."
+        },
+        "fixtures": {
+          "type": "object",
+          "description": "host=preview only — mock binding values for designer.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "RenderRequest": {
+      "type": "object",
+      "required": ["app_instance_id", "view_id", "host"],
+      "properties": {
+        "app_instance_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Platform-assigned app instance uuid. Not app.json id."
+        },
+        "view_id": { "$ref": "#/$defs/Identifier" },
+        "host": { "$ref": "#/$defs/RenderHost" },
+        "context": { "$ref": "#/$defs/RenderContext" }
+      },
+      "additionalProperties": false
+    },
+    "SurfaceActionRequest": {
+      "type": "object",
+      "required": ["app_instance_id", "view_id", "component_id", "event", "action"],
+      "properties": {
+        "app_instance_id": { "type": "string", "minLength": 1 },
+        "view_id": { "$ref": "#/$defs/Identifier" },
+        "component_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "event": {
+          "type": "string",
+          "enum": ["onClick", "onSubmit", "onChange"]
+        },
+        "action": { "$ref": "#/$defs/Action" },
+        "context": { "$ref": "#/$defs/RenderContext" },
+        "draft": {
+          "type": "object",
+          "description": "Local edit values keyed by component prop name.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "RenderResponse": {
+      "type": "object",
+      "required": ["mode", "interaction", "tree"],
+      "properties": {
+        "mode": { "$ref": "#/$defs/ViewRenderMode" },
+        "interaction": {
+          "type": "object",
+          "required": ["mode"],
+          "properties": {
+            "mode": { "$ref": "#/$defs/InteractionMode" },
+            "reason": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "run": {
+          "type": "object",
+          "properties": {
+            "run_id": { "type": "string" },
+            "workflow_ref": { "$ref": "#/$defs/WorkflowRef" },
+            "status": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "gate": {
+          "type": "object",
+          "properties": {
+            "node_id": { "$ref": "#/$defs/NodeId" },
+            "status": { "type": "string" },
+            "task_id": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "bind_compile": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["ok", "error", "import_pending"] },
+            "issues": { "type": "array", "items": { "type": "object" } }
+          }
+        },
+        "tree": { "type": "object", "description": "Resolved component tree for renderer." },
+        "subscription": {
+          "type": "object",
+          "properties": {
+            "channel": { "const": "run" },
+            "run_id": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
