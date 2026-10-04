@@ -38,7 +38,11 @@ Phase B — Workflows:
   → workflows_validate (+ tenantdata_schema) → workflows_publish_version
 
 Phase C — UI (optional):
-  surfaces_schema_catalog → surfaces_apps_create → surfaces_apps_put_view (+ queries, gate bindings)
+  surfaces_schema_catalog → surfaces_apps_create
+  → surfaces_apps_put_query (browse tables first)
+  → surfaces_apps_put_view (+ view.workflows[], workflow.run / workflow.operation actions)
+  → surfaces_apps_put_gate_bindings (HITL)
+  → verify bind_compile + surfaces_render (see surfaces skill app-studio-wiring.md)
 
 Phase D — Blobs (optional):
   files_upload_content → files_mcp_provision
@@ -62,6 +66,7 @@ Do not claim “deployed” without:
 - `api_contract` version after schema apply
 - `mcp_instance_id` from provision
 - `workflows_validate` valid (+ run id if executed)
+- **Surfaces (if built):** `bind_compile.status` ok on each view + `surfaces_render` evidence (see surfaces **`app-studio-wiring.md`**)
 
 Cross-skill reviews: issue table with artifact path, rule, fix.
 

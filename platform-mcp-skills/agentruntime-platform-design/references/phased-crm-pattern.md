@@ -24,8 +24,10 @@ Do not ship a single “complete CRM” in one pass. Deliver **evidence → revi
 ## Phase v4 — Surfaces app (optional)
 
 - **`surfaces_schema_catalog`** first (not monorepo raw fetch).
-- `surfaces_apps_*` + `database.query` bindings to Tenant Data.
+- **`surfaces_apps_put_query`** then **`surfaces_apps_put_view`** — queries before `database.query` binds.
+- View **`workflows[]`** + button **`workflow.run`** / **`workflow.operation`** — not instructions-only UI.
 - **`surfaces_apps_put_gate_bindings`** when workflows use `human_task`.
+- Evidence: all views `bind_compile.status === "ok"`; **`surfaces_render`** browse (and run if applicable). See **`app-studio-wiring.md`** in surfaces skill.
 
 ## Evidence bar (each phase)
 
@@ -34,4 +36,4 @@ Do not ship a single “complete CRM” in one pass. Deliver **evidence → revi
 | v1 | `tenantdata_api_contract_get`, `mcp_instance_id`, `workflows_validate` valid + `tenantdata_schema` |
 | v2 | Sample run with parsed JSON in review payload |
 | v3 | Apply workflow run id + version checks |
-| v4 | Published app + optional gate bindings |
+| v4 | Published app; every view `bind_compile` ok; `surfaces_render` returns data / run UI; gate bindings if HITL |

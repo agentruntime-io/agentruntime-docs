@@ -1,5 +1,7 @@
 # Platform MCP — Surfaces apps
 
+There is **no** separate attach-workflow or attach-data-source tool. Wiring is **`surfaces_apps_put_view`** (workflows, binds, actions) + **`surfaces_apps_put_query`** (browse SQL) + **`surfaces_apps_put_gate_bindings`** (HITL). See skill [app-studio-wiring.md](../agentruntime-surfaces-authoring/references/app-studio-wiring.md).
+
 | Tool | Method | Purpose |
 |------|--------|---------|
 | `surfaces_schema_catalog` | — | Schema URLs |
