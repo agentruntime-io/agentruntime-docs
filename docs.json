@@ -89,6 +89,7 @@
           "workflows/template-intellisense",
           "workflows/run-setup",
           "workflows/external-triggers",
+          "workflows/trigger-run-identity",
           "workflows/step-types",
           "workflows/autonomous-episodes",
           "workflows/command-center",

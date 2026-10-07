@@ -56,14 +56,17 @@ Studio pre-fills the Inbound editor from saved defaults; **fire time** uses what
 
 AgentRuntime starts workflows when tenant platform events fire — no partner `execute` call. Configure in Workflow Studio → **Run setup → Events**.
 
+Each event carries **run identity** (`external_user_id`, `connection_id`, …) — there is no Manual **Run as** on this tab. Optional **`segment_id`** limits runs to principals in that segment. See [Triggers and run identity](/workflows/trigger-run-identity).
+
 REST: same trigger CRUD as cron — `GET/POST/PATCH/DELETE /workflows/{id}/triggers` with `"type": "platform_event"`.
 
-**Example config** (Embedded Connect Gmail bootstrap on connect):
+**Example config** (Embedded Connect bootstrap on connect — Composio link uses `composio_account`):
 
 ```json
 {
   "event_type": "connection.created",
-  "provider_filter": "google_account",
+  "provider_filter": "composio_account",
+  "segment_id": "optional-segment-uuid",
   "automation_pat_id": "...",
   "trigger_payload": {
     "backfill_after": "2026/01/01"
@@ -73,7 +76,7 @@ REST: same trigger CRUD as cron — `GET/POST/PATCH/DELETE /workflows/{id}/trigg
 }
 ```
 
-At fire time the platform merges `connection_id`, `mailbox_email`, and `synced_at` into `trigger_payload`, and sets `run.external_user_id` from the event. MCP steps with `connection_resolution: principal` resolve automatically.
+At fire time the platform sets `run.external_user_id` from the event and exposes connection fields under `platform_event` / start params. MCP steps with `connection_resolution: principal` resolve automatically.
 
 **Supported events (v1):** `principal.created`, `connection.created`, `connection.revoked`, `principal.suspended`, `principal.deleted`.
 
@@ -87,12 +90,15 @@ AgentRuntime runs the schedule and dispatches the trigger automatically. REST: `
 {
   "cron": "0 9 * * *",
   "timezone": "UTC",
+  "segment_id": "optional-for-embedded-per-principal-fan-out",
   "trigger_steps": {
     "uuid-mcp-root": { "limit": 30, "rss_feed_url": "https://hnrss.org/frontpage" }
   },
   "excluded_step_ids": ["uuid-agent-root"]
 }
 ```
+
+For Embedded Connect graphs, set **Run as → Segment** in Studio so `segment_id` is stored — one run per principal per tick. See [Triggers and run identity](/workflows/trigger-run-identity).
 
 ~~Legacy shape (do not use for new schedules):~~
 
@@ -123,6 +129,7 @@ Send complete start params — no reliance on saved defaults at runtime:
 
 ## Related
 
+- [Triggers and run identity](/workflows/trigger-run-identity)
 - [Run setup](/workflows/run-setup)
 - [Inbound webhooks](/integrations/inbound-webhooks)
 - [API reference — workflows](/api/reference)

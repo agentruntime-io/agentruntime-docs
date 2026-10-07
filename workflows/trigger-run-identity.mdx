@@ -1,0 +1,133 @@
+---
+title: Triggers and run identity
+description: Choose cron vs platform events vs webhooks — and who each run is for (workspace, principal, segment, or Console team).
+---
+
+Every workflow run executes in a **context**: tenant-wide (**workspace**), an Embedded Connect **principal** (`external_user_id`), or an internal **Console user** (`user_id` from a **Console team** fan-out). How you set that context depends on **which trigger** starts the run — not every Studio tab shows **Run as**.
+
+See also [External triggers](/workflows/external-triggers) for config JSON and [Run setup](/workflows/run-setup) for Manual Run and saved defaults.
+
+## Run identity (four targets)
+
+| Target | What the engine receives | When to use |
+| --- | --- | --- |
+| **Workspace** | No `external_user_id` / `team_id` | Tenant-scoped graphs only (no principal MCP) |
+| **One principal** | `external_user_id` | One customer’s Vault connections |
+| **Principal segment** | `segment_id` (batch / cron fan-out) | **One run per principal** in the segment each tick |
+| **Console team** | `team_id` (batch / cron fan-out) | **One run per team member** (`user_id`) — internal Console users |
+
+In Workflow Studio → **Run setup → Manual**, **Run as** sets workspace / one principal / principal segment / Console team for **Manual Run only**.
+
+## Who sets identity? (by trigger)
+
+| Trigger | Studio tab | Run as in UI? | Identity at fire time |
+| --- | --- | --- | --- |
+| **Manual** | Manual | Yes | What you choose for Manual Run |
+| **Cron** | Cron | Yes | **Workspace** = one run; **Principal segment** or **Console team** = fan-out |
+| **Inbound webhook** | Inbound | Yes | Subscription **Run as** + payload mapping |
+| **API / PAT** | API | Example body only | Caller `params` (`external_user_id`, `segment_id`, or `team_id`) |
+| **Platform event** | Events | No | **Event payload** (`external_user_id`, `connection_id`, …) |
+
+<Warning>
+Manual **Run as** does **not** change cron, platform events, or inbound at fire time. Each trigger uses its own saved config (or the event). Saved **Run setup** defaults only pre-fill forms — they are not merged when a trigger fires.
+</Warning>
+
+## Which trigger should I use?
+
+| Goal | Use |
+| --- | --- |
+| One customer — OAuth finished, connection removed, principal suspended | **Platform event** |
+| Same graph on a **schedule** for **many** customers | **Cron** + **Principal segment** |
+| Schedule once for the **whole tenant** | **Cron** + **Workspace** (graph must not need principal MCP) |
+| Schedule for **each internal Console user** on a team | **Cron** + **Console team** (`team_id`) |
+| External SaaS sends HTTP | **Inbound webhook** or your backend → **API** |
+| Operator testing in Studio | **Manual** + **One principal** |
+
+```text
+Reactive   →  platform events (and many webhooks): 1 event → 1 principal
+Batch      →  cron + segment_id OR cron + team_id: 1 tick → N runs
+Ad hoc     →  manual, API
+```
+
+## Platform events (no Run as)
+
+Platform events are **reactive**: each emission is about a specific principal or connection. Control sets `external_user_id` (and related fields) on the run from the event — you do not pick workspace vs segment on the Events tab.
+
+**Match rules on the trigger:**
+
+- **`event_type`** — required (`connection.created`, `principal.deleted`, …)
+- **`provider_filter`** — optional, only on `connection.created` / `connection.revoked` (`google_account`, `composio_account`, `whatsapp`, or omit for any)
+- **`segment_id`** — optional; when set, the workflow runs only if the event principal **matches that segment** (same membership rules as cron segments)
+
+| Event | Typical use | Credentials on run? |
+| --- | --- | --- |
+| `principal.created` | Provision before OAuth | Principal id only — **not** connected yet |
+| `connection.created` | Bootstrap after link/OAuth | Yes — use `connection_id`, `provider` in templates |
+| `connection.revoked` | Cleanup | Yes |
+| `principal.suspended` | Pause scheduled sync | Yes |
+| `principal.deleted` | Final cleanup | Yes |
+
+**Composio link** connections (Gmail, Slack, …) emit **`composio_account`**, not `google_account`. Use **google_account** only for direct Google OAuth in Embedded Connect.
+
+Example config (bootstrap on connect, Composio Gmail, optional segment gate):
+
+```json
+{
+  "event_type": "connection.created",
+  "provider_filter": "composio_account",
+  "segment_id": "optional-segment-uuid",
+  "automation_pat_id": "...",
+  "trigger_payload": {
+    "backfill_after": "2026/01/01"
+  },
+  "trigger_steps": {},
+  "excluded_step_ids": []
+}
+```
+
+Configure in Studio → **Run setup → Events**. REST: `POST /workflows/{id}/triggers` with `"type": "platform_event"`.
+
+## Cron: principal segment vs Console team
+
+For workflows with MCP steps using **`connection_resolution: principal`**:
+
+- **Workspace** cron → one run **without** `external_user_id` (usually wrong for per-customer sync).
+- **Principal segment** cron → Control starts **one run per principal** in the segment on each tick.
+- **Console team** cron → Control starts **one run per team member** (`user_id`) on each tick (Settings → **Team & Members** teams — not principal segments).
+
+Embedded Connect sync pattern:
+
+1. **On connect** — platform event `connection.created` (not cron).
+2. **Live / backfill** — cron with **Run as → Principal segment** (e.g. segment with `require_connection`).
+
+## Inbound and API
+
+- **Inbound** — set **Run as** on the subscription and map webhook JSON fields to `external_user_id` when needed.
+- **API** — pass `external_user_id`, `segment_id`, or `team_id` in `command: start` params. See [External triggers](/workflows/external-triggers#apiccommand-start).
+
+## Provider filter vs segment vs team
+
+| Mechanism | Selects |
+| --- | --- |
+| **`provider_filter`** | **Connection type** (Google vs Composio vs WhatsApp) on `connection.*` events |
+| **`segment_id`** | **Which principals** (tags, require_connection, …) may run this trigger |
+| **`team_id`** | **Which internal Console users** (team membership) receive a run on cron / API batch |
+
+Use different workflows or filters when bootstrap logic differs by provider. Use **principal segment** for end-customer cohorts. Use **Console team** for internal user batch runs.
+
+## Checklist for a new automation
+
+1. One customer vs many? → event/webhook/API vs **cron + segment** or **cron + team**.
+2. Principal MCP in the graph? → every run needs `external_user_id` or principal segment fan-out.
+3. AgentRuntime lifecycle (connect, revoke, suspend)? → **platform event**, not duplicate partner webhooks.
+4. External vendor HTTP? → **inbound** or **API**.
+5. Periodic polling? → **cron + segment** (customers) or **cron + team** (internal users) — not platform events.
+6. Testing? → **Manual** + test `external_user_id`.
+7. Save explicit `trigger_payload` / `trigger_steps` on each trigger.
+
+## Related
+
+- [External triggers](/workflows/external-triggers)
+- [Run setup](/workflows/run-setup)
+- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Workflow patterns](/workflows/patterns) — inbound triggers and production recipes
