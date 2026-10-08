@@ -42,7 +42,7 @@ Phase C — UI (optional):
   → surfaces_apps_put_query (browse tables first)
   → surfaces_apps_put_view (+ view.workflows[], workflow.run / workflow.operation actions)
   → surfaces_apps_put_gate_bindings (HITL)
-  → verify bind_compile + surfaces_render (see surfaces skill app-studio-wiring.md)
+  → verify bind_compile + functional evidence (app-studio-wiring.md — not render `mode` in request)
 
 Phase D — Blobs (optional):
   files_upload_content → files_mcp_provision
@@ -66,7 +66,7 @@ Do not claim “deployed” without:
 - `api_contract` version after schema apply
 - `mcp_instance_id` from provision
 - `workflows_validate` valid (+ run id if executed)
-- **Surfaces (if built):** `bind_compile.status` ok on each view + `surfaces_render` evidence (see surfaces **`app-studio-wiring.md`**)
+- **Surfaces (if built):** per **`app-studio-wiring.md`** — functional start (`workflow_run` + `run_id`) and browse proof with a known row; `bind_compile` ok; approve evidence only if the app has review gates.
 
 Cross-skill reviews: issue table with artifact path, rule, fix.
 

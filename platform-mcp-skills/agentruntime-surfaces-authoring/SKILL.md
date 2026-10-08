@@ -35,6 +35,6 @@ Platform MCP: **`ar_get_started`** → `documentation.surfaces_authoring_skill_*
 4. **`database.query`** binds read-only SELECT to Tenant Data queries defined in `*.query.json` — **`surfaces_apps_put_query` before** the view references `query_id`.
 5. **Runnable apps** need **`workflow.run` / `workflow.operation` actions**, not only display bindings — see [app-studio-wiring.md](references/app-studio-wiring.md).
 6. Publish: **`workflows_publish_version`** then optional **`marketplace_workflow_packages_publish`**. App: **`surfaces_apps_*`** + **`surfaces_apps_publish_package`**. HITL: **`surfaces_apps_put_gate_bindings`**.
-7. After every view save, confirm **`bind_compile.status`** via **`surfaces_apps_get_view`** (and app-level status via **`surfaces_apps_get`**).
+7. After every view save, confirm **`bind_compile.status`** via **`surfaces_apps_get_view`**. Functional proof: **`app-studio-wiring.md`** (not button JSON alone).
 
 Validate JSON locally: `cd docs/surfaces/schemas && node validate-examples.mjs` (monorepo).
