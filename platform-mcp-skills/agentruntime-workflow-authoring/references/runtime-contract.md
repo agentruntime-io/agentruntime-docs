@@ -8,7 +8,7 @@ Every step needs an id and type; give it a descriptive name. Top-level ids are u
 
 Top-level `depends_on` gives execution order, not just visual edges. Every top-level template reference must name a transitive ancestor. A nonempty `input_allowlist` of step ids is an additional restriction, never an alternative dependency. Lua reads are not inferred reliably by dry-run: wire them yourself.
 
-Inner steps may be `mcp_call`, `lua_script`, `llm_call`, or `agent_call`. No nested composites, `no_auto_start`, or routing out of a body. Put upstream top-level dependencies on the parent; use inner ids for inner ordering. Runtime preserves array order when no inner dependencies exist and otherwise performs a stable topological sort. Prefer explicit inner chains.
+Inner steps may be `mcp`, `lua`, `llm`, or `agent`. No nested composites, `no_auto_start`, or routing out of a body. Put upstream top-level dependencies on the parent; use inner ids for inner ordering. Runtime preserves array order when no inner dependencies exist and otherwise performs a stable topological sort. Prefer explicit inner chains.
 
 | Value | Template | Lua |
 |---|---|---|
@@ -62,19 +62,19 @@ Result fields: `iteration_count`, `max_iterations`, `stopped_reason`, `last`, `i
 
 | Type | Runtime configuration minimum |
 |---|---|
-| `mcp_call` | `tool_name`; resolvable `instance_id` or `server_url`; schema-correct `tool_args` |
-| `lua_script` | Nonempty `script` |
-| `llm_call` | `model` or `model_ref`, nonempty `prompt`; obtain provider/credential contract — see [llm-step-results.md](references/llm-step-results.md) |
-| `agent_call` | `agent_id`, nonempty `prompt` or `input`; obtain agent schema |
-| `human_task` | `task_type`; obtain payload/response contract for that task type |
-| `workflow_call` | Child `workflow_id`, not parent id; obtain child published version/input/output contract |
+| `mcp` | `tool_name`; resolvable `instance_id` or `server_url`; schema-correct `tool_args` |
+| `lua` | Nonempty `script` |
+| `llm` | `model` or `model_ref`, nonempty `prompt`; obtain provider/credential contract — see [llm-step-results.md](references/llm-step-results.md) |
+| `agent` | `agent_id`, nonempty `prompt` or `input`; obtain agent schema |
+| `human` | `task_type`; obtain payload/response contract for that task type |
+| `workflow` | Child `workflow_id`, not parent id; obtain child published version/input/output contract |
 | `external_agent` | Deployment-specific provider/configuration contract required |
 
 Advanced routing and child-run semantics require deployment documentation; the bundled schema does not certify these complete configurations.
 
 ## Template pipe modifiers (optional)
 
-Inside one `{{ ... }}` expression, `|` means else-try left to right. Trailing `omit` drops the key from resolved step input when unset; trailing JSON literal supplies a default; path segments coalesce (`{{input.a | steps.read.result.row.a | omit}}`). Applies to `workflow_call` child input and other template-expanded fields. See [template-modifiers.md](template-modifiers.md).
+Inside one `{{ ... }}` expression, `|` means else-try left to right. Trailing `omit` drops the key from resolved step input when unset; trailing JSON literal supplies a default; path segments coalesce (`{{input.a | steps.read.result.row.a | omit}}`). Applies to `workflow` step child input and other template-expanded fields. See [template-modifiers.md](template-modifiers.md).
 
 ## Connection context and diagnostics
 

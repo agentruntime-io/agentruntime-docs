@@ -23,7 +23,7 @@ Platform MCP clients: call **`ar_get_started` first** — it returns skill URLs 
 | [validation.md](references/validation.md) | Handoff, Studio flow, request bodies |
 | [template-modifiers.md](references/template-modifiers.md) | Optional `{{input \| …}}` pipe syntax |
 | [connectors-and-data.md](references/connectors-and-data.md) | MCP + Tenant Data writes |
-| [llm-step-results.md](references/llm-step-results.md) | `llm_call` → `result.text`, JSON parse in Lua |
+| [llm-step-results.md](references/llm-step-results.md) | `llm` step → `result.text`, JSON parse in Lua |
 | [deployment-inputs.md](references/deployment-inputs.md) | Bindings, tenant export, run setup |
 | **GET `/api/v1/workflows/schema`** (agentruntime) — canonical step JSON Schema (`workflow/schema.go`) | Always before authoring step bodies |
 | **`workflows_graph_schema`** (Platform MCP) — same schema + `schema_hash` via BFF | Prefer on Platform MCP instead of raw agentruntime URL |

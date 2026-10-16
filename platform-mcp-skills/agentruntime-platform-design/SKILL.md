@@ -33,7 +33,7 @@ Phase A — Data:
   → tenantdata_api_contract_get → tenantdata_mcp_provision
 
 Phase B — Workflows:
-  workflows_authoring_contract → workflows_graph_schema → workflows_llm_step_contract (if llm_call)
+  workflows_authoring_contract → workflows_graph_schema → workflows_llm_step_contract (if llm steps)
   → workflows_create → workflows_update
   → workflows_validate (+ tenantdata_schema) → workflows_publish_version
 

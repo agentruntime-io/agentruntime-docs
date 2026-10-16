@@ -24,7 +24,7 @@ Console parity: monorepo `docs/surfaces/CONSOLE_GUIDE.md` (Preview tab starts ru
 4. surfaces_apps_put_view for each view_id in navigation.
    - Include view.workflows[] for Studio’s attached list.
    - Include input fields + start button (see below), not only display binds.
-5. surfaces_apps_put_gate_bindings when human_task + dedicated review view.
+5. surfaces_apps_put_gate_bindings when human step + dedicated review view.
 6. Functional verification (below) before claiming “app works”.
 ```
 
@@ -78,7 +78,7 @@ Clicking **Start** does **not** open a separate platform modal. Required workflo
 
 1. View `workflows[]` includes the ingestion workflow UUID (`role: "primary"` is typical).
 2. Input fields + **`workflow.run`** button (Patterns A or B above).
-3. Optional **review** path: `human_task` step + **`workflow.operation`** approve/reject buttons **only if** the product includes review gates — see gate section below.
+3. Optional **review** path: `human` step + **`workflow.operation`** approve/reject buttons **only if** the product includes review gates — see gate section below.
 
 Reference: monorepo `docs/surfaces/examples/tiktok/publish-view.json` (gate actions) + `SURFACES_SCHEMA.md` §6.
 

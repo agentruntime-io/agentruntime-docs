@@ -21,11 +21,11 @@ ar_get_started
   → tenantdata_mcp_provision
   → workflows_authoring_contract
   → workflows_graph_schema
-  → workflows_llm_step_contract    (when graph uses llm_call)
+  → workflows_llm_step_contract    (when graph uses llm steps)
   → catalog_connectors_browse     (which connectors exist; ready vs needs wire vs catalog)
   → catalog_tools_search          (tool names + instance_id per connector)
   → catalog_tools_schema          (input_schema / output_schema for tool_args)
-  → ar_builtin_tools_list         (lua_script, tenantdata_*, etc.)
+  → ar_builtin_tools_list         (lua, tenantdata_*, etc.)
   → workflows_graph_schema
   → workflows_create / workflows_update
   → workflows_validate
@@ -54,7 +54,7 @@ Follow `recommended_next_actions` from `ar_get_started` when unsure which playbo
 ```
 
 - Paginates **connector slugs** (not tools).
-- `groups.ready.connectors` — installed + connected; safe to plan `mcp_call` steps.
+- `groups.ready.connectors` — installed + connected; safe to plan `mcp` steps.
 - `groups.needs_connection` — instance exists but not wired.
 - `groups.catalog` — not installed.
 
@@ -87,16 +87,16 @@ At least one of `tools` or `query` is required.
 
 - 1–20 exact tool names from search.
 - **No `instance_id`** — schemas do not vary by instance.
-- Map `name` → `tool_name` on `mcp_call` steps; build `tool_args` from `input_schema.properties`.
+- Map `name` → `tool_name` on `mcp` steps; build `tool_args` from `input_schema.properties`.
 - Use `output_schema` for `{{steps.<id>.result.*}}` wiring.
 - Partial success: `tools[]` + `errors[]` (`not_found`, `schema_unavailable`, `server_detail_failed`).
 
-Example `mcp_call` step:
+Example `mcp` step:
 
 ```json
 {
   "id": "send_email",
-  "type": "mcp_call",
+  "type": "mcp",
   "tool_name": "gmail_send_message",
   "instance_id": "<from catalog_tools_search instances[]>",
   "tool_args": {
@@ -136,7 +136,7 @@ Use the draft `workflow_id` from `workflows_create` / `workflows_get`. Inline `g
     "steps": [
       {
         "id": "generate_reply",
-        "type": "llm_call",
+        "type": "llm",
         "model": "gpt-4o-mini",
         "model_ref": "direct.openai.gpt-4o-mini",
         "prompt": "Reply to: {{input.message_text}}",

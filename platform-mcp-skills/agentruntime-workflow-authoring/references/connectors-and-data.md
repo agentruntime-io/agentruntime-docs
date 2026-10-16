@@ -4,7 +4,7 @@
 
 **Platform MCP (preferred):** See [platform-mcp-discovery.md](platform-mcp-discovery.md). Use `catalog_tools_search` for `tool_name` + `instance_id`, then `catalog_tools_schema` for `input_schema` / `output_schema`. Instances are per connector (shared across tools on that connector), not per tool.
 
-For each `mcp_call` step you still need: exact `tool_name`, schemas, tenant `instance_id`, and whether the instance is connected (`has_connection`). First-party and Composio implementations of the same integration may describe the same operation but do not necessarily share names, arguments, envelopes, pagination, scopes, or errors. Do not translate between them by name alone.
+For each `mcp` step you still need: exact `tool_name`, schemas, tenant `instance_id`, and whether the instance is connected (`has_connection`). First-party and Composio implementations of the same integration may describe the same operation but do not necessarily share names, arguments, envelopes, pagination, scopes, or errors. Do not translate between them by name alone.
 
 Prefer a resolved tenant `instance_id`. A `server_url` or `server_id` is not a credential. URL-only resolution/instance creation can depend on deployment settings; do not promise automatic placeholder remapping. Multiple Composio toolkits may share a URL. Tenant Data instances may select different logical databases at the same URL.
 

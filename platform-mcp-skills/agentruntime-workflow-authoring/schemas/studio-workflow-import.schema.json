@@ -127,7 +127,7 @@
       ],
       "properties": {
         "type": {
-          "const": "mcp_call"
+          "const": "mcp"
         },
         "id": {
           "$ref": "#/$defs/StepId"
@@ -192,7 +192,7 @@
       ],
       "properties": {
         "type": {
-          "const": "lua_script"
+          "const": "lua"
         },
         "id": {
           "$ref": "#/$defs/StepId"
@@ -234,8 +234,8 @@
           "properties": {
             "type": {
               "enum": [
-                "llm_call",
-                "agent_call"
+                "llm",
+                "agent"
               ]
             },
             "id": {
@@ -405,10 +405,10 @@
             "type": {
               "type": "string",
               "enum": [
-                "llm_call",
-                "agent_call",
-                "human_task",
-                "workflow_call",
+                "llm",
+                "agent",
+                "human",
+                "workflow",
                 "external_agent"
               ]
             },

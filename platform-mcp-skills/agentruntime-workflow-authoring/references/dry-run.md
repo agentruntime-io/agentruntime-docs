@@ -101,7 +101,7 @@ Full template rules: [template-modifiers.md](template-modifiers.md). Connection 
 | Every Lua branch / nil on all paths | Use `mapper_fixtures` + `mock_lua_scopes` or a run |
 | `connection.primary_instance_id` templates | Compile whitelist may not include this key yet — see [runtime-contract.md](runtime-contract.md) |
 | Run-start `input_schema` enforcement | May be env-gated separately from dry-run |
-| Child `workflow_call` graph validity | Validate each published child workflow separately |
+| Child `workflow` step graph validity | Validate each published child workflow separately |
 
 ## Pass / fail
 

@@ -5,14 +5,14 @@ Do not ship a single “complete CRM” in one pass. Deliver **evidence → revi
 ## Phase v1 — Ingest to review (no entity writes)
 
 - Tenant Data: `sources`, `ingestion_runs`, `review_items` with **`on_duplicate: ignore`** on evidence tables where client ids are stable.
-- Workflow: preserve text → `llm_call` → store **raw** `result` (or `result.text`) in `proposed_action` JSON → queue `review_items.status = pending`.
+- Workflow: preserve text → `llm` → store **raw** `result` (or `result.text`) in `proposed_action` JSON → queue `review_items.status = pending`.
 - **Do not** insert into `people` / `claims` until apply exists.
 
 **Idempotency:** Reusing the same `capture_id` skips duplicate `sources` inserts. A new run id can create another `ingestion_runs` row while `review_items` with the same id is also skipped — use a **new review row id** per re-extraction or an apply workflow. See **`tenantdata_idempotency_patterns`**.
 
 ## Phase v2 — Parse extraction
 
-- Add `lua_script` after LLM: **`json.decode(steps[<llm>].result.text)`** (see `llm-step-results.md`).
+- Add a `lua` step after LLM: **`json.decode(steps[<llm>].result.text)`** (see `llm-step-results.md`).
 - Validate shape before writing `claims` rows (still proposals until apply).
 
 ## Phase v3 — Apply (platform gap if no single transaction tool)
@@ -26,7 +26,7 @@ Do not ship a single “complete CRM” in one pass. Deliver **evidence → revi
 - **`surfaces_schema_catalog`** first (not monorepo raw fetch).
 - **`surfaces_apps_put_query`** then **`surfaces_apps_put_view`** — queries before `database.query` binds.
 - View **`workflows[]`** + button **`workflow.run`** / **`workflow.operation`** — not instructions-only UI.
-- **`surfaces_apps_put_gate_bindings`** when workflows use `human_task`.
+- **`surfaces_apps_put_gate_bindings`** when workflows use `human` steps.
 - Evidence: **`app-studio-wiring.md`** — real **`workflow_run`** + known browse row; approve proof only if HITL gates exist.
 
 ## Evidence bar (each phase)

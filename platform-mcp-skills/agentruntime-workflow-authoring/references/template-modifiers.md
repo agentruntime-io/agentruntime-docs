@@ -18,9 +18,9 @@ Quotes inside literals use JSON rules: `{{input.q | "(in:inbox OR in:sent) after
 
 ## Where it applies
 
-Any step field resolved through template expansion: `workflow_call` child input, `mcp_call` `tool_args`, `agent_call` input, etc. Omitted keys are not sent to the child/tool payload.
+Any step field resolved through template expansion: `workflow` step child input, `mcp` step `tool_args`, `agent` step input, etc. Omitted keys are not sent to the child/tool payload.
 
-## Authoring examples (workflow_call)
+## Authoring examples (workflow step)
 
 ```json
 "input": {
@@ -35,4 +35,4 @@ Studio **Child inputs** stays a plain template field per schema property — typ
 
 ## Dry-run
 
-Dry-run treats `| omit` and trailing literal defaults as satisfiable without live values. Required input-only chains (no trailing policy) still fail when no segment resolves. `workflow_call` child `input` templates are included in the server `templates` check. Dependency reachability for `steps.*` segments in coalesce chains is validated by server `dependencies` / `templates` checks.
+Dry-run treats `| omit` and trailing literal defaults as satisfiable without live values. Required input-only chains (no trailing policy) still fail when no segment resolves. `workflow` step child `input` templates are included in the server `templates` check. Dependency reachability for `steps.*` segments in coalesce chains is validated by server `dependencies` / `templates` checks.

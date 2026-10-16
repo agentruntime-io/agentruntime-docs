@@ -1,4 +1,4 @@
-# llm_call step results
+# llm step results
 
 Runtime stores LLM output on the completed step as a **table**, not as parsed JSON.
 
@@ -28,7 +28,7 @@ local raw = type(llm) == "table" and llm.text or nil
 if type(raw) ~= "string" or raw == "" then error("missing LLM text") end
 ```
 
-When the prompt asks for JSON, decode in a **follow-on** `lua_script`:
+When the prompt asks for JSON, decode in a **follow-on** `lua` step:
 
 ```lua
 local parsed = json.decode(raw)

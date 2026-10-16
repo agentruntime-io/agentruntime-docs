@@ -42,7 +42,7 @@ Platform MCP: **`ar_get_started`** → `documentation.tenant_data_authoring_skil
 | Create DB + v1 schema | `tenantdata_databases_create` |
 | Incremental change | `tenantdata_schema_migrate_preview` → `tenantdata_schema_migrate` |
 | Read published contract | `tenantdata_api_contract_get` |
-| Wire workflows | `tenantdata_mcp_provision` → copy `mcp_instance_id` into workflow `mcp_call.instance_id` |
+| Wire workflows | `tenantdata_mcp_provision` → copy `mcp_instance_id` into workflow `mcp` step `instance_id` |
 
 Requires PAT with tenant-data access (same wires as Console Databases).
 
