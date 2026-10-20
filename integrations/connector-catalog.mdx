@@ -17,6 +17,7 @@ Most production workflows combine a few connectors with LLM and human steps. Sta
 |---------|------|---------------|
 | **Webhook → store → notify** | Inbound event → validate → database INSERT → optional digest email | [Form → Postgres → Resend](/guides/form-webhook-postgres-resend-digest) |
 | **Event → lookup → message** | External webhook → MCP fetch → customer notification | [Shopify → WhatsApp](/guides/shopify-order-whatsapp) |
+| **Conversation → agent → person** | Customer message → agent reply in one ongoing session → hand-off to staff → back to the agent | [WhatsApp customer chat](/guides/whatsapp-customer-chat) |
 | **Fetch → LLM → human → action** | Read source data → draft with LLM → Command Center approval → MCP write | [GitHub PR review](/guides/github-pr-review) |
 | **Schedule → query → summarize → email** | External cron → SQL report → LLM narrative → Gmail/Resend | [Postgres weekly report](/guides/scheduled-postgres-gmail-report) |
 | **Webhook → CRM + log** | Lead form → CRM contact + parallel audit row (Notion/Sheets) | [Lead sync](/guides/lead-sync-activecampaign-notion) |

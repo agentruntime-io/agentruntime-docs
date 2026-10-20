@@ -1,0 +1,277 @@
+---
+title: WhatsApp customer chat with staff hand-off
+description: Build a WhatsApp assistant that answers customers in one ongoing conversation, hands the chat to your team when needed, and takes it back if nobody replies.
+---
+
+Build a WhatsApp line for a small business, here a pizza shop called **Slice & Co.** An agent answers customers on WhatsApp. When a customer asks for a person, or the agent can't help, the chat goes to your staff. Staff reply from AgentRuntime and their reply reaches the customer on WhatsApp. If nobody answers in time, the assistant takes the conversation back.
+
+Each customer's chat is one [conversation session](/workflows/conversation-sessions): all their messages go to one run, which stays open while they are talking and closes after 30 quiet minutes.
+
+```mermaid
+sequenceDiagram
+  participant C as Customer (WhatsApp)
+  participant A as Pizza assistant (agent)
+  participant S as Staff (Command Center)
+  C->>A: Hi, what pizzas do you have?
+  A->>C: Menu and prices
+  C->>A: Can I talk to a person please?
+  A->>C: Of course, I've passed your request to our team
+  A->>S: Staff task: customer needs a person
+  C->>S: Is anyone there?
+  Note over C,S: Automatic reply on message 1 after the hand-off
+  S->>C: Staff reply, sent as the staff member
+  Note over C,A: No staff reply in 15 minutes: the assistant takes the chat back
+  Note over C,A: 30 minutes without messages: the session closes
+```
+
+**Outcome:** customers get an instant answer from the assistant, a person when they need one, and never a silent chat.
+
+## Prerequisites
+
+- A [WhatsApp connection](/connectors/whatsapp) made with **Embedded signup** (or manual credentials including the phone number ID)
+- An active **whatsapp** MCP instance wired to that connection
+- An [LLM provider](/ai/llm-providers) for the agent
+- **project_contributor** access in the project
+
+## Connectors to install
+
+| Adapter | Purpose |
+|---------|---------|
+| [whatsapp](/connectors/whatsapp) | Receive customer messages and send replies (`whatsapp_send_message`) |
+
+## 1. Create the assistant agent
+
+In **Agents**, create an agent named **Pizza assistant**.
+
+**Instructions:** describe the shop and when to involve a person. For example:
+
+```text
+You are the WhatsApp assistant for Slice & Co., a pizza shop in Colombo.
+Answer questions about the menu, prices, delivery areas and order status.
+Keep replies short and friendly; this is WhatsApp.
+If the customer asks for a person, wants a refund, or you cannot help,
+hand off to staff: set action to "human", tell the customer a team member
+will reply here, and explain the customer's issue in reason.
+Otherwise set action to "reply".
+```
+
+**Output schema:** under **Input & output schemas → Output schema (optional)**, add the fields the workflow reads:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": { "type": "string", "enum": ["reply", "human"], "description": "reply: answered; human: needs a person" },
+    "reply": { "type": "string", "description": "The message sent to the customer on WhatsApp" },
+    "reason": { "type": "string", "description": "For staff: why a person is needed and what is unresolved" }
+  },
+  "required": ["action", "reply"]
+}
+```
+
+`reply` is what the customer sees. `message`, which every agent also returns, stays an internal summary.
+
+## 2. Build the workflow
+
+Create a workflow named **Slice & Co. WhatsApp orders** with two steps.
+
+### Pizza assistant (agent step)
+
+| Field | Value |
+|---|---|
+| Agent | **Pizza assistant** |
+| Prompt | `WhatsApp customer: {{input.contact_name}}, WhatsApp number {{input.from}}. Their latest message: "{{input.text}}". Reply to them.` |
+| **Talks in the conversation** | On |
+| **Reply field (optional)** | `reply` |
+
+The agent also receives every message since its last turn and, with contact memory on, the customer's earlier conversations. The prompt only needs the latest message.
+
+### Staff reply (human step)
+
+| Field | Value |
+|---|---|
+| Runs after | **Pizza assistant** |
+| **Skip when** | `{{steps.<assistant step id>.result.action == "reply"}}`, so the step only runs on a hand-off |
+| Timeout | 900 seconds (15 minutes) |
+| **If no response (timeout policy)** | **Hand the conversation back (session workflows)** |
+| **Hand off the conversation to a person** | On |
+| **Replies while nobody has answered** | 1: *Thanks! A member of our team will reply here shortly.*<br />4: *Sorry for the wait, our team is busy right now. We haven't forgotten you.* |
+| **Give the conversation back to (optional)** | The assistant step |
+
+Give the task a title, a message for staff, and a reply box in its `task_payload` (the [JSON editor](/workflows/json-editor) is the quickest way):
+
+```json
+{
+  "title": "Reply to {{input.contact_name}} on WhatsApp",
+  "message": "{{input.contact_name}} ({{input.from}}) needs a person: {{steps.<assistant step id>.result.reason}}\nLatest message: \"{{input.text}}\"",
+  "response": {
+    "field": "reply",
+    "label": "Reply to the customer",
+    "placeholder": "Type the WhatsApp message to send"
+  }
+}
+```
+
+## 3. Turn on sessions
+
+Open **Workflow setup → Sessions**:
+
+<Steps>
+  <Step title="One run per conversation">
+    Turn it on.
+  </Step>
+  <Step title="Close after idle (minutes)">
+    Leave it blank for 30 minutes, or see [choosing how long a chat stays open](#choose-how-long-a-chat-stays-open).
+  </Step>
+  <Step title="Reply channel">
+    **Connection:** your WhatsApp MCP instance. **Send tool:** `whatsapp_send_message`. Keep the default **Tool arguments**: `to` = `{{input.from}}` and `text` = `{{message.text}}`.
+  </Step>
+</Steps>
+
+Every message the workflow sends goes through this channel: the assistant's replies, the automatic replies, and staff replies.
+
+## 4. Route messages to the workflow
+
+Open **Workflow setup → Inbound** and create a subscription:
+
+| Field | Value |
+|---|---|
+| **Webhook purpose** | **Start workflow run** |
+| **Vendor adapter** | **WhatsApp** |
+| **Connection** | Your WhatsApp connection |
+| **Conversation memory** | **Remember each contact** on |
+
+There is no webhook URL to register with Meta. AgentRuntime receives your number's messages through its own Meta app and routes them to every workflow subscribed to that connection.
+
+**Remember each contact** keeps one conversation per WhatsApp contact, so the assistant sees what the customer said in earlier sessions too.
+
+## 5. Publish and test
+
+**Publish** the workflow, then message your business number from a phone.
+
+1. Ask *Hi, what pizzas do you have?* The assistant replies. In Workflow Studio's **Run logs and metrics** you see one run, waiting for the next message.
+2. Send *Can I talk to a person please?* The assistant replies and the **Staff reply** task appears in [Command Center](/workflows/command-center).
+3. Send a few more messages. The 1st and 4th after the hand-off get the automatic replies, and every message is listed on the task under **New since handoff**.
+4. Reply from the task. The customer receives it on WhatsApp from your business number, and the run shows it as a staff reply.
+5. To test the timeout, hand off again and leave the task alone. After 15 minutes the run shows *No reply from the team in time*, and the assistant answers the waiting messages.
+
+All of this is one run. After 30 minutes without messages it closes as **Success**, and the next message starts a new session.
+
+## What WhatsApp messages look like in the workflow
+
+Each incoming message is the run's input. Read it with `{{input.*}}`:
+
+| Field | Example | Notes |
+|---|---|---|
+| `text` | `Hi, can I talk to a person please?` | The text, a button or list reply's title, or a media caption |
+| `type` | `text`, `image`, `button`, `interactive` | WhatsApp message type |
+| `from` | `94712280951` | The customer's WhatsApp number; use it as the reply address |
+| `contact_name` | `Timnirmal` | The customer's WhatsApp profile name |
+| `message_id` | `wamid.HBg...` | WhatsApp message id |
+| `timestamp` | `1792526100` | When the customer sent it (Unix seconds) |
+| `display_phone_number`, `phone_number_id` | | Your business number |
+| `message` | | The raw WhatsApp message object, for media ids and other details |
+
+A repeated delivery of the same WhatsApp message is ignored, so a customer's message is never answered twice.
+
+## Choose how long a chat stays open
+
+The 30-minute default suits a quick support chat. Change **Close after idle** for other cases:
+
+| Case | Close after idle | Longest session |
+|---|---|---|
+| Quick questions and orders | 30 (default) | – |
+| One conversation per delivery day | 1440 | – |
+| A customer's chat stays open for a month | 43200 | – |
+| Keep chats open until you close them | A very long value, for example 525600 | – |
+| Short booking window | 30 | 120 |
+
+Two WhatsApp rules apply however long the session is:
+
+- **24-hour window.** Free-form messages are only allowed within 24 hours of the customer's last message. The assistant always answers right after a customer writes, so it stays inside the window. Staff should reply within a day, or send an approved template with the [WhatsApp connector](/connectors/whatsapp).
+- **Proactive messages need templates.** To start a conversation yourself (order shipped, appointment reminder), use a template message in a separate workflow, as in [Shopify order → WhatsApp template](/guides/shopify-order-whatsapp).
+
+More combinations, including fixed-length sessions and back-office agents, are in [Conversation sessions → Recipes](/workflows/conversation-sessions#recipes).
+
+## Variations
+
+- **No staff:** remove the **Staff reply** step and the `action` field. The assistant answers everything.
+- **Back-office lookups:** add an order-lookup agent with **Talks in the conversation** off and let the assistant hand work to it. The customer only ever hears from the assistant. See [Autonomous episodes](/workflows/autonomous-episodes).
+- **Different wording for waiting customers:** change **Replies while nobody has answered**, or add more `on_message` entries.
+- **Staff have longer to answer:** raise the human step's timeout, or choose **Keep waiting** so the chat stays with staff until someone replies.
+
+## Full workflow JSON
+
+Replace the instance id, agent id, and step ids with your own:
+
+```json
+{
+  "settings": {
+    "session": {
+      "idle_timeout_s": 1800,
+      "outbound": {
+        "type": "mcp",
+        "instance_id": "<whatsapp MCP instance id>",
+        "tool_name": "whatsapp_send_message",
+        "tool_args": { "to": "{{input.from}}", "text": "{{message.text}}" }
+      }
+    }
+  },
+  "steps": [
+    {
+      "id": "assistant",
+      "type": "agent",
+      "name": "Pizza assistant",
+      "agent_id": "<pizza assistant agent id>",
+      "prompt": "WhatsApp customer: {{input.contact_name}}, WhatsApp number {{input.from}}. Their latest message: \"{{input.text}}\". Reply to them.",
+      "timeout_s": 300,
+      "depends_on": [],
+      "conversation": { "reply_field": "reply" }
+    },
+    {
+      "id": "staff_reply",
+      "type": "human",
+      "name": "Staff reply",
+      "task_type": "approval",
+      "timeout_s": 900,
+      "timeout_policy": { "action": "return" },
+      "depends_on": ["assistant"],
+      "skip_when": "{{steps.assistant.result.action == \"reply\"}}",
+      "task_payload": {
+        "title": "Reply to {{input.contact_name}} on WhatsApp",
+        "message": "{{input.contact_name}} ({{input.from}}) needs a person: {{steps.assistant.result.reason}}\nLatest message: \"{{input.text}}\"",
+        "response": {
+          "field": "reply",
+          "label": "Reply to the customer",
+          "placeholder": "Type the WhatsApp message to send"
+        }
+      },
+      "conversation": {
+        "while_waiting": [
+          { "on_message": 1, "reply": "Thanks! A member of our team will reply here shortly." },
+          { "on_message": 4, "reply": "Sorry for the wait, our team is busy right now. We haven't forgotten you." }
+        ],
+        "return_to": "assistant"
+      }
+    }
+  ]
+}
+```
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| No run appears when a customer writes | The workflow is **published**, and **Workflow setup → Inbound** has an active WhatsApp subscription for the right connection. A connection made before inbound routing was available needs reconnecting so it has your phone number ID. |
+| Every message starts a new run | **One run per conversation** is on in the published version. |
+| The customer gets no reply | **Reply channel** has a connection and send tool, and the WhatsApp MCP instance is active. Staff replies more than 24 hours after the customer's last message are rejected by Meta. |
+| The customer receives the agent's internal summary | Set **Reply field** to `reply` on the assistant step. |
+| A back-office agent messages the customer | Turn on **Talks in the conversation** only on customer-facing agents. With none turned on, every agent answers. |
+| A waiting customer hears nothing for a long time | Add **Replies while nobody has answered**, and set a timeout with **Hand the conversation back**. |
+
+## Related
+
+- [Conversation sessions](/workflows/conversation-sessions)
+- [Human tasks](/workflows/human-tasks)
+- [WhatsApp connector](/connectors/whatsapp)
+- [Command Center](/workflows/command-center)

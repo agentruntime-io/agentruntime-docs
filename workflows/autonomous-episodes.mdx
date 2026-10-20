@@ -54,6 +54,8 @@ When `true`, a step does not run at workflow start even if it has no `depends_on
 
 **Chat session workflows** use this pattern: the `chat_agent` step is gated and receives a new `trigger_steps` entry on each user message.
 
+For customer conversations on channels such as WhatsApp, use [conversation sessions](/workflows/conversation-sessions): each conversation keeps one run, and only agents with **Talks in the conversation** answer the customer while gated helpers work behind them.
+
 In Workflow Studio, enable **Require entry grant** under **Episode scheduling** on the step config panel.
 
 ### `trigger_steps` — grant + per-step input
