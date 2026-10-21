@@ -92,6 +92,17 @@ List pending tasks:
 | **Approve before send** | LLM drafts content; human approves before an MCP email/send step |
 | **Escalation** | Low-confidence LLM output routes to human review via a `condition` + `human_task` branch |
 | **Data correction** | Human edits extracted fields before downstream MCP writes |
+| **Conversation hand-off** | An agent hands a customer chat to staff, who reply from the task; see [Conversation sessions](/workflows/conversation-sessions#hand-off-to-a-person) |
+
+### Reply tasks
+
+Add a `response` to `task_payload` to give the person a reply box instead of **Approve** / **Reject**:
+
+```json
+"response": { "field": "reply", "label": "Reply to the customer", "placeholder": "Type the message to send" }
+```
+
+The text they write becomes the step result under `field` (`{{steps.<step id>.result.reply}}`). **Don't reply** completes the task without one. In a [conversation session](/workflows/conversation-sessions), the reply is also sent to the customer as the person who wrote it.
 
 <Warning>
   Runs paused on human tasks hold worker resources. Set timeouts on preceding steps and monitor Command Center so approvals do not stall production runs.

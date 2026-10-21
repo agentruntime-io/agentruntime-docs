@@ -60,8 +60,16 @@ If you already have a System User token and IDs from Meta Business Manager:
 
 - **Order updates** — Shopify `get_shopify_order` → `send_message` or `send_template_message` when status changes.
 - **Appointment reminders** — Schedule workflow → template message with date/time parameters (24h+ outbound requires approved templates).
-- **Support handoff** — Inbound webhook message → LLM draft → **human_task** → `send_message` reply.
+- **Customer chat** — Incoming WhatsApp messages go to an agent in one ongoing [conversation session](/workflows/conversation-sessions) per customer, with hand-off to staff. See [WhatsApp customer chat](/guides/whatsapp-customer-chat).
 - **Ops alerts** — Workflow failure → `send_message` to on-call number with run summary.
+
+### Receive messages
+
+To start workflows from incoming WhatsApp messages, open **Workflow setup → Inbound** on the workflow and create a subscription with **Vendor adapter: WhatsApp** and your WhatsApp connection. No webhook URL needs registering with Meta: AgentRuntime routes each message by your business phone number to every workflow subscribed to that connection.
+
+Each message becomes the run's input: `{{input.text}}`, `{{input.from}}` (the customer's number), `{{input.contact_name}}`, `{{input.type}}`, and the raw `{{input.message}}`. Turn on **Remember each contact** so agent steps see each customer's earlier messages.
+
+For a back-and-forth chat, turn on [conversation sessions](/workflows/conversation-sessions) so a customer's messages share one run instead of starting a run each.
 
 ## Tools
 
@@ -130,6 +138,8 @@ See [Troubleshooting](/platform/troubleshooting) for MCP binding and OAuth issue
 
 ## Related
 
+- [WhatsApp customer chat](/guides/whatsapp-customer-chat)
+- [Conversation sessions](/workflows/conversation-sessions)
 - [Connections overview](/integrations/connections)
 - [Gmail connector](/connectors/gmail)
 - [Workflow patterns](/workflows/patterns)

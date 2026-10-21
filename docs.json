@@ -92,6 +92,7 @@
           "workflows/trigger-run-identity",
           "workflows/step-types",
           "workflows/autonomous-episodes",
+          "workflows/conversation-sessions",
           "workflows/command-center",
           "workflows/runs-and-command-center",
           "workflows/execution-timeline",
@@ -109,6 +110,7 @@
           "guides/overview",
           "guides/form-webhook-postgres-resend-digest",
           "guides/shopify-order-whatsapp",
+          "guides/whatsapp-customer-chat",
           "guides/github-pr-review",
           "guides/scheduled-postgres-gmail-report",
           "guides/lead-sync-activecampaign-notion"
