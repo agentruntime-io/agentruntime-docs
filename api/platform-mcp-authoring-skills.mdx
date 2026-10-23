@@ -36,7 +36,7 @@ Or call Platform MCP **`tenantdata_logical_schema`** and **`surfaces_schema_cata
 1. `ar_get_started` — tenant, playbooks, `embedded_schema_tools`
 2. Load **platform-design** SKILL, then tenant-data → workflow → surfaces as needed
 3. `workflows_validate` with `tenantdata_schema` before run
-4. For Surfaces apps: publish workflows first, then set **`workflow_ref` to published UUIDs** (avoid **Import pending** in Console)
+4. For Surfaces apps: create workflows first, then set **`workflow_ref` to their UUIDs** (avoid **Import pending** in Console). No publishing needed: views and runs use each workflow's Live copy; publish only to pin a caller to a frozen version.
 
 ## Related
 

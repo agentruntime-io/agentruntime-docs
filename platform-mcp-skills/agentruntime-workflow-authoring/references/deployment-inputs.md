@@ -11,7 +11,7 @@ This checklist still applies for items not exposed as MCP tools (published Tenan
 | Embedded identity | Authorized external principal, resolved per-instance connection mapping or resolution capability, event provider/toolkit filters |
 | Tenant Data | Instance-to-logical-database mapping, published schema/version, column constraints and conflict policy, permitted operations |
 | Input | Workflow input schema, actual trigger payload with defaults materialized, per-step overrides if used |
-| Child workflow | Published child id/version, accepted input keys, inherited identity behavior, `output_from` and result envelope, recursion/timeout limits |
+| Child workflow | Child id (no publishing needed; a published version only if the step pins `child_target`), accepted input keys, inherited identity behavior, `output_from` and result envelope, recursion/timeout limits |
 | Run verification | Authorized test account/data, acceptable side effects, run status/events and error inspection capability |
 
 A package for an agent without source access should include this skill folder, a deployment/version identifier, tool schemas with redacted representative outputs, database schema, binding manifest, and validation/start API examples. Supply secrets via the platform's authentication/connection mechanism, not workflow JSON or the bundle.
