@@ -188,7 +188,7 @@ These work at run time inside the loop body. They are not in the Studio suggesti
 | Topic | Guidance |
 |-------|----------|
 | **Display names** | Search by step name in Studio; saved templates always use the step's **Step ID** (UUID on canvas nodes). Never paste the canvas label into `{{steps.…}}`. |
-| **Lua vs {{…}}** | Bracket `steps["id"]` is for Lua scripts only. MCP and LLM fields need `{{steps.<step-id>.result.field}}`. |
+| **Lua vs `{{…}}`** | Bracket `steps["id"]` is for Lua scripts only. MCP and LLM fields need `{{steps.<step-id>.result.field}}`. |
 | **Deep JSON paths** | Suggestions cover common top-level fields; nested paths can be typed by hand. |
 | **Valid syntax** | One `{{`, a path, one `}}`. Broken text like `{{input.topic{{input.topic}}}}` will not resolve — fix before you run. |
 | **Undo (Ctrl+Z)** | Restores the previous whole field value. Use **Ctrl+Shift+Z** or **Ctrl+Y** to redo. |

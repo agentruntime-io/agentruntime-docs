@@ -1,187 +1,95 @@
 ---
-
 title: Step types
-
 description: MCP calls, LLM steps, human tasks, Lua scripts, and for-each loops in AgentRuntime workflows.
-
 ---
-
-
 
 Workflow graphs are made of typed **steps**. Each step has an `id`, `type`, `name`, optional `depends_on`, and type-specific fields.
 
-
-
 The JSON schema is published at [agentruntime.io/schemas/workflow-graph.schema.json](https://agentruntime.io/schemas/workflow-graph.schema.json). Runtime graphs use **`{ "steps": [...] }`** — not a top-level step-id map.
-
-
 
 ## mcp_call
 
-
-
 Invoke a tool on an MCP instance.
 
-
-
 | Field | Description |
-
 |-------|-------------|
-
 | `server_url` | **Portable** system `canonical_url` — use when sharing graphs across workspaces |
-
 | `instance_id` | Tenant MCP instance UUID — optional override; Studio sets this when you pick an instance |
-
 | `tool_name` | Tool to call on the server |
-
 | `tool_args` | JSON arguments; supports template variables |
-
 | `timeout_s` | Step timeout in seconds |
-
 | `retry_count` | Number of retries on failure |
-
-
 
 At run start the engine resolves `server_url` → `instance_id` when needed (and may auto-create a tenant instance). Dry-run validation warns when an instance will be created.
 
-
-
 **Importing shared graphs:** Workflow Studio **Import** accepts canvas JSON or `{ "steps": [] }`, previews the graph, then maps each `server_url` to an instance in your workspace before applying to the canvas.
-
-
 
 **Example use cases:** Send an email via Resend, query Postgres, create a GitHub issue, post a WhatsApp message.
 
-
-
 ## llm_call
-
-
 
 Call a large language model with a prompt.
 
-
-
 | Field | Description |
-
 |-------|-------------|
-
 | `model` | Wire model name (for example `gpt-4o`). Required if `model_ref` is omitted. |
-
 | `model_ref` | Providers catalog reference (for example `direct.openai.gpt-4o`). Required if `model` is omitted. |
-
 | `prompt` | Prompt text with template variables |
-
 | `llm_params` | Temperature, max tokens, and other provider params |
-
 | `llm_credential_id` / `llm_credential_scope` | Optional explicit tenant or system API key from **Providers** |
-
-
 
 In Workflow Studio, use the **LLM Call** palette node and pick model + source in the node config; the editor writes these fields on save. At run time, the platform resolves `model_ref` against your **Providers** keys automatically.
 
-
-
 ## human_task
-
-
 
 Pause the run until a human approves, rejects, or provides input.
 
-
-
 | Field | Description |
-
 |-------|-------------|
-
 | `task_type` | Task category (for example, `approval`) |
-
 | `task_payload` | Data shown in Command Center (title, description, editable fields) |
-
-
 
 The run enters a paused state until the task is completed via the Console or API.
 
-
-
 ## lua_script
-
-
 
 Run inline Lua to transform upstream data.
 
-
-
 | Field | Description |
-
 |-------|-------------|
-
 | `script` | Lua source (max 64 KB). Upstream: `steps["<step-id>"].result` or `steps.<id>.result` (use graph **id**, not the display **name**). Trigger input: `input.<field>`. Must return a table. |
-
-
 
 Use Lua for lightweight mapping, filtering, and aggregation without an extra MCP round-trip.
 
-
-
 ## for_each
-
-
 
 Fan out over a list with controlled parallelism.
 
-
-
 | Field | Description |
-
 |-------|-------------|
-
 | `for_each_items` | Template or path to an array, e.g. `{{steps.gen.result.items}}` |
-
 | `for_each_max_parallel` | Max concurrent body runs (default 10, max 100) |
-
 | `for_each_item_timeout_s` | Optional per-item wall-clock cap for the inner chain (max 3600s) |
-
 | `for_each_body_steps` | Ordered inline inner step chain per item (`lua_script`, `llm_call`, `mcp_call`, `agent_call`, `workflow_call`) |
-
 Inner `agent_call` steps run **synchronously** inside the parent; they do not participate in episode handoff routing.
-
 Inside `for_each_body_steps`, reference resolved inner inputs with `{{steps.<inner-id>.input.<field>}}` (use the inner step `id` from the body array, not the runtime qualified key `parent#body#inner`).
-
 ## while
-
-
 
 Conditional loop (L5): repeat an inline step chain until a stop condition or `while_max_iterations`.
 
-
-
 | Field | Description |
-
 |-------|-------------|
-
 | `while_mode` | `until` (stop when condition true) or `while` (continue while condition true) |
-
 | `while_max_iterations` | Hard cap on iterations (required, ≥ 1) |
-
 | `while_iteration_timeout_s` | Optional per-iteration wall-clock cap for the inner chain (max 3600s) |
-
 | `while_body_steps` | Ordered inline inner steps per iteration (`lua_script`, `llm_call`, `mcp_call`, `agent_call`, `workflow_call`) |
-
 | `while_condition` | Template boolean, e.g. `{{body.score.result.pass}}` |
-
 | `while_eval_script` | Lua returning `{ pass = true/false }`; wins if both condition fields are set |
 
-
-
 Template scopes inside composite bodies: `{{body.<innerId>.*}}`, `{{while.iteration}}`, `{{while.prev.<innerId>.*}}`. In Lua use `loop` (not `while`) and `body` globals.
-
 Reference resolved inner step inputs with `{{steps.<inner-id>.input.<field>}}` and parent loop inputs with `{{steps.<while-node-id>.input.while_condition}}` (and related `while_*` fields).
-
 ## Template variables (Studio + JSON)
-
 Workflow Studio **Variables** drawer and autocomplete expose copyable paths. At run time the engine resolves templates after each step's inputs are prepared.
-
 | Syntax | Resolves to |
 |--------|-------------|
 | `{{input.field}}` | Workflow trigger / run-setup payload |
@@ -192,51 +100,27 @@ Workflow Studio **Variables** drawer and autocomplete expose copyable paths. At 
 | `{{body.<inner-id>.field}}` | Inner step output in the **current** composite iteration |
 | `{{while.iteration}}` | Current while iteration (0-based) |
 | `{{while.prev.<inner-id>.field}}` | Previous while iteration inner output |
-
 **Composite inner steps:** `steps.<id>.input.*` uses the inner step **authoring id** from `for_each_body_steps[]` or `while_body_steps[]`. Parent `for_each` / `while` nodes use the canvas step id for their own `input.*` fields (`for_each_items`, `while_condition`, etc.).
-
 **Legacy authoring (do not use on new graphs):** `for_each_body`, slug step ids, catalog-agent-only canvas nodes.
-
 ## Execution controls
-
-
 
 All step types support:
 
-
-
 | Field | Description |
-
 |-------|-------------|
-
 | `depends_on` | Array of step IDs that must complete first |
-
 | `enabled` | When `false`, step is skipped with a synthetic completion |
-
 | `retry_count` | Retries after failure |
-
 | `timeout_s` | Per-step timeout |
-
 | `no_auto_start` | When `true` on a root, block auto-start until `trigger_steps` grants entry |
-
 | `terminal` | When `true`, completing this step may close an autonomous/mixed episode |
-
 See [Autonomous episodes](/workflows/autonomous-episodes) for gated agents, handoffs, `done: true`, chat session runs, and how episode close works end to end.
-
-
 
 ## Parallelism
 
-
-
 Parallelism emerges naturally from the DAG. Steps with no dependency relationship run concurrently. The runtime manages step scheduling, retries, and failure propagation.
 
-
-
 <Note>
-
   Author graphs with `depends_on`, `no_auto_start`, and `trigger_steps` — not legacy `condition`, `parallel`, or `sequence` step types (removed from the engine).
-
 </Note>
-
 
