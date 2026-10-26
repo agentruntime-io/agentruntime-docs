@@ -37,7 +37,7 @@ sequenceDiagram
 
 | Adapter | Purpose |
 |---------|---------|
-| [whatsapp](/connectors/whatsapp) | Receive customer messages and send replies (`whatsapp_send_message`) |
+| [whatsapp](/connectors/whatsapp) | Receive customer messages and send replies (`whatsapp_send_message`, and `whatsapp_send_media` for files) |
 
 ## 1. Create the assistant agent
 
@@ -126,9 +126,12 @@ Open **Workflow setup → Sessions**:
   <Step title="Reply channel">
     **Connection:** your WhatsApp MCP instance. **Send tool:** `whatsapp_send_message`. Keep the default **Tool arguments**: `to` = `{{input.from}}` and `text` = `{{message.text}}`.
   </Step>
+  <Step title="Files">
+    Keep the default **File send tool**, `whatsapp_send_media`, and its **File tool arguments**: `to` = `{{input.from}}`, `type` = `{{message.attachment.type}}`, `media_url` = `{{message.attachment.url}}`, `caption` = `{{message.attachment.caption}}`, `filename` = `{{message.attachment.filename}}`. This lets staff and the assistant send photos and documents.
+  </Step>
 </Steps>
 
-Every message the workflow sends goes through this channel: the assistant's replies, the automatic replies, and staff replies.
+Every message the workflow sends goes through this channel: the assistant's replies, the automatic replies, and staff replies, text first and then any files.
 
 ## 4. Route messages to the workflow
 
@@ -153,7 +156,9 @@ There is no webhook URL to register with Meta. AgentRuntime receives your number
 2. Send *Can I talk to a person please?* The assistant replies and the **Staff reply** task appears in [Command Center](/workflows/command-center).
 3. Send a few more messages. The 1st and 4th after the hand-off get the automatic replies, and every message is listed on the task under **New since handoff**.
 4. Reply from the task. The customer receives it on WhatsApp from your business number, and the run shows it as a staff reply.
-5. To test the timeout, hand off again and leave the task alone. After 15 minutes the run shows *No reply from the team in time*, and the assistant answers the waiting messages.
+5. Send a photo with a caption, then a voice note. The run shows them as *[image: …]* and *[voice note]*, and **Open the conversation** shows the photo and plays the voice note.
+6. Reply from a task with a file attached. The customer receives the text, then the file.
+7. To test the timeout, hand off again and leave the task alone. After 15 minutes the run shows *No reply in time; the conversation is handed back*, and the assistant answers the waiting messages.
 
 All of this is one run. After 30 minutes without messages it closes as **Success**, and the next message starts a new session.
 
@@ -164,15 +169,41 @@ Each incoming message is the run's input. Read it with `{{input.*}}`:
 | Field | Example | Notes |
 |---|---|---|
 | `text` | `Hi, can I talk to a person please?` | The text, a button or list reply's title, or a media caption |
-| `type` | `text`, `image`, `button`, `interactive` | WhatsApp message type |
+| `type` | `text`, `image`, `video`, `audio`, `document`, `sticker`, `location`, `contacts`, `button`, `interactive` | WhatsApp message type |
 | `from` | `94712280951` | The customer's WhatsApp number; use it as the reply address |
 | `contact_name` | `Timnirmal` | The customer's WhatsApp profile name |
 | `message_id` | `wamid.HBg...` | WhatsApp message id |
 | `timestamp` | `1792526100` | When the customer sent it (Unix seconds) |
 | `display_phone_number`, `phone_number_id` | | Your business number |
-| `message` | | The raw WhatsApp message object, for media ids and other details |
+| `attachments` | `[{ "file_id": "3f9c…", "type": "image", "caption": "my cold pizza" }]` | Photos, videos, audio, voice notes, documents and stickers, stored in your workspace. See [Photos, voice notes, and files](#photos-voice-notes-and-files) |
+| `location` | `{ "latitude": 6.9, "longitude": 79.85, "name": "Galle Road" }` | A shared location |
+| `shared_contacts` | | Contact cards the customer shared, as WhatsApp sends them |
+| `message` | | The raw WhatsApp message object |
 
 A repeated delivery of the same WhatsApp message is ignored, so a customer's message is never answered twice.
+
+## Photos, voice notes, and files
+
+WhatsApp media links expire within minutes, so AgentRuntime downloads each photo, video, audio file, voice note, document, or sticker as soon as it arrives, with your connection's own access token, and stores it in your workspace. The message carries it as an attachment ([fields](/workflows/conversation-sessions#files-voice-notes-and-locations)). If the download fails, the message still arrives, with the error on its attachment.
+
+- **Staff** see photos, video, and voice notes in place in the conversation and in the task, and download documents.
+- **The assistant** reads a placeholder such as *[image: my cold pizza]* or *[voice note]*, plus the caption. It doesn't see the picture or hear the audio, so tell it in its instructions what to do, for example: *If the customer sends a photo or voice note you can't read, hand off to staff.*
+
+To send files, keep the **File send tool** in the Sessions tab (step 3). Staff attach files in the task's reply box. The assistant can send a file by returning an `attachments` list of file ids next to `reply`. WhatsApp accepts these files:
+
+| Type | Formats | Largest |
+|---|---|---|
+| Image | JPEG, PNG | 5 MB |
+| Video | MP4, 3GP | 16 MB |
+| Audio | AAC, AMR, MP3, M4A, OGG (Opus) | 16 MB |
+| Document | Any, for example PDF | 100 MB |
+| Sticker | WebP | 100 KB, animated 500 KB |
+
+A file WhatsApp refuses is marked *failed* on the message, with Meta's error; the text and other files still go out. Captions are sent with images, videos, and documents.
+
+### Reactions and read receipts
+
+The WhatsApp connector also has `whatsapp_send_reaction` (an emoji on one of the customer's messages, `message_id` = `{{input.message_id}}`) and `whatsapp_mark_as_read` (blue ticks, with an optional typing indicator while the assistant works). Give the assistant these tools, or call them from an MCP step at the start of the workflow.
 
 ## Choose how long a chat stays open
 
@@ -213,7 +244,17 @@ Replace the instance id, agent id, and step ids with your own:
         "type": "mcp",
         "instance_id": "<whatsapp MCP instance id>",
         "tool_name": "whatsapp_send_message",
-        "tool_args": { "to": "{{input.from}}", "text": "{{message.text}}" }
+        "tool_args": { "to": "{{input.from}}", "text": "{{message.text}}" },
+        "media": {
+          "tool_name": "whatsapp_send_media",
+          "tool_args": {
+            "to": "{{input.from}}",
+            "type": "{{message.attachment.type}}",
+            "media_url": "{{message.attachment.url}}",
+            "caption": "{{message.attachment.caption}}",
+            "filename": "{{message.attachment.filename}}"
+          }
+        }
       }
     }
   },
@@ -268,6 +309,9 @@ Replace the instance id, agent id, and step ids with your own:
 | The customer receives the agent's internal summary | Set **Reply field** to `reply` on the assistant step. |
 | A back-office agent messages the customer | Turn on **Talks in the conversation** only on customer-facing agents. With none turned on, every agent answers. |
 | A waiting customer hears nothing for a long time | Add **Replies while nobody has answered**, and set a timeout with **Hand the conversation back**. |
+| A staff file shows *not sent* | Set **Files → File send tool** to `whatsapp_send_media` in the Sessions tab. |
+| A file shows *failed* | Check the type and size against the table in [Photos, voice notes, and files](#photos-voice-notes-and-files). |
+| An attachment has an `error` and no file | The download from WhatsApp failed, usually because the connection's token has expired. Reconnect WhatsApp. |
 
 ## Related
 
