@@ -67,7 +67,7 @@ If you already have a System User token and IDs from Meta Business Manager:
 
 To start workflows from incoming WhatsApp messages, open **Workflow setup → Inbound** on the workflow and create a subscription with **Vendor adapter: WhatsApp** and your WhatsApp connection. No webhook URL needs registering with Meta: AgentRuntime routes each message by your business phone number to every workflow subscribed to that connection.
 
-Each message becomes the run's input: `{{input.text}}`, `{{input.from}}` (the customer's number), `{{input.contact_name}}`, `{{input.type}}`, and the raw `{{input.message}}`. Turn on **Remember each contact** so agent steps see each customer's earlier messages.
+Each message becomes the run's input: `{{input.text}}`, `{{input.from}}` (the customer's number), `{{input.contact_name}}`, `{{input.type}}`, and the raw `{{input.message}}`. Photos, videos, voice notes, documents, and stickers are downloaded when they arrive and stored in your workspace, and the message carries them as `{{input.attachments}}`; a shared location arrives as `{{input.location}}`. See [Files, voice notes, and locations](/workflows/conversation-sessions#files-voice-notes-and-locations). Turn on **Remember each contact** so agent steps see each customer's earlier messages.
 
 For a back-and-forth chat, turn on [conversation sessions](/workflows/conversation-sessions) so a customer's messages share one run instead of starting a run each.
 
@@ -76,7 +76,9 @@ For a back-and-forth chat, turn on [conversation sessions](/workflows/conversati
 | Tool | Description |
 |------|-------------|
 | `send_message` | Send a text message |
-| `send_media` | Send image, audio, document, sticker, or video |
+| `send_media` | Send image, audio, document, sticker, or video, by public link (`media_url`) or uploaded `media_id` |
+| `send_reaction` | React to a message with an emoji (an empty emoji removes the reaction) |
+| `mark_as_read` | Mark an incoming message as read, optionally with a typing indicator |
 | `send_template_message` | Send a pre-approved template with parameters |
 | `list_phone_numbers` | List phone numbers on the WABA |
 | `list_message_templates` | List message templates (optionally filter by status) |
