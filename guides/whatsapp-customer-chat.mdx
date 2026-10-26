@@ -169,7 +169,7 @@ Each incoming message is the run's input. Read it with `{{input.*}}`:
 | Field | Example | Notes |
 |---|---|---|
 | `text` | `Hi, can I talk to a person please?` | The text, a button or list reply's title, or a media caption |
-| `type` | `text`, `image`, `video`, `audio`, `document`, `sticker`, `location`, `contacts`, `button`, `interactive` | WhatsApp message type |
+| `type` | `text`, `image`, `video`, `audio`, `document`, `sticker`, `location`, `contacts`, `button`, `interactive`, `reaction`, `unsupported` | WhatsApp message type |
 | `from` | `94712280951` | The customer's WhatsApp number; use it as the reply address |
 | `contact_name` | `Timnirmal` | The customer's WhatsApp profile name |
 | `message_id` | `wamid.HBg...` | WhatsApp message id |
@@ -181,6 +181,10 @@ Each incoming message is the run's input. Read it with `{{input.*}}`:
 | `message` | | The raw WhatsApp message object |
 
 A repeated delivery of the same WhatsApp message is ignored, so a customer's message is never answered twice.
+
+WhatsApp doesn't pass some messages on to businesses: polls, poll votes, and edited messages, among others. They arrive with `type` `unsupported` and a `text` that names them, for example `[unsupported: poll]`, so the assistant and staff know something was sent. A reaction arrives as `[reaction: 👍]`.
+
+To offer the customer a choice, send reply buttons (up to 3) or a list (up to 10) with the connector's `whatsapp_send_interactive_buttons` or `whatsapp_send_interactive_list`, for example from an MCP step. The customer's pick arrives as an ordinary message whose `text` is the option's title.
 
 ## Photos, voice notes, and files
 
