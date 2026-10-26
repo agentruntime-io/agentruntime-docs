@@ -102,7 +102,7 @@ In the [JSON editor](/workflows/json-editor), sessions live under `settings.sess
 | **Longest session (minutes, optional)** | `max_duration_s` (seconds) | Closes the session this long after it started, however active it is. If a step is still working at that moment, the session closes at its next wait. | No limit |
 | **Connection**, **Send tool** | `outbound.instance_id`, `outbound.tool_name` | The MCP tool that delivers every message the workflow sends to the contact. Choose **None: post in the conversation only** to record replies without sending them anywhere. | WhatsApp send |
 | **Tool arguments** | `outbound.tool_args` | Arguments for the send tool. `{{message.text}}` is the text being sent, and `{{input.*}}` reads the contact's latest message. | `to: {{input.from}}`, `text: {{message.text}}` |
-| **Send files with** | `outbound.media` | The MCP tool that delivers each file the workflow sends, called once per file after the text. It uses the same connection unless you set `media.instance_id`. See [Files, voice notes, and locations](#files-voice-notes-and-locations). | None: files are recorded but not sent |
+| **Files → File send tool**, **File tool arguments** | `outbound.media.tool_name`, `outbound.media.tool_args` | The MCP tool that delivers each file the workflow sends, called once per file after the text, on the same connection unless you set `media.instance_id`. Choose **None: files are not sent** to only record files. See [Files, voice notes, and locations](#files-voice-notes-and-locations). | `whatsapp_send_media` with WhatsApp replies |
 
 <Warning>
   Leaving **Close after idle** blank (or `0`) means the 30-minute default, not "never". To keep conversations open for a long time, set a long idle timeout. See [Recipes](#recipes).
@@ -196,13 +196,13 @@ Where the run sees them:
   Agents read text. They know a file arrived and what it is called, but they don't see the picture or hear the voice note. Hand those messages to a person, or ask the contact to describe what they sent.
 </Note>
 
-**Sending.** Files reach the contact through the **Send files with** tool, after the message's text:
+**Sending.** Files reach the contact through the **File send tool**, after the message's text:
 
 - **A person's reply:** attach files in the task's reply box. They are sent with the reply, or on their own if there is no text.
 - **An agent's reply:** an agent with an output schema can return an `attachments` field, a list of file ids (or objects with `file_id` and `caption`), next to its reply text.
 - **The tool call:** for each file, `{{message.attachment.url}}` is a short-lived link to the stored file, and `{{message.attachment.type}}`, `.mime_type`, `.filename`, `.caption`, and `.file_id` describe it. The type comes from the file's MIME type: image, video, audio, or document.
 
-Each file's delivery is recorded on the message: *sent*, *failed* (with the error), or *not sent* when **Send files with** is not set. A file that fails doesn't stop the text or the other files.
+Each file's delivery is recorded on the message: *sent*, *failed* (with the error), or *not sent* when the **File send tool** is **None**. A file that fails doesn't stop the text or the other files.
 
 **From the API**, send a message object with attachments that are already in your workspace's file storage:
 

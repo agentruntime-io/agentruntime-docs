@@ -126,8 +126,8 @@ Open **Workflow setup → Sessions**:
   <Step title="Reply channel">
     **Connection:** your WhatsApp MCP instance. **Send tool:** `whatsapp_send_message`. Keep the default **Tool arguments**: `to` = `{{input.from}}` and `text` = `{{message.text}}`.
   </Step>
-  <Step title="Send files with">
-    `whatsapp_send_media`, with the default arguments: `to` = `{{input.from}}`, `type` = `{{message.attachment.type}}`, `media_url` = `{{message.attachment.url}}`, `caption` = `{{message.attachment.caption}}`, `filename` = `{{message.attachment.filename}}`. This lets staff and the assistant send photos and documents.
+  <Step title="Files">
+    Keep the default **File send tool**, `whatsapp_send_media`, and its **File tool arguments**: `to` = `{{input.from}}`, `type` = `{{message.attachment.type}}`, `media_url` = `{{message.attachment.url}}`, `caption` = `{{message.attachment.caption}}`, `filename` = `{{message.attachment.filename}}`. This lets staff and the assistant send photos and documents.
   </Step>
 </Steps>
 
@@ -189,7 +189,7 @@ WhatsApp media links expire within minutes, so AgentRuntime downloads each photo
 - **Staff** see photos, video, and voice notes in place in the conversation and in the task, and download documents.
 - **The assistant** reads a placeholder such as *[image: my cold pizza]* or *[voice note]*, plus the caption. It doesn't see the picture or hear the audio, so tell it in its instructions what to do, for example: *If the customer sends a photo or voice note you can't read, hand off to staff.*
 
-To send files, set **Send files with** in the Sessions tab (step 3). Staff attach files in the task's reply box. The assistant can send a file by returning an `attachments` list of file ids next to `reply`. WhatsApp accepts these files:
+To send files, keep the **File send tool** in the Sessions tab (step 3). Staff attach files in the task's reply box. The assistant can send a file by returning an `attachments` list of file ids next to `reply`. WhatsApp accepts these files:
 
 | Type | Formats | Largest |
 |---|---|---|
@@ -309,7 +309,7 @@ Replace the instance id, agent id, and step ids with your own:
 | The customer receives the agent's internal summary | Set **Reply field** to `reply` on the assistant step. |
 | A back-office agent messages the customer | Turn on **Talks in the conversation** only on customer-facing agents. With none turned on, every agent answers. |
 | A waiting customer hears nothing for a long time | Add **Replies while nobody has answered**, and set a timeout with **Hand the conversation back**. |
-| A staff file shows *not sent* | Set **Send files with** to `whatsapp_send_media` in the Sessions tab. |
+| A staff file shows *not sent* | Set **Files → File send tool** to `whatsapp_send_media` in the Sessions tab. |
 | A file shows *failed* | Check the type and size against the table in [Photos, voice notes, and files](#photos-voice-notes-and-files). |
 | An attachment has an `error` and no file | The download from WhatsApp failed, usually because the connection's token has expired. Reconnect WhatsApp. |
 
