@@ -88,6 +88,21 @@ In the [JSON editor](/workflows/json-editor), sessions live under `settings.sess
             "caption": "{{message.attachment.caption}}",
             "filename": "{{message.attachment.filename}}"
           }
+        },
+        "choices": {
+          "tool_name": "whatsapp_send_interactive_buttons",
+          "max_choices": 3,
+          "tool_args": { "to_number": "{{input.from}}", "body_text": "{{message.text}}", "buttons": "{{message.choice_buttons}}" },
+          "more": {
+            "tool_name": "whatsapp_send_interactive_list",
+            "max_choices": 10,
+            "tool_args": {
+              "to_number": "{{input.from}}",
+              "body_text": "{{message.text}}",
+              "button_text": "Options",
+              "sections": [{ "title": "Options", "rows": "{{message.choices}}" }]
+            }
+          }
         }
       }
     }
@@ -103,6 +118,8 @@ In the [JSON editor](/workflows/json-editor), sessions live under `settings.sess
 | **Connection**, **Send tool** | `outbound.instance_id`, `outbound.tool_name` | The MCP tool that delivers every message the workflow sends to the contact. Choose **None: post in the conversation only** to record replies without sending them anywhere. | WhatsApp send |
 | **Tool arguments** | `outbound.tool_args` | Arguments for the send tool. `{{message.text}}` is the text being sent, and `{{input.*}}` reads the contact's latest message. | `to: {{input.from}}`, `text: {{message.text}}` |
 | **Files → File send tool**, **File tool arguments** | `outbound.media.tool_name`, `outbound.media.tool_args` | The MCP tool that delivers each file the workflow sends, called once per file after the text, on the same connection unless you set `media.instance_id`. Choose **None: files are not sent** to only record files. See [Files, voice notes, and locations](#files-voice-notes-and-locations). | `whatsapp_send_media` with WhatsApp replies |
+| **Choices → Choices tool**, **Up to (options)**, **Choices tool arguments** | `outbound.choices.tool_name`, `.max_choices`, `.tool_args` | The MCP tool that sends a question with options the contact can tap, for up to that many options. Choose **None: list the options in the text** to send them as numbered lines instead. See [Choices](#choices). | WhatsApp reply buttons, up to 3 |
+| **Tool for more options**, **Up to (more options)**, **More options tool arguments** | `outbound.choices.more` | The tool for more options than the first one shows. | WhatsApp list, up to 10 |
 
 <Warning>
   Leaving **Close after idle** blank (or `0`) means the 30-minute default, not "never". To keep conversations open for a long time, set a long idle timeout. See [Recipes](#recipes).
@@ -213,6 +230,47 @@ Each file's delivery is recorded on the message: *sent*, *failed* (with the erro
 }
 ```
 
+## Choices
+
+An agent can ask the contact a question with a few options to pick from, the closest thing to a poll a business can send on WhatsApp. The contact taps an option instead of typing, and their pick comes back as their next message.
+
+**Offering choices.** Give the agent an output schema with a `choices` field next to its reply text. The reply text is the question.
+
+```json
+{
+  "reply": "Which pizza would you like?",
+  "choices": [
+    { "id": "margherita", "title": "Margherita" },
+    { "id": "pepperoni", "title": "Pepperoni", "description": "Spicy" },
+    "Veggie"
+  ]
+}
+```
+
+- Each option is a title, or an object with `title`, an optional `id`, and an optional `description`. The `id` defaults to the title.
+- An agent with a **reply field** keeps the question in that field; the choices field is always `choices`, or the step's `conversation.choices_field` if you set one.
+- Choices can come with files: the files are sent first and the question with its options last, so the options are what the contact sees at the bottom of the chat.
+
+**How they are sent.** The **Choices** section of the Sessions tab picks the tool by how many options there are:
+
+| Options | Sent as | Tool |
+|---|---|---|
+| 1 to 3 | Reply buttons under the question | **Choices tool**, `whatsapp_send_interactive_buttons` |
+| 4 to 10 | A list the contact opens with the **Options** button | **Tool for more options**, `whatsapp_send_interactive_list` |
+| More than 10, or no tool | The question with the options as numbered lines | The reply channel's **Send tool** |
+
+If the choices tool fails, for example because WhatsApp rejects a button title that is too long, the question still goes out with the options as numbered lines, and the message records why.
+
+**The tool call.** `{{message.text}}` is the question. `{{message.choice_buttons}}` is the options as `[{id, title}]`, `{{message.choices}}` the same with each `description`, `{{message.choices_text}}` the numbered lines, and `{{message.choices_count}}` how many there are. Templates work inside nested arguments too, such as a list's `sections[].rows`.
+
+**The contact's pick** arrives as an ordinary message. Its `text` is the title of the option they tapped, and `type` is `interactive` on WhatsApp. A contact can also ignore the options and type something else, so let the agent handle both.
+
+<Tip>
+  WhatsApp limits button titles to 20 characters and list titles to 24 (descriptions to 72). Add `"maxLength": 20` to `title` in the agent's output schema, so its options always fit.
+</Tip>
+
+In the Console, the conversation shows the options under the question, marked *Sent as a numbered list in the text* when they went out as text, and the run's events list them after the message.
+
 ## Recipes
 
 Each recipe is a combination of the settings above. Durations are in minutes in the Console and seconds in JSON.
@@ -247,7 +305,7 @@ Each recipe is a combination of the settings above. Durations are in minutes in 
 Open the workflow in Workflow Studio and expand **Run logs and metrics**.
 
 - **One row per conversation.** A session shows **Running** while it waits for the contact. While a hand-off task is open, the row may show **Paused**; that is the wait for a person, and it continues on its own when they reply or the task times out.
-- **Events** list each message as a line: *Contact: …*, *Agent → contact: …*, *Workflow → contact: …* for automatic replies, *Ada → contact: …* for a person's reply, and notes such as *Waiting for a person to reply* or *No reply in time; the conversation is handed back*. Files show as *[image: …]*, *[voice note]*, *[document: …]*, or *[location: …]*.
+- **Events** list each message as a line: *Contact: …*, *Agent → contact: …*, *Workflow → contact: …* for automatic replies, *Ada → contact: …* for a person's reply, and notes such as *Waiting for a person to reply* or *No reply in time; the conversation is handed back*. Files show as *[image: …]*, *[voice note]*, *[document: …]*, or *[location: …]*, and a question's options follow it.
 - Each turn of a step is listed separately (*Pizza assistant · turn 2*), and **Timeline** shows the steps and messages on one time axis.
 - The **Open the conversation** button opens the whole thread with that contact, across sessions, with images, audio, and video playable in place and other files as downloads.
 - Hand-off tasks appear in [Command Center](/workflows/command-center) and in the run panel, with the reply box and the messages since the hand-off.
