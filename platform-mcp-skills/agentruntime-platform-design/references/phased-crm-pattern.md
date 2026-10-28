@@ -35,5 +35,5 @@ Do not ship a single “complete CRM” in one pass. Deliver **evidence → revi
 |-------|-------------------|
 | v1 | `tenantdata_api_contract_get`, `mcp_instance_id`, `workflows_validate` valid + `tenantdata_schema` |
 | v2 | Sample run with parsed JSON in review payload |
-| v3 | Apply workflow run id + version checks |
+| v3 | Apply workflow run id + its `ran` (Live revision or published version) |
 | v4 | App saved; views `bind_compile` ok; **functional** start + browse proof per **`app-studio-wiring.md`** |

@@ -61,10 +61,11 @@ Inspect `checks_performed` and `issues` in the response. Errors fail validation;
 
 1. Create Tenant Data database and publish schema; provision Tenant Data MCP instance.
 2. Import workflow JSON; map `REPLACE_*` MCP instances and `REPLACE_CHILD_*` child workflows at **Review import**.
-3. Import/publish child workflows before orchestrators.
+3. Import child workflows so their ids exist (no publishing needed: a parent running Live calls each child's Live).
 4. **Dry-run** — Studio sends graph + start params + auto-resolved `tenantdata_schema`.
-5. Save → Publish → re-read published graph (ids, scripts, bindings, `input_schema`).
-6. Controlled run with real principal / connections.
+5. Save → re-read the saved graph (ids, scripts, bindings, `input_schema`). Saving updates Live, which runs immediately.
+6. Controlled run with real principal / connections; check `ran` in the start response.
+7. Optional: **Publish** once callers must stay on a frozen copy, then point those callers at `published` or the version number.
 
 ## Mapper fixtures (API)
 
@@ -81,11 +82,12 @@ When connected to Platform MCP, prefer **`workflows_validate`** with inline `gra
 - **`tenantdata_logical_schema`** (Platform MCP) returns the logical `{ tables[] }` JSON Schema; **`tenantdata_databases_create`** / **`tenantdata_api_contract_get`** apply and read published shape. Otherwise use Studio export or inline `tenantdata_schema` on validate.
 - Run-start `input_schema` may remain env-gated (`WORKFLOW_INPUT_SCHEMA_VALIDATION_ENABLED`).
 - `connection.primary_instance_id` may false-alarm in template dry-run until whitelist updated.
-- Studio UUID slug normalization — verify ids after publish.
+- Studio UUID slug normalization — verify ids after saving.
 - Heuristic `tenantdata_upsert` cannot prove every branch; untraced `rows: ["{{item}}"]` may warn.
 
 ## Changelog
 
+- **2026-10-21 / Live and published versions:** nothing needs publishing to run; children no longer published before orchestrators; publish is optional, for callers that must stay on a frozen version. `workflow` steps take an optional `child_target` ([runtime-contract.md](runtime-contract.md#workflow-step-child-target)).
 - **2026-09-11 / server-first validation:** removed bundled Node lint scripts; documented `tenantdata_upsert`, `lua_fixture` (composite bodies), `mapper_fixtures`, and Studio schema auto-resolve. Added [dry-run.md](dry-run.md).
 - **2026-09-11 / template pipe modifiers:** `| omit`, defaults, coalesce — [template-modifiers.md](template-modifiers.md).
 - **2026-09-10 / reconciliation:** primary-instance identity, Studio import round-trip, strict Composio unwrap guidance in [connectors-and-data.md](connectors-and-data.md).

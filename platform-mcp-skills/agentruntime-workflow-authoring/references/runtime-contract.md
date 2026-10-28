@@ -67,8 +67,21 @@ Result fields: `iteration_count`, `max_iterations`, `stopped_reason`, `last`, `i
 | `llm` | `model` or `model_ref`, nonempty `prompt`; obtain provider/credential contract — see [llm-step-results.md](references/llm-step-results.md) |
 | `agent` | `agent_id`, nonempty `prompt` or `input`; obtain agent schema |
 | `human` | `task_type`; obtain payload/response contract for that task type |
-| `workflow` | Child `workflow_id`, not parent id; obtain child published version/input/output contract |
+| `workflow` | Child `workflow_id`, not parent id; obtain child input/output contract (the child needs no publishing). Optional `child_target` — see below |
 | `external_agent` | Deployment-specific provider/configuration contract required |
+
+### `workflow` step child target
+
+| `child_target` | Parent runs Live | Parent runs a published version |
+|---|---|---|
+| omitted (default) | the child's Live | the child's Live revision stamped when that parent version was published |
+| `"published"` | the child's newest published version | the child's newest published version, resolved at run time |
+| a number, e.g. `3` | child v3 | child v3 |
+
+- Omit `child_target` while building: Live runs Live all the way down.
+- Set `"published"` or a version number only for shared children that must stay stable; the child needs that published version, or the step fails at run time.
+- Never author `child_revision`. The platform stamps it on default-target steps when the parent is published, so a published parent stays frozen.
+- Any other value fails dry-run with `workflow_call_child_target`.
 
 Advanced routing and child-run semantics require deployment documentation; the bundled schema does not certify these complete configurations.
 

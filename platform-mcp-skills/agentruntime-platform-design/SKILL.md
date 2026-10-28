@@ -34,8 +34,9 @@ Phase A — Data:
 
 Phase B — Workflows:
   workflows_authoring_contract → workflows_graph_schema → workflows_llm_step_contract (if llm steps)
-  → workflows_create → workflows_update
-  → workflows_validate (+ tenantdata_schema) → workflows_publish_version
+  → workflows_create → workflows_update (Live; base_revision from workflows_get)
+  → workflows_validate (+ tenantdata_schema) → workflow_run on Live (read ran)
+  → workflows_publish_version only once a caller must stay on a frozen copy (pin it with version)
 
 Phase C — UI (optional):
   surfaces_schema_catalog → surfaces_apps_create
@@ -49,6 +50,8 @@ Phase D — Blobs (optional):
 
 → workflow_run (after validate_before_run playbook)
 ```
+
+Workflows never need publishing to run, be triggered, be called as a child, or back a Surfaces view: edits go to **Live** and the next run uses them. Iterate on Live; publish (and pin callers to `published` or a version number) once something must stay stable. Details: [agentruntime-workflow-authoring](../agentruntime-workflow-authoring/SKILL.md) § Live, published versions and what runs.
 
 ## Storage decisions
 
