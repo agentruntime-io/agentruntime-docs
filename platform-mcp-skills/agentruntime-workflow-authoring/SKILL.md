@@ -40,7 +40,7 @@ Platform MCP clients: call **`ar_get_started` first** — it returns skill URLs 
 5. No nested `for_each` / `while` in composite bodies.
 6. All Lua returns a table; `while_eval_script` returns `{ pass = boolean }`.
 7. Do not advance cursors after partial failure or pagination cap without durable recovery.
-8. **Validate via server dry-run** (`workflows_validate` on Platform MCP) before claiming runnable. JSON on disk does not publish.
+8. **Validate via server dry-run** (`workflows_validate` on Platform MCP) before running. JSON on disk is not saved anywhere: create or update the workflow to save it.
 
 ## Validation (server-first)
 
@@ -51,14 +51,29 @@ Platform MCP clients: call **`ar_get_started` first** — it returns skill URLs 
 
 Optional request fields: `mapper_fixtures`, `mock_lua_scopes`, `mock_step_outputs`. See [dry-run.md](references/dry-run.md).
 
-**Studio:** Import → map MCP + child workflows at Review import → Dry-run → Save → Publish → re-read graph.
+**Studio:** Import → map MCP + child workflows at Review import → Dry-run → Save → re-read graph. Saving updates Live, which runs at once; publish only when a caller must stay on a frozen copy.
+
+## Live, published versions and what runs
+
+Every workflow has one editable copy, **Live**, plus any number of frozen **published versions** (v1, v2, …).
+
+| Do | How |
+|----|-----|
+| **Iterate on Live and run instantly** | `workflows_update` saves to Live. `workflow_run` / `workflows_execute_command` run Live by default, so the next run uses your edit. Nothing needs publishing to run, test, trigger, or be called as a child. |
+| **Read `ran` to see what executed** | Run starts return `ran`: `{target: "live", revision}` or `{target: "published" \| "version", version}`. Quote it when reporting a run. |
+| **Pass `base_revision` when editing** | Take `revision` from `workflows_get` (or your last `workflows_update`) and send it as `base_revision`. On `409 revision_conflict` nothing was saved: `workflows_get` again, re-apply your edit to the current graph, retry with the new revision. |
+| **Publish plus pin when something must stay stable** | `workflows_publish_version` (optional `note`) freezes Live into the next version and returns `published_version`. Live stays editable. Publishing alone changes nothing that runs: callers opt in with `version: "published"` (newest published) or pin `version: "<n>"`. |
+| **Pin other callers** | Inbound webhooks: `inbound_webhooks_create` / `inbound_webhooks_update` `version`. Child steps: `workflow` step `child_target` (`"published"` or a number; omit for Live; never author `child_revision`) — see [runtime-contract.md](references/runtime-contract.md#workflow-step-child-target). A published parent keeps its default children frozen at the revision they had when it was published. |
+| **Look back** | `workflows_list_revisions` (Live history), `workflows_list_versions` (published versions only), `workflows_get` with `version: "<n>"` (read a frozen copy). |
+
+`version: "published"` fails with `409 no_published_version` until the first publish; it never falls back to Live.
 
 **No offline scripts in this bundle.** Use server dry-run / `workflows_validate` (see [validation.md](references/validation.md)).
 
 ## Reviews
 
-Return an issue table: file, step id, exact path, rule, fix. Distinguish confirmed failures, conditional risks, and checks not run. Do not claim validate/publish/run without evidence (`checks_performed`, published version id, run id).
+Return an issue table: file, step id, exact path, rule, fix. Distinguish confirmed failures, conditional risks, and checks not run. Do not claim validate/run/publish without evidence (`checks_performed`; run id plus `ran`; `published_version` when you published).
 
 ## Import
 
-Resolve `REPLACE_*` MCP instance placeholders and `REPLACE_CHILD_*` child `workflow_id` values at Studio **Review import**. Publish children before orchestrators. Workflow JSON is source of truth — no patch generators.
+Resolve `REPLACE_*` MCP instance placeholders and `REPLACE_CHILD_*` child `workflow_id` values at Studio **Review import**. Children need no publishing first: create or import them, then reference their ids; a parent running Live calls each child's Live. Workflow JSON is source of truth — no patch generators.

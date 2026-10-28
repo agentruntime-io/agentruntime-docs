@@ -18,7 +18,7 @@ Console parity: monorepo `docs/surfaces/CONSOLE_GUIDE.md` (Preview tab starts ru
 ## Order of operations (agents)
 
 ```text
-1. Publish workflows → real workflow UUIDs (workflows_publish_version).
+1. Create workflows → real workflow UUIDs (workflows_create; no publishing needed, views use Live).
 2. surfaces_apps_create → app_id (use as app_instance_id in render/action APIs).
 3. surfaces_apps_put_query for each query_id used in tables/lists.
 4. surfaces_apps_put_view for each view_id in navigation.
@@ -32,7 +32,7 @@ Console parity: monorepo `docs/surfaces/CONSOLE_GUIDE.md` (Preview tab starts ru
 
 Clicking **Start** does **not** open a separate platform modal. Required workflow inputs must be **on the view** (or fixed in the action). They become the workflow **start `params`** / trigger payload when the button fires.
 
-1. Read required keys from the published workflow — **`workflows_graph_schema`** / Studio input schema (`input` / `run_setup.trigger_payload` defaults). See [workflow-authoring deployment-inputs.md](../../agentruntime-workflow-authoring/references/deployment-inputs.md).
+1. Read required keys from the workflow — **`workflows_graph_schema`** / Studio input schema (`input` / `run_setup.trigger_payload` defaults). See [workflow-authoring deployment-inputs.md](../../agentruntime-workflow-authoring/references/deployment-inputs.md).
 
 2. **Pattern A — form on the view (Console “Collect form inputs”)**
 
@@ -44,7 +44,7 @@ Clicking **Start** does **not** open a separate platform modal. Required workflo
   "onClick": {
     "action": {
       "type": "workflow.run",
-      "workflow_ref": "<published-ingestion-workflow-uuid>",
+      "workflow_ref": "<ingestion-workflow-uuid>",
       "collect_workflow_inputs": true
     }
   }
@@ -108,9 +108,9 @@ Every `surfaces_apps_put_view` runs compile and stores `bind_compile` on the vie
 
 | `bind_compile.status` | Expected meaning |
 |-----------------------|------------------|
-| `ok` | Workflow refs are UUIDs; bound `node_id` values exist on **active published** graph |
+| `ok` | Workflow refs are UUIDs; bound `node_id` values exist on the workflow's **Live** graph |
 | `import_pending` | Non-UUID `workflow_ref` on a **workflow** binding or action |
-| `error` | Unknown workflow, missing active version, or bad `node_id` |
+| `error` | Unknown or archived workflow, or `node_id` not on the Live graph |
 
 **Spec:** `database.query` binds should **not** set `import_pending` (no `workflow_ref`). If compile reports `import_pending` on a pure `database.query` path, treat that as **unexpected platform behaviour** — capture `binding_path`, view id, and `bind_compile` JSON and report internally; do not assume the agent mis-authored the bind.
 
@@ -144,7 +144,7 @@ Expect **`mode": "browse"`** in the **response** when the view uses `database.qu
   "host": "preview",
   "context": {
     "run_id": "<from workflow_run or surfaces/action>",
-    "workflow_ref": "<published workflow uuid>"
+    "workflow_ref": "<workflow uuid>"
   }
 }
 ```

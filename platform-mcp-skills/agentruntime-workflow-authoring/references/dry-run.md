@@ -8,7 +8,7 @@ Responses include **`readiness`** (`ready` | `blocked`) and **`blockers[]`** in 
 
 **`validation_evidence`** in the validate response carries **`graph_hash`**, **`workflow_graph_schema_hash`**, **`validated_at`**, **`readiness`**, and **`checks_performed`**. After each validate call, the BFF stores the full validate payload in control-service **`workflow_graph_dry_runs`** keyed by `(workflow_id, graph_hash)` — independent of publish. Fetch the last result with `GET /v1/workflows/{id}/graph-dry-runs?graph_hash=…`.
 
-**Publish** does **not** run dry-run and does **not** block on `valid` or `readiness`. Publishing saves a version; dry-run is advisory for authoring and ops.
+Neither saving nor **publish** runs dry-run, and neither blocks on `valid` or `readiness`. Saves go to Live, which runs at once; publishing freezes Live into a numbered version. Dry-run is advisory for authoring and ops.
 
 ## API
 
@@ -73,6 +73,7 @@ Only `graph` is required. Prefer the **default** check set (omit `checks`) for w
 | `for_each_items_invalid` | error | List coercion failed (may also fire when upstream `steps.*` output absent) |
 | `mcp_connection_resolution_conflict` | error | Same instance with conflicting principal/workspace modes |
 | `mcp_connection_resolution_principal` | warning | Composio + `principal` — needs principal at run |
+| `workflow_call_child_target` | error | `workflow` step `child_target` is not omitted/`live`, `published` or a version number |
 | `connection_root_multi_instance` | warning | Root `connection.*` with 2+ MCP instances |
 | `input_resolver_no_model` | warning | Resolver without `model` / `model_ref` |
 | `graph_schema_validation` | error | Graph JSON fails canonical schema (unknown/typo fields on steps) |
@@ -101,7 +102,7 @@ Full template rules: [template-modifiers.md](template-modifiers.md). Connection 
 | Every Lua branch / nil on all paths | Use `mapper_fixtures` + `mock_lua_scopes` or a run |
 | `connection.primary_instance_id` templates | Compile whitelist may not include this key yet — see [runtime-contract.md](runtime-contract.md) |
 | Run-start `input_schema` enforcement | May be env-gated separately from dry-run |
-| Child `workflow` step graph validity | Validate each published child workflow separately |
+| Child `workflow` step graph validity | Validate each child workflow separately |
 
 ## Pass / fail
 
@@ -109,7 +110,7 @@ Full template rules: [template-modifiers.md](template-modifiers.md). Connection 
 |--------|---------|
 | Dry-run **pass** | Graph is well-formed for static checks; does not guarantee run success |
 | Dry-run **fail** | Fix authoring before relying on a run |
-| **`readiness: blocked`** | Advisory — review blockers; publish is still allowed |
+| **`readiness: blocked`** | Advisory — review blockers; saving, running and publishing are still allowed |
 | Warnings | Review — may be missing schema, untraced rows, or data-dependent Lua |
 
 Do not treat dry-run pass as proof of correct Composio envelopes, pagination completion, or cursor safety under partial failure.

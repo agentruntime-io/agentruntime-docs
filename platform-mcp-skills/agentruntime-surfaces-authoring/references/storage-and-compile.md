@@ -24,9 +24,9 @@ Workflow graphs stay in **workflow_definitions** — Surfaces only holds **UUID 
 
 ## Compile / import pending
 
-App Studio may report **`import_pending`** until workflow UUIDs in the view doc resolve to published workflows. Agents should:
+App Studio may report **`import_pending`** until workflow UUIDs in the view doc resolve to existing workflows (their Live copy; no publishing needed). Agents should:
 
-1. Publish workflow (Console or `workflows_publish_version`).
+1. Create or update the workflow (Console, `workflows_create` or `workflows_update`).
 2. Replace placeholder refs with real UUIDs (`replaceWorkflowRefs` pattern in webapp).
 3. Re-save view document via **`surfaces_apps_put_view`**.
 4. Read **`bind_compile`** on **`surfaces_apps_get_view`** — do not skip step 4.
