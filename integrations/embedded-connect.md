@@ -202,7 +202,7 @@ Each MCP step in the workflow graph may declare **`connection_resolution`**:
 
 For embedded Gmail sync, set Gmail MCP steps to **`principal`** explicitly. Automatic will not assume Gmail is per-end-user.
 
-Workflow Studio shows this on MCP steps and in the workflow **API** tab under **Embedded Connect**. If a principal-scoped step runs before the user has connected, execute returns `principal_not_connected` with `details.step_name` and `details.provider`.
+Workflow Studio shows this on MCP steps and in the workflow **API** tab under **Embedded Connect**. If the user hasn't connected the account a principal-scoped step needs, the run still starts, and that step fails with `principal_not_connected` (`details.step_name`, `details.provider`). Segment batches and Console schedules skip such users instead.
 
 **Scheduled sync (typical):** your backend cron or job queue loops customers and calls the same execute API:
 
@@ -211,7 +211,7 @@ for user in customers.where(sync_enabled=True):
     execute_workflow(WF_ID, external_user_id=user.id)
 ```
 
-Optional: call `GET /v1/principals?provider=gmail` to list only users who finished connect. In Console, open **Integrations → Principals** for the same view with connection badges.
+Optional: call `GET /v1/principals?provider=google_account&has_connection=true` to list only users who finished connect (results are paged: follow `next_cursor`). In Console, open **Settings → Principals** for the same view with connection badges.
 
 ---
 
@@ -325,8 +325,8 @@ You do not need sync to connect users. Sync does not grant credentials — it on
 
 ### Users who have not connected yet
 
-- **Execute**: returns `principal_not_connected` — no run, no usage charge.
-- **Segments**: skipped in batch results, not treated as a hard failure.
+- **Execute**: the run starts and is charged like any run; each step that needs the missing account fails with `principal_not_connected`. Check `has_connection` first, or run through a segment with `require_connection`.
+- **Segments**: skipped in batch results with reason `principal_not_connected`, not charged and not treated as a failure.
 - **Your UI**: show "Connect Gmail" until you receive `connection.created`.
 
 Sync-before-connect is supported: we can hold a principal row with metadata before OAuth, but automation waits until connect completes.
@@ -372,13 +372,14 @@ All routes use your server-side **PAT** (`Authorization: Bearer pat_…`). Base 
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/v1/principals` | List/filter (`external_user_id`, `team`, `tag`, `provider`, `has_connection`, `status`) |
+| `GET` | `/v1/principals` | List/filter (`external_user_id`, `team`, `tag`, `provider`, `has_connection`, `status`, `q` for a text search), paged: `limit` (up to 200) and `cursor` from the previous page's `next_cursor` |
 | `GET` | `/v1/principals/{external_id}` | One principal + connections |
 | `PUT` | `/v1/principals/{external_id}` | Upsert metadata for one principal |
 | `POST` | `/v1/principals/sync` | Batch metadata upsert |
-| `POST` | `/v1/principals/{external_id}/suspend` | Exclude from future runs |
-| `DELETE` | `/v1/principals/{external_id}` | Soft delete; revokes connections and purges Vault secrets |
-| `POST` | `/v1/principals/{external_id}/link` | Link principal to Console user (`{ "user_id": "…" }`) — admin |
+| `POST` | `/v1/principals/{external_id}/suspend` | Exclude from future runs and cancel the user's unfinished connect links |
+| `POST` | `/v1/principals/{external_id}/activate` | Reactivate a suspended principal |
+| `DELETE` | `/v1/principals/{external_id}` | Delete; removes the user's connections, revokes access at Google or Composio and erases stored credentials. Answers `409 principal_connection_in_use` when one of those connections is the template connection of an MCP tool; add `?force=true` to delete anyway. The same `external_id` can be registered again later |
+| `POST` | `/v1/principals/{external_id}/link` | Link principal to a workspace member (`{ "user_id": "…" }`); the user must be a member. Informational only |
 | `DELETE` | `/v1/principals/{external_id}/link` | Remove Console user link |
 
 **List query example:**
@@ -394,6 +395,9 @@ GET /v1/principals?provider=google_account&has_connection=true&status=active
 | `GET` | `/v1/principal-segments` | List segments |
 | `POST` | `/v1/principal-segments` | Create segment `{ "name", "filter" }` |
 | `GET` | `/v1/principal-segments/{id}` | Get segment definition |
+| `PATCH` | `/v1/principal-segments/{id}` | Rename or change the filter |
+| `DELETE` | `/v1/principal-segments/{id}` | Delete (`409 segment_in_use` while a schedule or trigger uses it) |
+| `GET` | `/v1/principal-segments/{id}/expand` | Who matches now, paged (`limit` up to 500, `cursor`); `matched` is the total |
 
 **Create segment:**
 
@@ -428,11 +432,11 @@ Aggregates workflow usage by `principal_id` / `external_user_id` from run metada
 
 | Console surface | Path | Purpose |
 |-----------------|------|---------|
-| **Principals** | Integrations → **Principals** (`/principals`) | Who connected; metadata tags; suspend/delete; optional link to workspace member |
-| **Segment schedule** | Workflow Studio → **Schedule** | Pick an existing **Principal segment** on cron — expands to one run per matched end user each fire (create segments via API) |
+| **Principals** | Settings → **Principals** (`/principals`) | Who connected; metadata tags; suspend, reactivate, delete; optional link to a workspace member; create, edit and delete segments. Workspace admins only |
+| **Segment schedule** | Workflow Studio → **Schedule** | Pick a **Principal segment** on cron — expands to one run per matched end user each fire. Workspace admins only |
 | **Operate schedules** | Operate → **Schedules** | Same segment picker when creating tenant cron schedules |
 | **Google OAuth** | Settings → MCP → Google OAuth | BYO consent branding (recommended for production Gmail) |
-| **Embedded connect settings** | Settings (webhook URL) | Partner `connection.created` delivery |
+| **Embedded connect settings** | Settings (webhook URL, allowed origins, brand name) | Event delivery to your backend (https on a public host); the origins your connect popup may report to; the name shown on the connect page |
 
 ---
 
@@ -454,7 +458,14 @@ async function connectIntegration() {
 
 Your backend creates the link; the frontend only opens the URL. **Never** put your AgentRuntime PAT in frontend code.
 
-Optional: listen for a `postMessage` from the connect page when the popup closes successfully.
+Optional: get the result in your page instead of waiting for the webhook. Two ways:
+
+- **`postMessage`:** add your frontend's origin (for example `https://app.yourproduct.com`, or `http://localhost:5173` while developing) under **Settings → Embedded Connect → Allowed origins**, and open the popup **without** `noopener`, or the popup can't reach your window. The connect page posts `{ "type": "agentruntime-connect", "ok", "message", "data" }` to those origins only.
+- **Redirect:** pass `callback_url` when you create the link (it must be under one of your allowed origins). After connecting, the end user is sent there with `connect_session_id` and `status=success` or `status=error`.
+
+The connect link only works in the browser that clicked **Continue**: if someone else opens a copied link, finishing the sign-in is refused. Links expire after 5 minutes and stop working when you suspend or delete the end user.
+
+Only workspace admins can manage end users, so create the AgentRuntime API key you use for Embedded Connect from a workspace admin's account.
 
 ---
 
