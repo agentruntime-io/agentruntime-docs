@@ -1,37 +1,34 @@
 ---
 title: Form webhook → Postgres → Resend digest
-description: Capture form submissions via webhook, store rows in Postgres, and email a daily summary with Resend.
+description: Save form submissions to Postgres through an inbound webhook, then email your team a daily summary with Resend.
 ---
 
-Build a pipeline that **ingests form data**, **persists it in Postgres**, and **emails a digest** to your team. Runs are triggered by an [inbound webhook](/integrations/inbound-webhooks); a separate scheduled trigger (external cron → same workflow or a digest-only variant) can send the daily email.
+In this guide you build two small workflows. The first **saves every form submission** to a Postgres table. The second **emails your team a daily summary** of what came in, written by an LLM.
 
-## What you'll build
+It is for people who collect leads or requests through a form and want them stored and summarized without manual work. It takes about 30 minutes.
 
 ```mermaid
 flowchart LR
-  Form[Form provider] -->|POST| WH[Inbound webhook]
+  Form[Your form or backend] -->|signed POST| WH[Inbound webhook]
   WH --> Validate[Validate input]
   Validate --> Insert[postgres_exec INSERT]
-  Insert --> Done[Run complete]
-  Cron[External scheduler] -->|POST digest=1| WH2[Same or digest workflow]
-  WH2 --> Query[postgres_query]
-  Query --> LLM[llm_call summary]
-  LLM --> Send[resend send_email]
+  Cron[Cron schedule, daily] --> Query[postgres_query]
+  Query --> LLM[LLM summary]
+  LLM --> Send[resend_send_email]
 ```
 
-**Outcome:** Every submission is stored with a timestamp. Once per day, stakeholders receive an HTML email listing new leads or tickets.
+**Outcome:** every submission is stored with a timestamp, and each morning your team gets an HTML email listing the last day's submissions.
 
 ## Prerequisites
 
-- **project_contributor** in your workspace
-- [Postgres connection](/connectors/postgres) with INSERT and SELECT on a `form_submissions` table
-- [Resend connection](/connectors/resend) with a verified sending domain
-- An LLM provider configured in **Providers** (for the digest narrative)
-- Inbound webhook feature enabled for your environment
+- The `project_contributor` role in your project
+- A [Postgres connection](/connectors/postgres) that can `INSERT` into and `SELECT` from a `form_submissions` table
+- A [Resend connection](/connectors/resend) with a verified sending domain
+- A model your workspace can use. See [LLM providers](/ai/llm-providers)
 
 ### Create the table
 
-Run once against your database:
+Run this once against your database:
 
 ```sql
 CREATE TABLE IF NOT EXISTS form_submissions (
@@ -48,35 +45,41 @@ CREATE TABLE IF NOT EXISTS form_submissions (
 
 | Adapter | Purpose |
 |---------|---------|
-| [postgres](/connectors/postgres) | Store and query submissions |
-| [resend](/connectors/resend) | Send digest email |
+| [postgres](/connectors/postgres) | Store and read submissions |
+| [resend](/connectors/resend) | Send the digest email |
 
-## Part 1 — Ingest submissions
+Install each one from **MCP → Add connectors** (click the connector, then **Add to workspace**), then connect it on **Instance config**.
+
+## Part 1: save submissions
 
 <Steps>
-  <Step title="Create the ingest workflow">
+  <Step title="Create the workflow">
     In **Workflow Studio**, create a workflow named `form-submission-ingest`.
   </Step>
-  <Step title="Add validate step">
-    Add a **lua_script** step that requires `email` and normalizes input from the webhook body.
+  <Step title="Add the validate step">
+    Add a `lua` step that requires `email` and tidies the input.
   </Step>
-  <Step title="Add Postgres insert">
-    Add **mcp_call** → `postgres_exec` on your `postgres` instance to INSERT a row.
+  <Step title="Add the Postgres step">
+    Add an `mcp` step with the `postgres_exec` tool on your `postgres` instance, to insert a row.
   </Step>
-  <Step title="Create webhook subscription">
-    Link an [inbound webhook](/integrations/inbound-webhooks) subscription to this workflow. Configure your form tool (Typeform, Webflow, custom app) to POST JSON to the subscription URL.
+  <Step title="Add an inbound webhook">
+    Open **Workflow setup → Inbound** and create a subscription for this workflow. Copy the **ingress URL** and the **signing secret** (shown once). See [Inbound webhooks](/integrations/inbound-webhooks).
   </Step>
-  <Step title="Test">
-    Submit a test form. Confirm a row appears in `form_submissions` and the run succeeds in Command Center.
+  <Step title="Send a test">
+    Send a signed test request (see below). **What you should see:** a successful run in **Command Center**, and a new row in `form_submissions`.
   </Step>
 </Steps>
+
+<Warning>
+  Inbound webhooks only accept requests signed with your signing secret and sent with an `Idempotency-Key` header. Most form tools cannot sign requests this way. Post the form data from your own server code or a small serverless function, which signs it. [Inbound webhooks](/integrations/inbound-webhooks#verify-signatures) shows how.
+</Warning>
 
 ### Validate step
 
 ```json
 {
   "id": "validate",
-  "type": "lua_script",
+  "type": "lua",
   "name": "Validate submission",
   "script": "if not input.email or input.email == '' then error('email required') end\nreturn {\n  email = input.email,\n  name = input.name or '',\n  message = input.message or '',\n  source = input.source or 'webhook'\n}",
   "timeout_s": 10
@@ -88,8 +91,9 @@ CREATE TABLE IF NOT EXISTS form_submissions (
 ```json
 {
   "id": "insert-row",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Save submission",
+  "instance_id": "REPLACE_POSTGRES_INSTANCE",
   "tool_name": "postgres_exec",
   "tool_args": {
     "sql": "INSERT INTO form_submissions (email, name, message, source) VALUES ($1, $2, $3, $4)",
@@ -105,9 +109,9 @@ CREATE TABLE IF NOT EXISTS form_submissions (
 }
 ```
 
-### Webhook payload example
+### Example body
 
-Your form should POST fields that map to workflow `input`:
+The JSON body of your request becomes the run's input, so `email` is read as `{{input.email}}`:
 
 ```json
 {
@@ -118,32 +122,35 @@ Your form should POST fields that map to workflow `input`:
 }
 ```
 
-## Part 2 — Daily digest email
+## Part 2: the daily digest
 
-Create a second workflow `form-daily-digest` (or branch on `input.digest` in one graph).
+Create a second workflow named `form-daily-digest`.
 
 <Steps>
-  <Step title="Query last 24 hours">
-    **mcp_call** → `postgres_query` for rows where `created_at > NOW() - INTERVAL '1 day'`.
+  <Step title="Query the last 24 hours">
+    Add an `mcp` step with `postgres_query`.
   </Step>
-  <Step title="Summarize with LLM">
-    **llm_call** with a prompt that includes `{{steps.query-submissions.result.rows}}` and asks for a short HTML bullet list.
+  <Step title="Summarize with an LLM">
+    Add an **LLM** step. Its prompt includes `{{steps.query-submissions.result.rows}}` and asks for a short HTML bullet list.
   </Step>
-  <Step title="Send email">
-    **mcp_call** → `send_email` on your `resend` instance with `html` from the LLM step.
+  <Step title="Send the email">
+    Add an `mcp` step with `resend_send_email` on your `resend` instance. Use the LLM's text as the `html`.
   </Step>
-  <Step title="Schedule externally">
-    Use GitHub Actions, cron, or your cloud scheduler to POST to the digest webhook URL once per day (see [Workflow patterns](/workflows/patterns#inbound-webhook-triggers)).
+  <Step title="Schedule it">
+    Open **Workflow setup → Cron**, pick a preset such as **Daily 09:00**, choose a **Timezone**, choose an **Automation API key**, and click **Add schedule**. See [External triggers](/workflows/external-triggers#cron-schedules).
   </Step>
 </Steps>
+
+**What you should see:** the schedule under **Active schedules** with the time of the next run.
 
 ### Query step
 
 ```json
 {
   "id": "query-submissions",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Fetch today's submissions",
+  "instance_id": "REPLACE_POSTGRES_INSTANCE",
   "tool_name": "postgres_query",
   "tool_args": {
     "sql": "SELECT email, name, message, source, created_at FROM form_submissions WHERE created_at >= NOW() - INTERVAL '1 day' ORDER BY created_at DESC"
@@ -152,14 +159,16 @@ Create a second workflow `form-daily-digest` (or branch on `input.digest` in one
 }
 ```
 
+`postgres_query` returns at most 200 rows (100 by default). Add `"limit"` to `tool_args` to change it.
+
 ### LLM step
 
 ```json
 {
   "id": "summarize",
-  "type": "llm_call",
+  "type": "llm",
   "name": "Write digest narrative",
-  "model": "gpt-4o-mini",
+  "model_ref": "REPLACE_MODEL_REF",
   "prompt": "You are an ops assistant. Given these form submissions as JSON, write a concise HTML email body with a bullet per submission (email, name, message). Submissions: {{steps.query-submissions.result.rows}}",
   "depends_on": ["query-submissions"],
   "timeout_s": 120
@@ -171,12 +180,13 @@ Create a second workflow `form-daily-digest` (or branch on `input.digest` in one
 ```json
 {
   "id": "send-digest",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Email team digest",
-  "tool_name": "send_email",
+  "instance_id": "REPLACE_RESEND_INSTANCE",
+  "tool_name": "resend_send_email",
   "tool_args": {
-    "to": "team@example.com",
-    "subject": "Daily form submissions — {{input.report_date}}",
+    "to": ["team@example.com"],
+    "subject": "Daily form submissions",
     "html": "{{steps.summarize.result.text}}"
   },
   "depends_on": ["summarize"],
@@ -184,29 +194,29 @@ Create a second workflow `form-daily-digest` (or branch on `input.digest` in one
 }
 ```
 
-## Full workflow graphs (copy-paste)
+`to` is a list of addresses. Use a sender address on the domain you verified in Resend.
 
-Bind your `postgres` and `resend` MCP instances on each `mcp_call` step in Workflow Studio.
+## Full workflow graphs
 
-### Ingest workflow (`form-submission-ingest`)
+Paste each into the [JSON editor](/workflows/json-editor), then replace each `REPLACE_POSTGRES_INSTANCE` and `REPLACE_RESEND_INSTANCE` with the id of your `postgres` and `resend` instance, and `REPLACE_MODEL_REF` with a model from your [Providers](/ai/llm-providers) catalog.
+
+### Ingest workflow
 
 ```json
 {
-  "tenant_id": "your-workspace-slug",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440020",
-  "params": {},
   "steps": [
     {
       "id": "validate",
-      "type": "lua_script",
+      "type": "lua",
       "name": "Validate submission",
       "script": "if not input.email or input.email == '' then error('email required') end\nreturn {\n  email = input.email,\n  name = input.name or '',\n  message = input.message or '',\n  source = input.source or 'webhook'\n}",
       "timeout_s": 10
     },
     {
       "id": "insert-row",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Save submission",
+      "instance_id": "REPLACE_POSTGRES_INSTANCE",
       "tool_name": "postgres_exec",
       "tool_args": {
         "sql": "INSERT INTO form_submissions (email, name, message, source) VALUES ($1, $2, $3, $4)",
@@ -224,18 +234,16 @@ Bind your `postgres` and `resend` MCP instances on each `mcp_call` step in Workf
 }
 ```
 
-### Digest workflow (`form-daily-digest`)
+### Digest workflow
 
 ```json
 {
-  "tenant_id": "your-workspace-slug",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440021",
-  "params": {},
   "steps": [
     {
       "id": "query-submissions",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Fetch today's submissions",
+      "instance_id": "REPLACE_POSTGRES_INSTANCE",
       "tool_name": "postgres_query",
       "tool_args": {
         "sql": "SELECT email, name, message, source, created_at FROM form_submissions WHERE created_at >= NOW() - INTERVAL '1 day' ORDER BY created_at DESC"
@@ -244,21 +252,22 @@ Bind your `postgres` and `resend` MCP instances on each `mcp_call` step in Workf
     },
     {
       "id": "summarize",
-      "type": "llm_call",
+      "type": "llm",
       "name": "Write digest narrative",
-      "model": "gpt-4o-mini",
+      "model_ref": "REPLACE_MODEL_REF",
       "prompt": "You are an ops assistant. Given these form submissions as JSON, write a concise HTML email body with a bullet per submission (email, name, message). Submissions: {{steps.query-submissions.result.rows}}",
       "depends_on": ["query-submissions"],
       "timeout_s": 120
     },
     {
       "id": "send-digest",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Email team digest",
-      "tool_name": "send_email",
+      "instance_id": "REPLACE_RESEND_INSTANCE",
+      "tool_name": "resend_send_email",
       "tool_args": {
-        "to": "team@example.com",
-        "subject": "Daily form submissions — {{input.report_date}}",
+        "to": ["team@example.com"],
+        "subject": "Daily form submissions",
         "html": "{{steps.summarize.result.text}}"
       },
       "depends_on": ["summarize"],
@@ -268,24 +277,28 @@ Bind your `postgres` and `resend` MCP instances on each `mcp_call` step in Workf
 }
 ```
 
-Wire the ingest workflow to your form webhook URL. Schedule the digest workflow with an external cron POST — see [Inbound webhooks](/integrations/inbound-webhooks).
+## Handle repeated deliveries
 
-## Idempotency
+Senders sometimes retry. AgentRuntime ignores a repeated `Idempotency-Key`, so a retry with the same key does not start a second run. To also protect against two different keys for the same submission, add a unique `submission_id` column and use `ON CONFLICT DO NOTHING` in the insert.
 
-Form providers may retry webhooks. Options:
+## Common problems
 
-- Add a unique `submission_id` column and use `ON CONFLICT DO NOTHING`
-- Check for duplicate email + timestamp in a Lua step before INSERT
+| Problem | What to check |
+|---------|---------------|
+| The webhook returns `400` | The signature or `Idempotency-Key` header is missing or wrong. See [Inbound webhooks](/integrations/inbound-webhooks#verify-signatures) |
+| The run fails on **Save submission** | The Postgres instance has no connection, the table does not exist, or the database user cannot `INSERT` |
+| `email required` error | The request body has no `email` field |
+| The digest email never arrives | The Resend domain is not verified, or `to` is not a list |
+| The digest is empty | No rows in the last day. The LLM is given an empty list |
 
 ## Variations
 
-- Swap Resend for [Gmail](/connectors/gmail) if you prefer sending from a Google mailbox.
-- Append rows to [Google Sheets](/connectors/google-sheets) instead of Postgres for a no-DB setup.
-- Add **human_task** approval before the digest sends on Mondays only.
+- Swap Resend for [Gmail](/connectors/gmail) with `gmail_send_email`.
+- Append rows to [Google Sheets](/connectors/google-sheets) with `google_sheets_insert_row` instead of using a database.
+- Add a `human` approval step before the digest sends. See [Approve then send](/workflows/patterns#approve-then-send).
 
-## Related
+## Next steps
 
-- [Postgres connector](/connectors/postgres)
-- [Resend connector](/connectors/resend)
+- [Postgres connector](/connectors/postgres) and [Resend connector](/connectors/resend)
 - [Inbound webhooks](/integrations/inbound-webhooks)
 - [All guides](/guides/overview)

@@ -1,61 +1,71 @@
 ---
 title: Exa connector
-description: Semantic web search, similar-page discovery, and cited answers via the Exa API.
+description: Search the web by meaning, find similar pages, read page contents, get cited answers, and run research agents with Exa.
 ---
 
-The **exa** MCP adapter connects to [Exa](https://exa.ai/) for neural and keyword web search. Find relevant pages, discover content similar to a URL, and get AI-generated answers with citations — ideal for research workflows and grounded agent responses.
+The **exa** connector connects your workflows to [Exa](https://exa.ai/), a search engine built for AI. Use it to find relevant pages from a natural-language query, discover pages similar to a URL, pull full page text, get an answer with sources, or hand a multi-step research task to an Exa agent.
 
 ## Prerequisites
 
-- An Exa account with an API key
-- **project_contributor** access in AgentRuntime
+- An Exa account and **API key**.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Get an Exa API key">
-    Sign up at [exa.ai](https://exa.ai/) and copy your API key from the dashboard.
+    Sign up at [exa.ai](https://exa.ai/) and create an API key in the Exa dashboard. Copy it.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Exa** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add exa MCP instance">
-    Go to **MCP**, click **Add instance** for **exa**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_key` (your Exa key). Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Test search">
-    Run **mcp_call** → `exa_search` with a simple query to confirm connectivity.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `exa_search` tool from your **Exa** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. A simple `query` is enough.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **Research briefs** — `exa_search` with `include_text=true` → LLM synthesizes findings → save to Notion or Google Docs.
-- **Competitive intel** — `exa_find_similar` on a competitor landing page → rank overlapping products.
-- **Q&A with citations** — `exa_answer` for user questions in Chat Autopilot → display answer plus source URLs.
-- **Deep research mode** — `exa_search` with `type=deep` for multi-hop investigation before human review.
+- **Research briefs.** `exa_search` with `include_text` set to `true`, then an LLM step that turns the results into a brief you save to a doc.
+- **Competitor discovery.** `exa_find_similar` on a competitor's page lists pages that resemble it.
+- **Answers with sources.** `exa_answer` returns an answer plus the citations, which suits a support or research chat.
+- **Deep research.** `exa_agent_create_run` starts an Exa agent, `exa_agent_wait_for_run` waits for it, and `exa_agent_get_run_output` reads the result.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `exa_search` | Web search with modes `auto`, `fast`, or `deep`; optional full page text |
-| `exa_find_similar` | Find pages semantically similar to a given URL |
-| `exa_answer` | AI-generated answer with cited web sources |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `exa_agent_cancel_run` | Write | Cancel a queued or running Exa Agent run. Maps vendor agent_cancel_run. | `run_id` |
+| `exa_agent_create_run` | Write | Create an async Exa Agent run for multi-step research or structured output. Maps vendor agent_create_run. | `query` |
+| `exa_agent_get_run_output` | Read | Retrieve completed Exa Agent output: text, structured JSON, grounding, usage, and cost. Maps vendor agent_get_run_output. | `run_id` |
+| `exa_agent_wait_for_run` | Read | Poll an Exa Agent run until completed, failed, cancelled, or timeout. Maps vendor agent_wait_for_run. | `run_id` |
+| `exa_answer` | Write | Return an Exa-generated answer with cited web sources. | `query` |
+| `exa_fetch_contents` | Read | Fetch full page text for URLs or Exa IDs. Maps vendor web_fetch_exa. | — |
+| `exa_find_similar` | Read | Find web pages semantically similar to a URL using Exa. Default num_results 10; max 100. | `url` |
+| `exa_search` | Read | Run a web search through Exa and return ranked results. Default num_results 10; max 100. | `query` |
+| `exa_search_advanced` | Read | Advanced Exa web search with category, domain, and date filters. Maps vendor web_search_advanced_exa. | `query` |
 
 ## Example
 
-Search the web and pass results to an LLM step:
+Search the web and pass the results to a following step. `type` is `auto`, `fast`, or `deep`; `auto` is the default.
 
 ```json
 {
   "id": "exa-research",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Research topic",
   "tool_name": "exa_search",
   "tool_args": {
-    "query": "{{input.topic}} market trends 2026",
+    "query": "{{input.topic}} market trends",
     "num_results": 8,
     "type": "auto",
     "include_text": true
@@ -68,21 +78,23 @@ Search the web and pass results to an LLM step:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | Exa API key |
-| `APIBase` | No | Exa API base URL |
+| `api_key` | Yes | Exa API key. |
+| `api_base` | No | Exa API base URL. Default `https://api.exa.ai`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| Empty results | Broaden query; try `type=deep` for niche topics |
-| Rate limits | Reduce `num_results` or add backoff between workflow runs |
-| Stale citations in `exa_answer` | Re-run search; Exa synthesizes from live index at query time |
-| High latency on deep search | Increase step `timeout_s`; deep mode takes longer than `fast` |
+| Problem | What to do |
+|---------|------------|
+| `401` or "invalid API key" | Create a new key in the Exa dashboard and update the profile. |
+| `exa_fetch_contents` returns an error | Pass at least one of `urls` or `ids`. |
+| Slow responses | `deep` searches and agent runs take longer. Raise the step `timeout_s`, or use `exa_agent_create_run` and `exa_agent_wait_for_run` for long tasks. |
+| Too few or off-topic results | Rephrase the query as a full sentence, or use `exa_search_advanced` with `category`, `include_domains`, or date filters. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Brave connector](/connectors/brave) — alternative web search
+- [Brave connector](/connectors/brave) for another web search option
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

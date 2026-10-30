@@ -3,7 +3,7 @@ name: agentruntime-surfaces-authoring
 description: Author Surfaces v1 app/view/query JSON for Space/Console apps, marketplace packages, and database.query bindings. Use after workflows and Tenant Data exist.
 ---
 
-Design **UI shells** stored in control-service (`surface_apps`, `surface_app_views`, `surface_app_queries`) — not workflow graphs.
+Design **UI shells** — an app manifest, its views and its read-only queries, all saved as JSON through the `surfaces_apps_*` Platform MCP tools. These are not workflow graphs.
 
 ## Hosted copy (external agents)
 
@@ -11,7 +11,7 @@ Design **UI shells** stored in control-service (`surface_apps`, `surface_app_vie
 
 **Fetch SKILL.md:** https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-surfaces-authoring/SKILL.md
 
-**Schema catalog:** Platform MCP **`surfaces_schema_catalog`** or monorepo `docs/surfaces/schemas/`.
+**Schema catalog:** Platform MCP **`surfaces_schema_catalog`** (or [references/schema-catalog.md](references/schema-catalog.md)).
 
 Platform MCP: **`ar_get_started`** → `documentation.surfaces_authoring_skill_*`.
 
@@ -20,21 +20,20 @@ Platform MCP: **`ar_get_started`** → `documentation.surfaces_authoring_skill_*
 | Resource | Purpose |
 |----------|---------|
 | [references/app-studio-wiring.md](references/app-studio-wiring.md) | **Required for MCP agents** — attached workflows, query data sources, button actions, `bind_compile` verification (no separate “attach” tool) |
-| [references/schema-catalog.md](references/schema-catalog.md) | JSON Schema URLs + artifact types |
+| [references/schema-catalog.md](references/schema-catalog.md) | JSON Schema URLs, binding sources, actions, document shapes |
 | [references/storage-and-compile.md](references/storage-and-compile.md) | What persists where; workflow UUID refs |
-| Monorepo `docs/surfaces/SURFACES_SCHEMA.md` | Human spec + validate script |
-| Monorepo `docs/surfaces/examples/tiktok/` | End-to-end sample |
+| [references/platform-mcp-surfaces.md](references/platform-mcp-surfaces.md) | Tool list for `surfaces_*` |
 | [agentruntime-workflow-authoring](../agentruntime-workflow-authoring/SKILL.md) | Workflow refs are **workflow UUIDs** (no publishing needed) |
 | [agentruntime-tenant-data-authoring](../agentruntime-tenant-data-authoring/SKILL.md) | `database.query` targets Tenant Data |
 
 ## Authoring rules (summary)
 
-1. **`workflow_ref`** fields are **UUID only** (`workflow_definitions.id`, the id `workflows_create` returns) — no slugs in saved artifacts. The view compiles against and runs the workflow's Live copy; it doesn't need publishing.
+1. **`workflow_ref`** fields are **UUID only** (the workflow id `workflows_create` returns) — no slugs in saved artifacts. The view compiles against and runs the workflow's Live copy; it doesn't need publishing.
 2. App manifest (`app.json`) is **thin**: metadata + `navigation` — views live in separate `*-view.json` files.
-3. Component props: literals inline; dynamic values use `{ "bind": { "source": … } }` (see SURFACES_SCHEMA.md).
+3. Component props: literals inline; dynamic values use `{ "bind": { "source": … } }` (see [references/schema-catalog.md](references/schema-catalog.md)).
 4. **`database.query`** binds read-only SELECT to Tenant Data queries defined in `*.query.json` — **`surfaces_apps_put_query` before** the view references `query_id`.
 5. **Runnable apps** need **`workflow.run` / `workflow.operation` actions**, not only display bindings — see [app-studio-wiring.md](references/app-studio-wiring.md).
 6. Ship: workflows are live as soon as they're saved. Optional **`workflows_publish_version`** freezes a version for callers that must stay stable; optional **`marketplace_workflow_packages_publish`** for the catalog. App: **`surfaces_apps_*`** + **`surfaces_apps_publish_package`**. HITL: **`surfaces_apps_put_gate_bindings`**.
 7. After every view save, confirm **`bind_compile.status`** via **`surfaces_apps_get_view`**. Functional proof: **`app-studio-wiring.md`** (not button JSON alone).
 
-Validate JSON locally: `cd docs/surfaces/schemas && node validate-examples.mjs` (monorepo).
+Validate JSON locally against the schema files listed in `surfaces_schema_catalog` (any JSON Schema 2020-12 validator, e.g. `ajv`), starting from `view.schema.json`, `app.schema.json` or `query-definition.schema.json`.

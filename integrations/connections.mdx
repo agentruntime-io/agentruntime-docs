@@ -1,89 +1,120 @@
 ---
 title: Connections
-description: Save Google, WhatsApp, and API key credentials for MCP connectors in AgentRuntime.
+description: Save Google, WhatsApp, and API-key credentials once, then reuse them across connectors and workflows.
 ---
 
-**Connections** store Vault-backed credentials MCP tools use at runtime. Manage them from **Connections** (`/connections`) in the [Console](https://console.agentruntime.io).
+A **connection** is a set of saved credentials for an outside service: a Google sign-in, a WhatsApp Business account, an API key, or a database connection string. This page is for anyone who needs to add, test, rotate, or delete credentials in the [Console](https://console.agentruntime.io).
 
-Connections are separate from workflow graphs. You **wire** them to MCP instances through **config profiles** on each instance (`/mcp/instances/{instance_id}`), then reference the instance in workflow **mcp_call** steps (`instance_id` + `server_url` after publish, or `server_url` only in portable exports).
+Secrets are stored in the Vault. After you save them, the Console does not show them in plain text again.
 
-<Info>
-  This page covers **shared connection flows** only. Per-adapter tools and config live on each [connector page](/integrations/connector-catalog).
-</Info>
+A connection does nothing by itself. You attach it to a connector through a **config profile** on an [MCP instance](/integrations/mcp-instances), and a workflow step then uses that instance.
 
-## Console layout
+## Before you begin
 
-The Connections page shows:
+- A workspace selected in the Console header. Connections belong to a workspace.
+- The **project_contributor** role or higher. Without MCP write permission, the buttons on the page are disabled.
 
-- **Google account** card (when Google connect is enabled) — OAuth once, enable per-service (Gmail, Drive, Sheets, …)
-- **Connect WhatsApp** — opens the WhatsApp connection modal (when enabled)
-- **New custom connection** — API keys, tokens, DSNs, and template-based connectors
-- A searchable list of saved connections with usage hints
+## What the Connections page shows
 
-Page description in the Console: *"Vault-backed credentials for your workspace. Attach them from each MCP connector's config profile."*
+Open **Connections** in the sidebar. You will see:
 
-## Google Workspace
+- **New custom connection** and **Add from template** buttons at the top right.
+- An **Accounts** section with a **Sign in with Google** button, when Google sign-in is available for your workspace. The Google card shows how many Google accounts you have.
+- A **Saved connections** list, grouped by provider, with a **Search connections…** box. Each row shows when it was last updated and how many instances use it. A row marked **Unused** is not attached to any instance yet.
 
-Google connections use OAuth 2.0. One Google account can authorize multiple Workspace services (Gmail, Drive, Sheets, Calendar, and more).
+<Frame caption="The Connections page in a new workspace">
+  <img src="/images/integrations/connections-page.png" alt="The Connections page with the New custom connection and Add from template buttons, an Accounts section with a Sign in with Google button and a Google card showing No Google accounts yet, and an empty Saved connections section" />
+</Frame>
+
+In a new workspace both lists are empty: the **Accounts** section says **No Google accounts yet** and **Saved connections** says **No saved connections yet**, with **New custom connection** and **Open MCP connectors** buttons.
+
+Click a row to open its details. A details panel shows the credential type, a **Test** button, a **Rotate** button, a **Used by** list, and **Delete connection**.
+
+## Add a Google account
+
+One Google sign-in can power several Google connectors, so you choose the services up front.
 
 <Steps>
-  <Step title="Connect Google account">
-    On **Connections**, use the **Google account** card and complete OAuth.
+  <Step title="Start the sign-in">
+    On **Connections**, click **Sign in with Google** (or **Add from template**, then click **Sign in** on the **Google** row under **Accounts**).
   </Step>
-  <Step title="Enable services">
-    On the connected account card, enable the services you need (for example **Gmail** and **Sheets**).
+  <Step title="Name it and pick services">
+    Enter a **Display name** (for example `Work Google`), then tick the services you need, such as Gmail or Sheets. **Select all** and **Clear all** help with long lists.
   </Step>
-  <Step title="Wire to MCP instances">
-    Open **MCP** → your instance → **Instance config** (`/mcp/instances/{id}`). Pick or create a config profile and select the Google connection in the profile's credential wiring.
+  <Step title="Continue to Google">
+    Click **Continue to Google**, sign in, and approve the permissions. You return to the Console.
   </Step>
 </Steps>
 
-See the full [Google Workspace guide](/integrations/google-workspace).
+You should now see the account under **Accounts**. Open it to see **Enabled services** and **Used by MCP instances**. To add a service later, open the account and click **Update permissions**. If Google access stops working (for example, the user revoked it), open the account and click **Reconnect**.
 
-## WhatsApp
+If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace. [Contact support](mailto:support@agentruntime.io).
 
-WhatsApp connections support embedded signup (Meta business flow) or manual credential entry for existing business accounts.
+See [Google Workspace](/integrations/google-workspace) for the connectors that use it.
 
-On **Connections**, click **Connect WhatsApp** (when the feature is enabled for your environment).
+## Add WhatsApp
 
-See the [WhatsApp connector guide](/connectors/whatsapp) for embedded signup, tools, and templates.
+1. Click **Add from template**.
+2. On the **WhatsApp** row under **Accounts**, click **Connect**.
+3. Choose **Connect with Meta** and click **Connect WhatsApp Business** to use Meta's signup, or choose **Paste API keys** and enter the **Access token**, **WhatsApp Business Account ID**, and optionally the **Phone number ID**. Then click **Save WhatsApp connection**.
 
-## Custom connections (API keys and DSNs)
+If the **Connect** button is disabled, WhatsApp connect is not set up for your workspace. See the [WhatsApp connector](/connectors/whatsapp) for tools, templates, and messaging.
 
-Many connectors authenticate with API keys, personal access tokens, or connection strings.
+## Add an API key or connection string
+
+Most connectors (Resend, GitHub, Shopify, Postgres, Notion, and more) use a key, token, or connection string.
 
 <Steps>
-  <Step title="Create a connection">
-    Click **New custom connection** and choose a template (when listed) or enter a display name and credential fields.
+  <Step title="Pick a template or start from scratch">
+    Click **Add from template**. The dialog has a **Search templates…** box, an **Accounts** section (Google, WhatsApp, and Notion), and an **API keys & credentials** list. Find your service in that list and click **Connect** on its row. If it is not listed, close the dialog and click **New custom connection**. A few rows are greyed out and cannot be picked.
+
+    <Frame caption="Add from template: the Accounts section">
+      <img src="/images/integrations/connections-add-from-template.png" alt="The Add from template dialog with a Search templates box, the Accounts section listing Google with a Sign in button, and WhatsApp and Notion with Connect buttons, and the start of the API keys and credentials list" />
+    </Frame>
+
+    <Frame caption="Add from template: the API keys & credentials list">
+      <img src="/images/integrations/connections-api-keys-templates.png" alt="The API keys and credentials list in the Add from template dialog, two columns of services such as Activecampaign, Airtable, Apify, Brave and Calendly, each with the number of fields and a Connect button" />
+    </Frame>
   </Step>
-  <Step title="Save credentials">
-    Paste the API key, token, or DSN. Secrets are stored in Vault — they are not echoed back in the UI after save.
+  <Step title="Enter the credentials">
+    For a template, fill in the fields shown. For a custom connection, enter a **Display name**, then add one row per secret: a key name such as `api_key` and its value. Use **Add field** for more rows.
   </Step>
-  <Step title="Wire to an MCP instance">
-    Go to **MCP** → open the instance → **Instance config**. Activate a profile wired to this connection (or use the quick-apply connection picker on the profile panel).
-  </Step>
-  <Step title="Validate (optional)">
-    Run **MCP validation** for the server at `/mcp/{server_id}/validate`, or validate a specific server–connection binding via the API (`POST /v1/mcp/servers/{id}/connections/{connection_id}/validate`).
+  <Step title="Save">
+    Click **Save**. You should see a "Connection saved" message and the connection in **Saved connections**.
   </Step>
 </Steps>
 
-Examples: Resend, GitHub, Shopify, Postgres DSN, Notion integration token.
+## Use a connection in a connector
 
-## Managing connections
+Open **MCP**, open your instance, and on **Instance config** choose the connection in a profile, then click **Use this profile for workflows**. The steps are in [MCP instances](/integrations/mcp-instances).
 
-| Action | How |
-|--------|-----|
-| **View usage** | Click a connection row to open the detail sheet — see which MCP instances reference it |
-| **Update credentials** | Edit the connection and save a new key or re-authorize OAuth |
-| **Rotate keys** | Add the new key, update instance profiles, then revoke the old key in the external service |
-| **Delete** | Remove the connection only after unwiring it from all MCP config profiles |
+## Manage a connection
+
+Click the connection's row to open its details.
+
+| Task | How |
+|------|-----|
+| **Check it still works** | Click **Test**. A "Resolve test OK" message means the credentials can be read. |
+| **Rename** | Click the pencil icon next to the name. |
+| **Change or rotate a key** | Click **Rotate**, edit the values, and click **Save to Vault**. Update the key in the outside service first if you are replacing it. |
+| **See where it is used** | Open the **Used by** section. |
+| **Delete** | Click **Delete connection** and confirm. |
 
 <Warning>
-  Deleting a connection breaks MCP instances whose active profile still references it. Rewire profiles first.
+  Deleting a connection also deletes the config profiles that use it. Instances that relied on it stop working until you attach a new connection. Check **Used by** first.
 </Warning>
+
+## Common problems
+
+| Problem | What to do |
+|---------|------------|
+| Buttons are disabled | Select a workspace in the header, and make sure you have MCP write permission. |
+| "Workspace required" message | Pick a workspace with the control in the header. |
+| A Google connector stops working | Open the account and click **Reconnect**. |
+| A tool says it has no credentials | Attach the connection to the instance's active profile. See [MCP instances](/integrations/mcp-instances). |
 
 ## Related
 
-- [MCP instances](/integrations/mcp-instances) — install connectors and config profiles
+- [MCP instances](/integrations/mcp-instances)
 - [Integrations quickstart](/integrations/quickstart)
-- [Authentication](/integrations/authentication)
+- [Authentication methods](/integrations/authentication)

@@ -1,71 +1,92 @@
 ---
 title: GitLab connector
-description: List projects, manage issues, and call the GitLab REST API from AgentRuntime workflows.
+description: Read and create GitLab issues, merge requests, pipelines, and more on GitLab.com or a self-managed GitLab.
 ---
 
-The **gitlab** MCP adapter connects to the [GitLab REST API v4](https://docs.gitlab.com/ee/api/rest/). Use it to triage issues, create bug reports from workflow failures, and explore project metadata — on GitLab.com or self-managed instances.
+The **gitlab** connector connects workflows to the [GitLab REST API v4](https://docs.gitlab.com/ee/api/rest/). Use it to file issues from failed workflows, review merge requests and pipelines, search a project, or call any other GitLab API endpoint, on GitLab.com or your own GitLab server.
 
 ## Prerequisites
 
-- A GitLab account with access to the target projects or groups
-- A **personal access token**, **group access token**, or **project access token** with scopes such as `api` and `read_api`
-- For self-managed GitLab: the REST base URL for your instance (e.g. `https://gitlab.example.com/api/v4`)
-- **project_contributor** access in AgentRuntime
+- A GitLab account with access to the projects you want to automate.
+- A **personal, group, or project access token**. Use the `read_api` scope for read-only workflows and `api` if workflows create or change things.
+- For a self-managed GitLab: its API base URL, for example `https://gitlab.example.com/api/v4`.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Create a GitLab access token">
-    In GitLab, go to **User Settings → Access Tokens** (or create a group/project token). Grant at least `read_api`; add `api` if you need to create issues. Copy the token immediately — GitLab shows it only once.
+    In GitLab, open your avatar menu, go to **Preferences** (or **Edit profile**), then **Access tokens**, and add a new token with the scopes above. You can also create a group or project access token. Copy the token right away; GitLab shows it only once.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIToken`. For self-managed instances, also set `BaseURL` to your REST v4 base (e.g. `https://gitlab.example.com/api/v4`).
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **GitLab** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add gitlab MCP instance">
-    Go to **MCP**, click **Add instance** for **gitlab**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `gitlab_api_token` (your token) and, for a self-managed GitLab, `gitlab_base_url`. Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Verify identity">
-    Run **mcp_call** → `get_current_user` and `list_projects` before wiring project IDs into workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `gitlab_get_current_user` tool from your **GitLab** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. This tool has no arguments and returns the user the token belongs to.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **Incident → issue** — Workflow failure step captures error context → LLM formats a title and body → `create_issue` in the on-call project.
-- **Release notes triage** — `list_issues` with `state=opened` → LLM summarizes blockers → post summary to Slack or Notion.
-- **Project discovery** — `list_projects` with `search` → agent picks the correct `project_id_or_path` for downstream API calls.
-- **Custom automation** — `gitlab_api_call` for merge requests, pipelines, or labels not covered by first-class tools.
+- **Incident to issue.** When a workflow step fails, an LLM formats the error and `gitlab_create_issue` files it in your on-call project.
+- **Merge request review.** `gitlab_get_merge_request` and `gitlab_get_merge_request_diffs` feed an LLM step that posts feedback with `gitlab_create_workitem_note`.
+- **Pipeline watcher.** `gitlab_list_pipelines` and `gitlab_get_job_log` collect failures for a daily digest.
+- **Anything else.** `gitlab_api_call` sends a raw REST v4 request for endpoints without a dedicated tool.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `get_current_user` | GitLab user for the configured API token |
-| `list_projects` | Projects visible to the token (optional name/path search) |
-| `get_project` | Project by numeric ID or namespace path (e.g. `group/project`) |
-| `list_issues` | Issues in a project with optional state filter |
-| `create_issue` | Create an issue with title, description, and labels |
-| `gitlab_api_call` | Raw GitLab REST v4 request (GET, POST, PUT, PATCH, DELETE) |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+`project_id_or_path` accepts a numeric project ID or the project path, such as `group/project`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `gitlab_api_call` | Write | Call any GitLab REST v4 endpoint with the configured token. | `method`, `path` |
+| `gitlab_create_issue` | Write | Create an issue in a GitLab project. | `project_id_or_path`, `title` |
+| `gitlab_create_merge_request` | Write | Create a merge request in a GitLab project. | `project_id_or_path`, `title`, `source_branch`, `target_branch` |
+| `gitlab_create_workitem_note` | Write | Add a note to an issue or merge request. | `project_id_or_path`, `work_item_type`, `work_item_iid`, `body` |
+| `gitlab_get_current_user` | Read | Get the GitLab user for the configured API token. | — |
+| `gitlab_get_job_log` | Read | Get the plain-text trace log for a CI job. | `project_id_or_path`, `job_id` |
+| `gitlab_get_merge_request` | Read | Get a merge request by project and merge request IID. | `project_id_or_path`, `merge_request_iid` |
+| `gitlab_get_merge_request_commits` | Read | List commits on a merge request. | `project_id_or_path`, `merge_request_iid` |
+| `gitlab_get_merge_request_diffs` | Read | Get file diffs for a merge request. | `project_id_or_path`, `merge_request_iid` |
+| `gitlab_get_pipeline` | Read | Get a pipeline by project and pipeline ID. | `project_id_or_path`, `pipeline_id` |
+| `gitlab_get_project` | Read | Get a GitLab project by numeric ID or namespace path. | `id_or_path` |
+| `gitlab_get_server_version` | Read | Get GitLab instance version and revision. | — |
+| `gitlab_get_workitem_notes` | Read | List notes on an issue or merge request. | `project_id_or_path`, `work_item_type`, `work_item_iid` |
+| `gitlab_list_issues` | Read | List issues in a GitLab project. | `project_id_or_path` |
+| `gitlab_list_labels` | Read | List labels in a GitLab project. | `project_id_or_path` |
+| `gitlab_list_merge_requests` | Read | List merge requests in a GitLab project. | `project_id_or_path` |
+| `gitlab_list_pipelines` | Read | List CI/CD pipelines for a GitLab project. | `project_id_or_path` |
+| `gitlab_list_projects` | Read | List GitLab projects visible to the configured token. | — |
+| `gitlab_search` | Read | Search GitLab issues or merge requests. | `query`, `scope` |
 
 ## Example
 
-Create an issue when a workflow step fails:
+File an issue when a workflow step fails.
 
 ```json
 {
   "id": "gitlab-issue",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "File GitLab issue",
-  "tool_name": "create_issue",
+  "tool_name": "gitlab_create_issue",
   "tool_args": {
     "project_id_or_path": "my-group/my-service",
     "title": "Workflow run {{input.run_id}} failed",
-    "description": "{{steps.summarize-error.result.summary}}",
+    "description": "{{steps.summarize-error.result.text}}",
     "labels": "automation,incident"
   },
-  "depends_on": ["summarize-error"],
+  "depends_on": [
+    "summarize-error"
+  ],
   "timeout_s": 30
 }
 ```
@@ -74,20 +95,22 @@ Create an issue when a workflow step fails:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIToken` | Yes | Personal, group, or project access token |
-| `BaseURL` | No | REST v4 base URL (default GitLab.com API) |
+| `gitlab_api_token` | Yes | Personal, group, or project access token. |
+| `gitlab_base_url` | No | GitLab REST API v4 base URL. Default `https://gitlab.com/api/v4`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `401 Unauthorized` | Token expired or revoked; create a new token with correct scopes |
-| `404` on project path | Use URL-encoded path (`group%2Fproject`) or numeric project ID |
-| Self-managed SSL errors | Confirm `BaseURL` uses HTTPS and matches your instance hostname |
-| `403` on create_issue | Token needs `api` scope, not just `read_api` |
+| Problem | What to do |
+|---------|------------|
+| `401` unauthorized | The token is expired or revoked. Create a new token with the right scopes. |
+| `403` when creating an issue | The token needs the `api` scope, not only `read_api`. |
+| `404` for a project | Use the numeric project ID, or the full `group/project` path, and check that the token can see the project. |
+| Self-managed GitLab does not connect | `gitlab_base_url` must be the full API v4 URL of your server, for example `https://gitlab.example.com/api/v4`. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

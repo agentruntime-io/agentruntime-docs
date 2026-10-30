@@ -1,110 +1,135 @@
 ---
 title: Google Drive connector
-description: Search, upload, share, and organize Drive files from AgentRuntime workflows.
+description: Search, upload, read, share, and organize Google Drive files and shared drives from AgentRuntime workflows.
 ---
 
-The **google-drive** MCP adapter wraps the [Google Drive API](https://developers.google.com/drive/api/reference/rest/v3). Use it in workflow **mcp_call** steps to search and list files, upload attachments, export Google Docs as PDF, manage permissions, and move or archive content across folders — including shared drives when enabled.
+The **google-drive** connector uses the [Google Drive API](https://developers.google.com/drive/api/reference/rest/v3). Workflows can search and list files, upload and read content, create folders, share files, move and copy items, export Google documents as PDF, and manage shared drives.
 
 ## Prerequisites
 
-- A Google account with Google Drive access
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
-- **project_contributor** access in your workspace
+- A Google account that can use Google Drive.
+- A Google account connection in AgentRuntime with the **Google Drive** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Google Drive** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Enable Drive">
-    On your Google connection, enable the **Drive** service so the account exposes Drive API scopes.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Drive** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-drive MCP instance">
-    Go to **MCP**, click **Add instance** for **google-drive**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_files` on a known folder ID before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_drive_search_files` tool from your **Google Drive** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. Set `query` to part of a file name.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **Invoice archive** — **gmail** attachment webhook → `upload_file` to `Invoices/{{year}}` folder → **google-sheets** log file ID and vendor.
-- **Client deliverable handoff** — **google-docs** finished doc → `save_file_as_pdf` → `set_public_access` or `add_permission` for client email → notify via **gmail**.
-- **Shared drive janitor** — Schedule trigger → `search_files` for stale MIME types → `move_file` to archive folder → `trash_file` on duplicates after **human_task**.
-- **Backup mirror** — `list_files` with recursion → `read_file` → upload to **amazon-s3** or duplicate to backup folder with `duplicate_file`.
+- **File intake.** An email or webhook delivers an attachment and `google_drive_upload_file` stores it in the right folder.
+- **Client handoff.** `google_drive_save_file_as_pdf` exports a finished doc, then `google_drive_add_permission` shares it with the client.
+- **Cleanup.** A scheduled run uses `google_drive_search_files` to find old files, `google_drive_move_file` archives them, and `google_drive_trash_file` removes duplicates after a **Human** approval.
+- **Backups.** `google_drive_list_files` and `google_drive_read_file` copy files elsewhere.
 
 ## Tools
 
-### Search & read
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
 
-| Tool | Description |
-|------|-------------|
-| `search_files` | Search Google Drive files and folders by name, full text, or MIME type. |
-| `list_files` | List files in a Google Drive folder, with optional recursion into subfolders. |
-| `get_file_by_id` | Get Google Drive file or folder metadata by file ID. |
-| `read_file` | Read a Drive file and return base64 content, exporting Google Docs, Sheets, and Slides when needed. |
-| `save_file_as_pdf` | Export a Google document as PDF and save the PDF into Drive. |
+Tools marked **Delete** remove data. `google_drive_delete_file` skips the trash, so it cannot be undone. Use `google_drive_trash_file` if you want a way back.
 
-### Create & upload
+### Search and read
 
-| Tool | Description |
-|------|-------------|
-| `create_folder` | Create an empty folder in Google Drive. |
-| `create_text_file` | Create a text file in Google Drive from inline text content. |
-| `upload_file` | Upload a base64-encoded file to Google Drive. |
-| `duplicate_file` | Copy a Google Drive file into a target folder. |
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_drive_get_file_by_id` | Read | Get Google Drive file or folder metadata by file ID. | `file_id` |
+| `google_drive_get_shared_drive` | Read | Get a Google shared drive by ID. | `drive_id` |
+| `google_drive_list_files` | Read | List files in a Google Drive folder, with optional recursion into subfolders. | `folder_id` |
+| `google_drive_list_shared_drives` | Read | List Google shared drives visible to the authenticated user. | — |
+| `google_drive_read_file` | Read | Read a Drive file and return base64 content, exporting Google Docs, Sheets, and Slides when needed. | `file_id` |
+| `google_drive_search_files` | Read | Search Google Drive files and folders by name, full text, or MIME type. | `query` |
 
-### Permissions & sharing
+### Create and upload
 
-| Tool | Description |
-|------|-------------|
-| `add_permission` | Grant a Drive permission to a user on a file or folder. |
-| `delete_permission` | Remove a Drive permission from a file or folder. |
-| `set_public_access` | Make a Drive file or folder accessible to anyone with the link. |
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_drive_create_folder` | Write | Create an empty folder in Google Drive. | `folder_name` |
+| `google_drive_create_shared_drive` | Write | Create a new Google shared drive. | `name` |
+| `google_drive_create_shortcut` | Write | Create a Google Drive shortcut to an existing file or folder. | `target_id`, `name` |
+| `google_drive_create_text_file` | Write | Create a text file in Google Drive from inline text content. | `file_name`, `text` |
+| `google_drive_duplicate_file` | Write | Copy a Google Drive file into a target folder. | `file_id`, `name`, `folder_id` |
+| `google_drive_save_file_as_pdf` | Write | Export a Google document as PDF and save the PDF into Drive. | `document_id`, `folder_id`, `name` |
+| `google_drive_upload_file` | Write | Upload a base64-encoded file to Google Drive. | `file_name`, `file_base64` |
 
-### Organize & delete
+### Sharing
 
-| Tool | Description |
-|------|-------------|
-| `move_file` | Move a Drive file from its current parent folders to a new folder. |
-| `trash_file` | Move a Drive file to trash. |
-| `delete_file` | Permanently delete a Drive file without sending it to trash. |
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_drive_add_permission` | Write | Grant a Drive permission to a user on a file or folder. | `file_id`, `user_email`, `role`, `send_invitation_email` |
+| `google_drive_delete_permission` | Delete | Remove a Drive permission from a file or folder. | `file_id`, `user_email`, `role` |
+| `google_drive_set_public_access` | Write | Make a Drive file or folder accessible to anyone with the link. | `file_id` |
+
+### Organize, update, and delete
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_drive_delete_file` | Delete | Permanently delete a Drive file without sending it to trash. | `file_id` |
+| `google_drive_delete_file_revision` | Delete | Permanently delete a specific revision of a Drive file. | `file_id`, `revision_id` |
+| `google_drive_delete_shared_drive` | Delete | Delete an empty Google shared drive. | `drive_id` |
+| `google_drive_move_file` | Write | Move a Drive file from its current parent folders to a new folder. | `file_id`, `folder_id` |
+| `google_drive_trash_file` | Delete | Move a Drive file to trash. | `file_id` |
+| `google_drive_update_file` | Write | Update Google Drive file metadata such as name or description. | `file_id` |
+| `google_drive_update_shared_drive` | Write | Update Google shared drive metadata such as name. | `drive_id` |
 
 ## Example
 
-Upload a generated report PDF to a client folder:
+Upload a generated PDF to a client folder. `file_base64` is the file content as base64 text.
 
 ```json
 {
   "id": "upload-report",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Upload report PDF",
-  "tool_name": "upload_file",
+  "tool_name": "google_drive_upload_file",
   "tool_args": {
     "file_name": "Q1-report-{{input.client_slug}}.pdf",
-    "file_base64": "{{steps.render-pdf.result.base64}}",
+    "file_base64": "{{steps.render-pdf.result.pdf_base64}}",
     "mime_type": "application/pdf",
     "parent_folder": "{{input.client_folder_id}}"
   },
-  "depends_on": ["render-pdf"],
+  "depends_on": [
+    "render-pdf"
+  ],
   "timeout_s": 90
 }
 ```
 
+## Configuration
+
+Google connectors take no keys from you: the permissions come from your Google account connection.
+
+**Google permissions (scopes) requested when you tick this service:**
+
+- `https://www.googleapis.com/auth/drive`
+
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
+
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on Google connection | Re-authorize OAuth; Drive scopes may have been revoked |
-| File not found in shared drive | Set `include_team_drives: true` on search, list, and move operations |
-| `read_file` returns empty or wrong type | Google-native files are exported automatically; confirm the file ID and MIME type |
-| Permission denied on `move_file` | Caller needs writer access on source and destination; use `get_file_by_id` to verify parents |
+| Problem | What to do |
+|---------|------------|
+| A file in a shared drive is not found | Set `include_team_drives` to `true` on search, list, and move calls. |
+| `google_drive_read_file` returns unexpected content | It returns base64 content, and exports Google Docs, Sheets, and Slides when needed. Check the file ID. |
+| Permission denied on a move | The account needs edit access to both the source and the destination folder. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

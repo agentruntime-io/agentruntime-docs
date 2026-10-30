@@ -15,21 +15,21 @@ added:
   - "**Workflow triggers** — trigger config dialog, JSON payload editors with preview, run-setup preview, cron schedule tab, and inbound webhook settings **GA**"
   - "**LLM catalog in Console** — browse workspace models, quick-test credentials, pick models for agent-call steps, and match stored keys **GA**"
   - "**Vault** — list secrets, edit values in place, path breadcrumbs, and security callout in Console **GA**"
-  - "**Support cases** — open and track support requests from Console with playbook integration **GA**"
+  - "**Support cases** — open and track support requests from Console **GA**"
   - "**Workflow scheduler** — cron-driven scheduled workflow runs **GA**"
-  - "**Google OAuth acquisition** — tenant-level settings for connecting Google Workspace services at signup **GA**"
+  - "**Google OAuth acquisition** — workspace-level settings for connecting Google Workspace services at signup **GA**"
   - "Workspace Chat **channel ↔ project linking** — bind a Space channel to a Console project for scoped automation context **GA**"
-  - "Connector catalog — improved Go MCP adapter docs and actionable install error messages"
+  - "Connector catalog — improved connector docs and actionable install error messages"
 changed:
-  - "Workflow canvas **auto-layout** (dagre), X-ray layers, template gallery, and import preview before publish"
-  - "Console **design system** — PageShell, AuthSplitLayout, design tokens, StatusBadge; auth and onboarding UI refresh"
+  - "Workflow canvas **auto-layout**, X-ray layers, template gallery, and import preview before publish"
+  - "Console **design refresh** — consistent page layouts and status badges; refreshed sign-in and onboarding screens"
   - "Billing migrated to Stripe with multi-product **`product_code`** on plans — legacy product/price APIs removed **GA**"
   - "Email **verification** resend and classified password-login error messages (wrong password vs wrong provider)"
   - "Workflow **trigger management** and LLM model test API exposed on the public API **API only**"
-  - "Platform **events and webhooks**; support playbook and user-verification endpoints"
+  - "Platform **events and webhooks**, plus support and user-verification endpoints on the public API"
 ---
 
-Platform **v0.1.4 / v0.1.5** — the last coordinated release before the unified execution program described in [v0.2.0](/changelog/2026-06-20).
+Platform **v0.1.4 / v0.1.5** — the last release before [v0.2.0](/changelog/2026-06-20).
 
 ## Console
 
@@ -39,7 +39,7 @@ Platform **v0.1.4 / v0.1.5** — the last coordinated release before the unified
 
 **Triggers and LLM** round out builder workflows: configure cron, webhook, or API triggers with payload preview; pick models from the workspace catalog; test credentials before agents use them in production runs.
 
-**Vault** gives tenants a first-class secrets UI — browse paths, edit values, and understand security boundaries before wiring credentials into workflows or MCP instances.
+**Vault** gives workspaces a first-class secrets UI — browse paths, edit values, and understand security boundaries before wiring credentials into workflows or MCP instances.
 
 ## Workspace Chat
 
@@ -47,7 +47,7 @@ Space gains **project linking** on channels so team chat stays scoped to the rig
 
 ## API and billing
 
-Public API adds workflow trigger management, LLM model validation, support/playbook endpoints, and platform event relay. Billing uses the multi-product Stripe integration — each plan carries a `product_code` instead of legacy product IDs.
+The public API adds workflow trigger management, LLM model validation, support endpoints, and platform event relay. Billing uses the multi-product Stripe integration — each plan carries a `product_code` instead of legacy product IDs.
 
 ## Related docs
 
@@ -57,5 +57,5 @@ Public API adds workflow trigger management, LLM model validation, support/playb
 - [Run setup](/workflows/run-setup)
 - [LLM providers](/ai/llm-providers)
 - [Autopilot and chat](/ai/autopilot-and-chat)
-- [Multi-product billing](/platform/multi-product-billing)
+- [Billing and credits](/platform/billing-and-credits)
 - [MCP instances](/integrations/mcp-instances)

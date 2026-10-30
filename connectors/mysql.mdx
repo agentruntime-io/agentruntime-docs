@@ -1,109 +1,121 @@
 ---
 title: MySQL connector
-description: Query, monitor, and maintain MySQL databases from AgentRuntime workflow steps.
+description: Run SQL, inspect schemas, and check the health of MySQL databases from AgentRuntime workflow steps.
 ---
 
-The **mysql** MCP adapter connects to MySQL over TCP with host, port, database, and credential-based authentication. It provides SQL execution, schema introspection, query-plan analysis, and operational diagnostics backed by `performance_schema`. Use it for reporting, data sync, slow-query triage, index hygiene audits, and schema-aware agents — often alongside the [Postgres connector](/connectors/postgres) when you operate both relational engines.
+The **mysql** connector lets workflow steps run SQL against a MySQL database you own. It can read and write data, list tables with their columns and indexes, show query plans, and report on slow queries, fragmented tables, and tables without a primary key. Use it for scheduled reports, for moving data between systems, or for keeping an eye on database health. If you also run PostgreSQL, see the [Postgres connector](/connectors/postgres).
 
 ## Prerequisites
 
-- A MySQL server (5.7+ or 8.x) reachable from AgentRuntime (allowlist egress IPs if behind a firewall)
-- `Host`, `Port`, `Database`, `User`, and `Password` for the target schema
-- `SELECT` for reporting workflows; `INSERT`/`UPDATE`/`DELETE` only when steps call `mysql_execute_sql` for mutations
-- `performance_schema` enabled for diagnostic tools (`mysql_list_table_stats`, `mysql_list_active_queries`)
-- **project_contributor** access
+- A MySQL server that AgentRuntime can reach over the network. Allow inbound connections to its host and port in your firewall or security group as your setup requires.
+- The server **host**, **port** (3306 unless you changed it), **database** name, and a **user** and **password** for that database. Create a dedicated database user instead of using an administrator account.
+- Privileges that match what your workflows do: `SELECT` for reporting, plus `INSERT`, `UPDATE`, or `DELETE` only if a step must write. `mysql_execute_sql` runs whatever statement you give it, so a read-only user is the safest way to keep a workflow read-only.
+- For `mysql_list_table_stats`, access to `performance_schema` on the server.
+- Permission in your workspace to create connections and MCP instances (MCP write permission).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create a database connection with your MySQL credentials:
+    Open **Connections** in the [Console](https://console.agentruntime.io) and click **New custom connection**. Optionally set a **Display name**, then under **Credentials** add one row per setting (**Key** and **Value**):
 
-    - `Host` — server hostname or IP (e.g. `db.example.com`)
-    - `Port` — TCP port (default `3306`)
-    - `Database` — default schema for queries
-    - `User` / `Password` — authentication credentials
+    - `mysql_host`: server hostname or IP, for example `db.example.com`
+    - `mysql_port`: optional, defaults to `3306`
+    - `mysql_database`: the database to query
+    - `mysql_user` and `mysql_password`: the database login
 
-    Use a read-only account for reporting. Grant write privileges only when workflows mutate production tables.
+    Click **Save**. The dialog also asks who can use the connection; choose the sharing option that fits your team.
   </Step>
-  <Step title="Add mysql MCP instance">
-    Go to **MCP**, click **Add instance** for **mysql**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the mysql MCP instance">
+    Open **MCP**, click **Add connectors**, click the **mysql** connector, then **Add to workspace**. Open **Instance config**, select your connection in the **Connection** picker, make sure the profile is **active**, and save.
   </Step>
-  <Step title="Test with a schema listing">
-    Add a workflow with a single **mcp_call** to `mysql_list_tables` with `output_format: "simple"`. Run it to confirm connectivity before production queries.
-  </Step>
-  <Step title="Verify diagnostics access (optional)">
-    Run **mcp_call** → `mysql_list_active_queries` to confirm `performance_schema` access when you plan ops monitoring workflows.
+  <Step title="Smoke test with an MCP step">
+    In **Workflow Studio**, create a workflow with a single `mcp` step using `tool_name` `mysql_list_tables` and `tool_args` `{"output_format": "simple"}`, then run it. You should see the table names in your database.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+See [Authentication](/integrations/authentication) for how connections are bound to MCP instances.
 
 ## What you can build
 
-- **Daily ops digest** — `mysql_list_active_queries` + `mysql_list_table_fragmentation` → LLM summary → Gmail or Slack alert.
-- **Reporting pipeline** — `mysql_execute_sql` SELECT on a schedule → transform rows → push to Google Sheets or a [Postgres](/connectors/postgres) warehouse.
-- **Index hygiene audit** — `mysql_list_tables_missing_unique_indexes` → ticket creation in ClickUp or Wrike for tables without primary keys.
-- **Approval-gated writes** — **human_task** before `mysql_execute_sql` INSERT/UPDATE/DELETE on production tables.
+- **Scheduled report.** Run a `SELECT` with `mysql_execute_sql` every morning, let an LLM step summarize the rows, and email the summary.
+- **Database health check.** Combine `mysql_list_active_queries` and `mysql_list_table_fragmentation` to flag long-running queries and tables that need optimizing.
+- **Missing primary key audit.** Use `mysql_list_tables_missing_unique_indexes` to find tables without a primary or unique key and create a task for each.
+- **Approval before changes.** Put a `human` approval step before a `mysql_execute_sql` call that updates or deletes production rows.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `mysql_list_active_queries` | List non-sleeping MySQL queries ordered by execution time |
-| `mysql_list_tables_missing_unique_indexes` | List tables without a primary or unique key |
-| `mysql_list_table_fragmentation` | List the most fragmented MySQL tables |
-| `mysql_list_table_stats` | List MySQL table I/O statistics from performance_schema |
-| `mysql_execute_sql` | Execute a single SQL statement against the configured MySQL database |
-| `mysql_list_tables` | List schema information for all or selected MySQL tables |
-| `mysql_get_query_plan` | Return the JSON execution plan for a SQL statement |
+| Tool | What it does |
+|------|--------------|
+| `mysql_execute_sql` | Run one SQL statement. Statements starting with `SELECT`, `WITH`, `SHOW`, `DESCRIBE`, `DESC`, or `EXPLAIN` return rows; anything else (INSERT, UPDATE, DELETE, DDL) changes data and returns `rows_affected`. Writes data. |
+| `mysql_list_tables` | List tables with columns and indexes, or just names. |
+| `mysql_get_query_plan` | Return the JSON execution plan (`EXPLAIN FORMAT=JSON`) for a statement. |
+| `mysql_list_active_queries` | List running (non-sleeping) queries, longest first, with transaction details. |
+| `mysql_list_tables_missing_unique_indexes` | List tables that have no primary key or unique key. |
+| `mysql_list_table_fragmentation` | List the tables with the most free space inside their data files. |
+| `mysql_list_table_stats` | List table I/O statistics from `performance_schema`. |
+
+Parameters (all are optional unless marked required):
+
+- `mysql_execute_sql`: `sql` (required). A semicolon anywhere in the text is rejected, so send one statement and avoid semicolons inside string values. Returns `rows` or `rows_affected`.
+- `mysql_list_tables`: `table_names` (comma-separated filter; empty means all tables) and `output_format` (`simple` or `detailed`, default `detailed`).
+- `mysql_get_query_plan`: `sql_statement` (required).
+- `mysql_list_active_queries`: `min_duration_secs` (default 0) and `limit` (default 10).
+- `mysql_list_tables_missing_unique_indexes`: `table_schema` (defaults to your configured database) and `limit` (default 50).
+- `mysql_list_table_fragmentation`: `table_schema`, `table_name`, `data_free_threshold_bytes` (default 1), and `limit` (default 10).
+- `mysql_list_table_stats`: `table_schema`, `table_name`, `sort_by` (`row_count`, `rows_fetched`, `rows_inserted`, `rows_updated`, `rows_deleted`, or `total_latency_secs`; default `total_latency_secs`), and `limit` (default 10).
+
+For list tools, `limit` is capped at 1000.
 
 ## Example
 
-Fetch pending orders for a daily report:
+List the 20 longest-running queries that have been running for at least 5 seconds:
 
 ```json
 {
-  "id": "fetch-orders",
-  "type": "mcp_call",
-  "name": "Fetch pending orders",
-  "tool_name": "mysql_execute_sql",
+  "id": "slow-queries",
+  "type": "mcp",
+  "name": "Find slow queries",
+  "instance_id": "REPLACE_MYSQL_INSTANCE",
+  "tool_name": "mysql_list_active_queries",
   "tool_args": {
-    "sql": "SELECT id, email, total FROM orders WHERE status = 'pending' LIMIT 100"
+    "min_duration_secs": 5,
+    "limit": 20
   },
   "timeout_s": 30
 }
 ```
 
-Reference query output in a downstream `lua_script` step:
+Use the results in a later step with `{{steps.slow-queries.result.queries}}`.
 
-```
-{{steps.fetch-orders.result.rows}}
-```
+To run your own query, use `mysql_execute_sql` with `{"sql": "SELECT id, email, total FROM orders WHERE status = 'pending' LIMIT 100"}` and read `{{steps.<step id>.result.rows}}`.
 
 ## Configuration
 
+Connection keys (the connection's **Key** names):
+
 | Key | Required | Default | Description |
 |-----|----------|---------|-------------|
-| `mysql_host` | Yes | — | MySQL server hostname or IP address |
-| `mysql_port` | No | `3306` | MySQL server TCP port |
-| `mysql_database` | Yes | — | Default database (schema) for queries |
-| `mysql_user` | Yes | — | MySQL username for authentication |
-| `mysql_password` | Yes | — | MySQL password for authentication |
-| `mysql_query_timeout_seconds` | No | `30` | Per-query timeout in seconds |
+| `mysql_host` | Yes | none | MySQL server hostname or IP address. |
+| `mysql_port` | No | `3306` | MySQL server TCP port. |
+| `mysql_database` | Yes | none | Default database (schema) for queries. |
+| `mysql_user` | Yes | none | MySQL username. |
+| `mysql_password` | Yes | none | MySQL password. |
+| `mysql_query_timeout_seconds` | No | `30` | Per-query timeout in seconds. |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Connection timeout | Verify host, port, firewall rules, and that the server accepts remote connections |
-| `Access denied` | Confirm user/password and that the account is allowed from AgentRuntime's network |
-| Diagnostic tools empty | Grant `SELECT` on `performance_schema` or use a monitoring-capable DB user |
-| Slow queries timing out | Increase `mysql_query_timeout_seconds` or add indexes; use `mysql_get_query_plan` to investigate |
+| `mysql connection config is incomplete` | One of `mysql_host`, `mysql_database`, `mysql_user`, or `mysql_password` is missing from the connection, or the instance profile is not wired to it. |
+| Error starting with `mysql ping` | AgentRuntime could not log in. Check host, port, user, password, and that your firewall allows the connection. |
+| `only a single SQL statement is allowed` | The `sql` contains a semicolon. Send one statement without semicolons. |
+| `mysql_list_table_stats` returns nothing or errors | Check that `performance_schema` is enabled and your user can read it. |
+| Queries time out | Raise `mysql_query_timeout_seconds` on the connection, or use `mysql_get_query_plan` to find a missing index. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [Postgres connector](/connectors/postgres) — similar SQL patterns for PostgreSQL
+- [Postgres connector](/connectors/postgres)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

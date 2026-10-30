@@ -23,7 +23,7 @@ Do not ship a single “complete CRM” in one pass. Deliver **evidence → revi
 
 ## Phase v4 — Surfaces app (optional)
 
-- **`surfaces_schema_catalog`** first (not monorepo raw fetch).
+- **`surfaces_schema_catalog`** first (it returns the public schema URLs).
 - **`surfaces_apps_put_query`** then **`surfaces_apps_put_view`** — queries before `database.query` binds.
 - View **`workflows[]`** + button **`workflow.run`** / **`workflow.operation`** — not instructions-only UI.
 - **`surfaces_apps_put_gate_bindings`** when workflows use `human` steps.

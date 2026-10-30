@@ -1,0 +1,193 @@
+---
+title: Limits and quotas
+description: The time limits, loop caps, size limits, rate limits, and concurrency rules that apply to your workflows and API calls, what you see when you reach one, and what to do about it.
+---
+
+Every workflow platform has limits. This page lists the ones that can stop a run or reject a request, so you can design around them before they surprise you.
+
+**Who this is for:** people building workflows in [Workflow Studio](/workflows/studio), people calling the API, and people connecting channels such as WhatsApp.
+
+**What you will find:** a quick-reference table, then one section per area. Each table tells you the limit, what you see when you reach it, and what to do.
+
+<Note>
+  This page covers limits only. For credits and billing, see [Billing and credits](/platform/billing-and-credits).
+</Note>
+
+## Quick reference
+
+| What | Limit |
+|---|---|
+| Time limit of a tool call step (`mcp`) | 60 seconds when you add it in Studio |
+| Time limit of an LLM step (`llm`) | 60 seconds when you add it in Studio |
+| Time limit of an agent step (`agent`) | 600 seconds (10 minutes) when you add it in Studio |
+| Time limit of a Lua step (`lua`) | 5 seconds. The maximum is 30 seconds. |
+| How long a human step waits | 86400 seconds (24 hours) when you add it in Studio |
+| Items in one `for_each` loop | 500 |
+| Items a `for_each` runs at once | 10 by default, 100 at most |
+| Lua script size, and Lua result size | 64 KiB, and 1 MiB |
+| Body of an inbound webhook request | 1 MiB |
+| Inbound webhook requests | 600 per minute for each webhook and sender IP address |
+| One stored file | 100 MiB |
+| One incoming WhatsApp media file | 100 MiB |
+| A conversation session closes after being quiet for | 30 minutes by default |
+| Agent turns in an agentic workflow | 100 by default |
+| Shortest schedule | Every minute (five-field cron) |
+
+## Workflows and steps
+
+### Time limits and retries
+
+Every step has a time limit, set in the step's `timeout_s` field. In Studio this is the **Timeout** field. Studio fills in the defaults below when you add a step.
+
+| Step type | Studio default | If you write the JSON and leave `timeout_s` out |
+|---|---|---|
+| `mcp` (tool call) | 60 seconds | 120 seconds |
+| `llm` | 60 seconds | Always set `timeout_s` on `llm` steps |
+| `agent` | 600 seconds | Always set `timeout_s` on `agent` steps |
+| `lua` | Studio sends none | 5 seconds |
+| `human` | 86400 seconds | The task never expires |
+| `external_agent` (Cursor Cloud) | 3600 seconds | 3600 seconds |
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Step time limit | The value in `timeout_s`. For `mcp`, `llm`, `agent`, and `external_agent` steps there is no maximum you can set. | The step fails with a timeout error, and the run fails with it. | Raise **Timeout** on the step, or make the step do less. For a tool call, remember that the service behind the tool can give up sooner than your limit. |
+| Lua step time limit | 5 seconds by default. A larger `timeout_s` is cut down to 30 seconds. | The step fails. | Do less work in the script, or split it into two Lua steps. |
+| Time a run can take overall | There is no overall limit on a run. Each step has its own limit, and a run that waits for a person waits as long as the task allows. | Not applicable. | Set the limits on individual steps. |
+| Retries | Steps have no retry setting. AgentRuntime does not retry a step that failed. | The step fails and the run fails. | Fix the cause and start a new run. See [Run recovery](/workflows/run-recovery). |
+| A step is interrupted by a platform restart | Lua, LLM, and human steps start again on their own, up to 3 times. An agent step carries on from its last tool call. A loop starts again only if every step in its body is a Lua or LLM step. | Tool call, Cursor Cloud, and workflow steps, and loops that contain them, fail with failure code `WORKER_LOST`. The message says the step is not run again because it may already have had effects outside the run. A step that is interrupted 4 times fails too. | Check whether the effect already happened (for example, whether the email went out). If it is safe, start a new run. |
+| A workflow that calls itself | A workflow cannot start itself as a child. | The step fails with `workflow_call cannot invoke the same workflow_id as the parent run`. | Call a different workflow. AgentRuntime does not check longer cycles (A calls B, B calls A), so avoid them. |
+
+<Note>
+  Some connectors retry a rate-limited request on their own. The WhatsApp connector, for example, tries again up to 3 more times when WhatsApp answers "too many requests". These retries happen inside one step.
+</Note>
+
+### Human steps
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| How long a human step waits | `timeout_s`, 86400 seconds (24 hours) in Studio. If you leave it out of the JSON, the task never expires. | Your **If no response** policy decides what happens. With **Keep waiting**, the step fails with "human_task timed out" and the task is listed under **Missed**. | Choose a policy that fits, or raise **Timeout**. See [Human tasks](/workflows/human-tasks). |
+| Backup approvers | When a task escalates, the backup approvers get another 24 hours. | If they also do not answer in that time, the task expires. | List backup approvers who will answer, or use a policy that closes the task. |
+| Send-back revisions | 3 by default (`max_revisions`) | After that many send-backs, a rejection stops the branch instead of sending it back again. | Raise **Max revisions** if reviewers need more rounds. |
+
+### Agents
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Questions an agent step can ask a person | 10 by default. You can set `max_questions` from 1 to 100; a larger number counts as 100. | The agent's next question fails the step. If the agent then stalls again, the run fails with `EPISODE_STALLED`. | Raise `max_questions`, or give the agent clearer instructions and inputs so it needs fewer answers. |
+| Agent turns in an agentic workflow (agents that hand work to each other) | 100 by default. Set `settings.episode.max_agent_turns` to change it. In a conversation session the count restarts after the contact's last message. | A person gets the question "The agents have taken N turns without finishing, the most this workflow allows", and can let the agents carry on for another round of turns or end the run. If the agent's `on_stall` is `fail`, or people have already let the run carry on 3 times, the run fails with `EPISODE_TURN_LIMIT`. | Answer the question to continue. If the agents keep looping, tighten their instructions. See [Autonomous episodes](/workflows/autonomous-episodes). |
+
+## Loops
+
+Loops are `for_each` and `while` steps. See [Step types](/workflows/step-types) for their fields.
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Items in one `for_each` | 500 | The step fails with `for_each list has 600 items (max 500)` (with your own numbers). | Filter the list before the loop. Or split it into batches of up to 500 and run each batch through a child workflow. |
+| Items a `for_each` runs at once | `for_each_max_parallel`: 10 by default. A larger value is treated as 100. | Nothing fails. The remaining items wait for a free place. | Raise it to finish sooner, if the tool you call can take it. Lower it for tools with strict rate limits. |
+| Time limit per `for_each` item | Optional. `for_each_item_timeout_s` in JSON. Studio accepts 1 to 3600 seconds. | The item fails with `for_each item timeout after Ns`. Your error policy decides whether the loop goes on. | Raise it, or make each item smaller. |
+| Rounds of a `while` loop | You must set `while_max_iterations`, at least 1. Studio starts at 5. There is no upper limit. | The loop ends without an error and the result says `stopped_reason: "max_iterations"`. With a value below 1 the step fails with `while_max_iterations must be >= 1`. | Check `stopped_reason` before you treat the work as finished. Raise the limit if the loop needs more rounds. |
+| Nested loops | A loop can sit inside another loop's body, with no fixed depth limit. Each nested loop keeps its own limits (500 items, parallelism, rounds). | Parallelism multiplies: a nested `for_each` inside a parallel `for_each` can run up to outer times inner items at once. | Keep nesting shallow, and keep the product of the loops' parallelism within what your tools can take. |
+
+<Warning>
+  Inside a nested `for_each`, the `pause` and `human_review` error policies cannot pause the run in the middle of the loop. The nested loop stops at the first failure and fails the loop around it, so the outermost loop's policy applies.
+</Warning>
+
+## Data sizes
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Lua script size | 64 KiB | The step fails with `lua script exceeds maximum size (65536 bytes)`. | Move work out of the script, or split it into several Lua steps. |
+| Lua result size | 1 MiB | The step fails with `lua result exceeds maximum size (1048576 bytes)`, and the run fails. | Return only the fields later steps need. For large data, store a file and return its file ID. |
+| Lua result nesting | 64 levels deep | The step fails with `lua result exceeds maximum nesting depth (64)`. | Flatten the result. |
+| Lua memory | A script may allocate up to 64 MiB while it runs. | The script is stopped and the step fails. | Process less data per script, for example one batch at a time. |
+| One stored file | 100 MiB. Empty files are refused. | The upload is refused. | Split or compress the file. |
+
+<Tip>
+  Keep every step's result small. Only Lua results are checked against the 1 MiB cap. For large documents, store a file and pass its file ID from step to step instead of the contents.
+</Tip>
+
+## API and tokens
+
+See [API authentication](/api/authentication) for how to create and use API keys (personal access tokens).
+
+### API keys
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Scopes | A key needs at least one scope. It can never have a scope that your own role does not allow. | `400` with "at least one scope required", `400` with `invalid_scope` for an unknown scope, or `403` with `scope_exceeds_membership`. | Pick valid scopes that your role covers. |
+| Expiry | Optional. A key created without an expiry never expires. Set either `expires_at` (a date and time such as `2027-01-31T00:00:00Z`) or `expires_in_seconds`, not both. A negative `expires_in_seconds` is refused. | `400` with "expires_in_seconds must be non-negative" or "invalid expires_at". | Set an expiry for keys you hand to scripts and third parties, and rotate them. |
+
+### List pages
+
+List endpoints return a page at a time. A `limit` above the maximum is cut down silently; it is not an error.
+
+| List | Default page size | Maximum | What to do |
+|---|---|---|---|
+| API keys (`/v1/pats`) | 20 | 100 | Pass the `cursor` from `page_info` to get the next page while `has_more` is true. |
+| Runs of a workflow (`/v1/workflows/{id}/runs`) | 50 | 100 | Pass the `cursor`, or use `offset`, to get more. |
+| Pending human tasks (`/v1/tasks/pending`) | 50 | 100 | Ask again after you handle the first page. |
+
+### Request rates
+
+AgentRuntime does not apply one general requests-per-minute limit to API calls made with an API key. These limits exist:
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Sign-in, sign-up, token refresh, and verification requests | 30 requests per minute for each IP address | `429` with `{"error": "rate_limited", "retry_after_seconds": N}` and a `Retry-After` header. | Wait for the number of seconds given, then try again. |
+| Messages in a Console chat conversation | 240 per minute for each person and conversation | `429` with `rate_limit`. | Slow down, or batch your messages. |
+| Inbound webhooks | See [Triggers and webhooks](#triggers-and-webhooks) | `429` with a `Retry-After` header. | Wait, then send again. |
+
+## Triggers and webhooks
+
+### Inbound webhooks
+
+These limits apply to requests that other systems send to your `/v1/inbound-webhooks/{subscription_id}` URL. See [Inbound webhooks](/integrations/inbound-webhooks) for how to set one up and sign requests.
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Request body size | 1 MiB | `400` with `{"error": "invalid or oversized body"}` | Send a smaller body. Send a reference, such as a file ID or a URL, instead of the data. |
+| Signature timestamp | The `t=` timestamp in `X-Agentruntime-Signature` must be within 5 minutes (300 seconds) of the server's time, in either direction. | `400` with `{"error": "invalid signature"}` | Sign each request with the current time, and keep your server's clock correct. |
+| Request rate | 600 requests per minute for each webhook and sender IP address | `429` with `{"error": "rate limit exceeded"}` and a `Retry-After` header giving the seconds to wait. | Wait for `Retry-After` and send again. Spread bursts out over time. |
+| `Idempotency-Key` | Required on every request. | `400` with "Idempotency-Key header required". A repeat of a key that already started a run returns `200` with `"duplicate": true`. A repeat while the first request is still being handled returns `409` with `idempotency_in_flight`. | Send a new, unique key for each event. Reuse a key only when you retry the same event. |
+
+### Schedules
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Shortest interval | A schedule is a five-field cron expression, and schedules are checked once a minute. The shortest repeat is every minute. | Studio marks an every-minute schedule with a "Runs every minute" warning. | Use a longer interval unless you really need every minute. |
+| Late runs | If a scheduled run cannot start within 10 minutes of its time, it is skipped, not run late. You can change the window with `grace_minutes` in the schedule's configuration. Setting `catchup_policy` to `skip_missed` skips every run that is late at all. | The skipped run is recorded with the reason "missed beyond grace" and the window. | Check **Active schedules** and the run list after an outage. Start a missed run by hand if it matters. |
+
+See [External triggers](/workflows/external-triggers) for how to set up schedules.
+
+## Channels and media
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Incoming WhatsApp media (images, video, voice notes, documents, stickers) | 100 MiB per file. Each file must download within 90 seconds. | The message still arrives. The attachment carries the `media_id` and an `error`, such as "media larger than 100 MB", instead of a `file_id`. | Check each attachment for a `file_id` before you use the file. Ask the contact to send a smaller file. |
+| Conversation session idle time | 30 minutes by default (`idle_timeout_s`). Blank or `0` means the default, not "never". | The run closes after the conversation has been quiet that long. The contact's next message starts a new session. | Set a longer **Close after idle** for slow conversations. See [Conversation sessions](/workflows/conversation-sessions). |
+| Conversation session length | No limit unless you set **Longest session** (`max_duration_s`). | The session closes after that time, however active it is. If a step is still working, it closes at the step's next wait. | Leave it empty unless you need a hard stop. |
+
+For limits that WhatsApp itself sets, such as the 24-hour window for free-form messages, see the [WhatsApp connector](/connectors/whatsapp).
+
+## Concurrency
+
+| Limit | Value | What you see when you hit it | What to do |
+|---|---|---|---|
+| Runs you can start | AgentRuntime does not limit how many runs you start. | Not applicable. | Not applicable. |
+| Steps in one run | Steps that do not depend on each other start together. | Not applicable. | Use `depends_on` where order matters. |
+| Steps running at once in your workspace | A workspace runs a limited number of steps at the same time. A step that has to wait for a free place starts as soon as another step finishes. | Nothing fails. A burst of runs takes longer to finish. | Spread large bursts out. Lower `for_each_max_parallel` on big loops. |
+
+<Note>
+  A human step that is waiting for a person does not hold one of your workspace's places while it waits.
+</Note>
+
+## Troubleshooting
+
+If a run failed and you are not sure which limit it reached, open the run in [Command Center](/workflows/command-center) and read the failed step's error. The error text usually matches the **What you see** column above. The [troubleshooting guide](/platform/troubleshooting) walks through failed and stuck runs.
+
+## Next steps
+
+- [Step types](/workflows/step-types)
+- [Human tasks](/workflows/human-tasks)
+- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Troubleshooting](/platform/troubleshooting)

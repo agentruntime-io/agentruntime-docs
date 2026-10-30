@@ -1,85 +1,76 @@
 ---
 title: Analytics
-description: Workspace usage, reliability, and automation impact from workflow runs and billing events.
+description: See how your workflows perform and what they use, with run counts, success rate, compute time and credits.
 ---
 
-**Analytics** (`/analytics`) summarizes how your workflows perform and what they cost. Open it from the Console sidebar when **Analytics** is enabled for your deployment.
+This page is for anyone who wants to know how well their workflows are running. You will learn what each number on the **Analytics** page means and where it comes from.
+
+## Open Analytics
+
+Click **Analytics** in the Console sidebar, under **Workspace**.
+
+**You should see:** a **Usage & impact** section with number cards, then **Workflow and metering trends** with charts.
+
+<Frame caption="The Analytics page">
+  <img src="/images/platform/analytics-page.png" alt="The Analytics page with the Usage and impact cards (Time automated, Live runs, Success rate, Compute, Runs in window, Steps executed, Credits used, Step latency, LLM tokens) and the start of the Workflow and metering trends charts" />
+</Frame>
+ If you do not see **Analytics**, your role may not include it, or the page is not turned on for your workspace.
+
+## Usage & impact
+
+The cards use the **Window** you choose: **This month**, **This week** or **All time**. Times are in UTC.
+
+| Card | What it shows |
+|------|---------------|
+| **Time automated (human-equivalent)** | An estimate of the manual effort your finished steps saved, based on the types of steps that ran |
+| **Live runs** | Runs in progress right now. Refreshes about every 25 seconds. |
+| **Success rate** | Share of finished runs that succeeded. Shown once there are at least 3 finished runs. |
+| **Compute (wall)** | Total clock time your runs took |
+| **Runs in window** | Runs started in the chosen window |
+| **Steps executed (metered)** | Steps counted for billing |
+| **Credits used** | Credits used in the window |
+| **Step latency (MCP + LLM)** | How long tool and AI model steps took |
+| **LLM tokens** | AI model tokens in and out, when recorded |
+
+Below the cards, **Completed steps by type** breaks finished steps down by type, using the same names as the Studio canvas, such as **MCP**, **LLM** and **Human**.
 
 <Note>
-  Analytics nav is feature-flagged (`enableAnalyticsNav`). If you do not see **Analytics** in the sidebar, the capability is off for your environment — see [Feature availability](/platform/feature-availability).
+  **Steps executed (metered)** counts billing events. It can differ from the number of completed steps, because billing and run history are recorded separately.
 </Note>
 
-## What you see
+## Workflow and metering trends
 
-The page has two sections:
+Choose a **Range** (**Last 30 days (UTC)** or **Month to date (UTC)**) and a **Granularity** (**Day** or **Week**). Three charts follow:
 
-### Usage & impact (KPI cards)
+- **Runs started over time**
+- **Metering volume over time** — steps and credits. It can be empty or zero until usage is recorded.
+- **Compute time over time**
 
-KPIs respect a UTC time window you select (**This month**, **This week**, or **All time**):
+## Analytics and billing
 
-| Metric | Source | Notes |
-|--------|--------|-------|
-| **Time automated (human-equivalent)** | Completed steps by type | Estimates manual effort saved from step mix |
-| **Live runs** | Active runs in the window | Refreshes about every 25 seconds |
-| **Success rate** | Terminal run outcomes | Shown when at least 3 terminal runs exist |
-| **Compute (wall)** | Run execution duration | Wall-clock time across runs with duration metadata |
-| **Runs in window** | Completed + in-flight count | Bounded to the selected window |
-| **Steps executed (metered)** | Billing usage events | May differ from completed steps below |
-| **Credits (µ)** | Billing debit events | Microcredits; divide by 1,000,000 for credits |
-| **Step latency (MCP + LLM)** | Completed step timings | MCP and LLM call latency combined |
-| **LLM tokens** | LLM step metadata | In/out token counts when recorded |
-
-Below the cards, **Completed steps by type** breaks down `mcp_call`, `llm_call`, `human_task`, `lua_script`, and other step types from finished runs.
-
-### Trends (timeseries charts)
-
-Charts plot bounded timeseries for:
-
-- **Runs** — run volume over the selected range
-- **Usage** — metered steps and credits consumed
-
-Use the range preset and granularity controls to zoom into a week or month. Empty charts usually mean no runs in the range yet, or metering is not configured for your workspace.
-
-## Relationship to billing
-
-| View | Best for |
+| Page | Best for |
 |------|----------|
-| **Analytics** | Operational trends — success rate, automation impact, run volume |
-| **Settings → Usage & History** | Ledger detail — credit buckets, payment history, per-action debits |
+| **Analytics** | Trends: success rate, run volume, time saved |
+| **Settings → Usage & History** | Your credit balance and individual charges |
 
-Credits on Analytics follow the same usage events as billing. See [Billing and credits](/platform/billing-and-credits).
+See [Billing and credits](/platform/billing-and-credits).
 
-## API access
+## For developers
 
-Analytics data is also available through the BFF for custom dashboards:
+The same numbers are available from the API under `/v1/analytics/`, for example `live-runs`, `success-rate`, `runs-count`, `credits-consumed`, `steps-summary`, `runs-timeseries` and `usage-timeseries`. Use `window=month|week|all`, or `from` and `to`. See the [API reference](/api/reference#analytics).
 
-| Endpoint | Returns |
-|----------|---------|
-| `GET /v1/analytics/live-runs` | Active run count |
-| `GET /v1/analytics/success-rate` | Pass/fail rate |
-| `GET /v1/analytics/execution-duration` | Wall-clock totals |
-| `GET /v1/analytics/runs-count` | Runs in window |
-| `GET /v1/analytics/steps-executed` | Metered step quantity |
-| `GET /v1/analytics/credits-consumed` | Microcredits debited |
-| `GET /v1/analytics/steps-summary` | Step-type breakdown and latency |
-| `GET /v1/analytics/runs-timeseries` | Run volume series |
-| `GET /v1/analytics/usage-timeseries` | Usage series |
+## Common problems
 
-Pass `window=month|week|all` or bounded `from` / `to` query parameters. See [API reference](/api/reference#analytics).
+| Problem | What to try |
+|---------|-------------|
+| **Analytics** is missing from the sidebar | Ask a workspace admin to check your role. |
+| Success rate shows **—** | There are fewer than 3 finished runs in the window. Try **All time**. |
+| Credits show 0 | No usage has been recorded in the window yet. |
+| Charts say "No runs in this range" | Run a workflow, or widen the range. |
+| A card says it is unavailable | Try again later, then contact [support](mailto:support@agentruntime.io). |
 
-## Troubleshooting
-
-| Symptom | Likely cause |
-|---------|--------------|
-| **Analytics** missing from sidebar | Feature flag off — ask your admin or check **Settings → Feature Flags** |
-| KPI cards show **unavailable** (503) | Analytics service not configured for this environment |
-| Success rate shows **—** | Fewer than 3 terminal runs in the window |
-| Credits show 0 | No recorded usage debit events yet |
-| Metered steps ≠ completed steps | Billing meters on execution; completed breakdown scans finished runs |
-
-## Related
+## Next steps
 
 - [Billing and credits](/platform/billing-and-credits)
 - [Runs and Command Center](/workflows/runs-and-command-center)
 - [Feature availability](/platform/feature-availability)
-- [API reference](/api/reference)

@@ -9,7 +9,7 @@ Think of it as **Airflow for AI**: event-driven workflow execution with native t
 
 ## What you can do
 
-- **Design workflows** in Workflow Studio — directed graphs of MCP calls, LLM steps, Lua scripts, loops, and human approvals
+- **Design workflows** in Workflow Studio — directed graphs of MCP steps, LLM steps, Lua scripts, loops, and human approvals
 - **Connect tools** via 40+ MCP connectors (Google Workspace, databases, Shopify, GitHub, and more)
 - **Run reliably** with dry-run validation, versioning, pause/resume, retries, and live event streams
 - **Approve in the loop** — human tasks surface in Command Center for review before a run continues
@@ -21,7 +21,7 @@ Think of it as **Airflow for AI**: event-driven workflow execution with native t
 | Component | What it does |
 |-----------|--------------|
 | **Console** | Web UI at [console.agentruntime.io](https://console.agentruntime.io) — Workflow Studio, Command Center, Connections, MCP, Providers, Chat |
-| **BFF API** | Public API at [api.agentruntime.io](https://api.agentruntime.io) — auth, workflows, runs, billing, integrations |
+| **REST API** | Public API at [api.agentruntime.io](https://api.agentruntime.io) — auth, workflows, runs, billing, integrations |
 | **Workflow runtime** | Executes workflow graphs, manages parallelism, retries, and human-in-the-loop pauses |
 | **MCP layer** | Catalog of tool servers; tenant **instances** with config profiles and connection bindings |
 | **Platform agents** | Reusable agent definitions that run multi-turn conversations in chat and channel rooms |
@@ -37,14 +37,14 @@ flowchart LR
     IDE[IDE via Platform MCP]
   end
   subgraph platform [AgentRuntime]
-    BFF[BFF API]
+    REST[REST API]
     RT[Workflow runtime]
     MCP[MCP connectors]
   end
-  Console --> BFF
-  API --> BFF
-  IDE --> BFF
-  BFF --> RT
+  Console --> REST
+  API --> REST
+  IDE --> REST
+  REST --> RT
   RT --> MCP
 ```
 
@@ -58,6 +58,13 @@ flowchart LR
 - **MCP instance** — A deployed tool server with configuration and connection wiring. Workspace-wide by default; optional project scope.
 
 See [Key concepts](/platform/key-concepts) for the full model, or jump to the [Quickstart](/platform/quickstart) to create your first workflow.
+
+## Where to start
+
+1. Follow the [Quickstart](/platform/quickstart) to set up a workspace and run a first workflow. It takes about 30 minutes and needs no code.
+2. Read [Key concepts](/platform/key-concepts) when a term is new.
+3. Learn [Workflow Studio](/workflows/studio), then try an [end-to-end guide](/guides/overview).
+4. Invite your team with [User management](/platform/user-management).
 
 ## Who AgentRuntime is for
 

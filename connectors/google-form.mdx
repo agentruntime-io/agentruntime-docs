@@ -1,112 +1,129 @@
 ---
-title: Google Form connector
-description: Create forms, collect responses, and manage permissions from AgentRuntime workflows.
+title: Google Forms connector
+description: Create and manage Google Forms, read responses, and share forms from AgentRuntime workflows.
 ---
 
-The **google-form** MCP adapter wraps the [Google Forms API](https://developers.google.com/forms/api/reference/rest) and Drive file operations for form lifecycle. Use it in workflow **mcp_call** steps to list and read responses, poll new submissions, copy templates for recurring surveys, and share forms with collaborators — with optional Pub/Sub watches for push-driven workflows.
+The **google-form** connector uses the [Google Forms API](https://developers.google.com/forms/api/reference/rest) with Drive. Workflows can read new responses, create and update forms, copy a template form, share forms, and set up notifications about new responses.
 
 ## Prerequisites
 
-- A Google account with Google Forms and Drive access
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
-- **project_contributor** access in your workspace
+- A Google account that can use Google Forms and Drive.
+- A Google account connection in AgentRuntime with the **Google Forms** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Google Forms** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Enable Forms">
-    On your Google connection, enable the **Forms** service so the account exposes Forms and Drive API scopes.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Forms** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-form MCP instance">
-    Go to **MCP**, click **Add instance** for **google-form**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_forms` or `get_form` on a known form before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_form_list_forms` tool from your **Google Forms** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. Pass `page_size` `10`, `include_team_drives` `false`, and `name_contains` `""`.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **NPS follow-up** — Schedule → `list_new_responses` since last run → LLM sentiment tag → **google-sheets** append row → **gmail** alert for detractors.
-- **Event registration intake** — Webhook from Pub/Sub watch → `get_response` → `create_task` in **google-tasks** for ops → confirmation via **gmail**.
-- **Quarterly survey clone** — Cron → `copy_form` from master template → `rename_form` with quarter label → `share_form` with department leads.
-- **Application triage** — `list_responses` with filter → score answers in LLM step → **human_task** for borderline candidates → update **google-sheets** tracker.
+- **Survey follow-up.** A schedule runs `google_form_list_new_responses` since the last run, an LLM tags the sentiment, and a sheet or email gets the result.
+- **Application triage.** `google_form_list_responses` feeds a scoring step, and a **Human** step reviews borderline cases.
+- **Recurring survey.** `google_form_copy_form` copies a master form, `google_form_rename_form` labels it, and `google_form_share_form` shares it.
+- **Push notifications.** `google_form_create_watch` asks Google to notify a Pub/Sub topic when responses arrive.
 
 ## Tools
 
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+Tools marked **Delete** remove forms or access permanently. `google_form_trash_form` moves a form to the Drive trash instead.
+
 ### Forms
 
-| Tool | Description |
-|------|-------------|
-| `create_form` | Create a Google Form with initial title metadata. |
-| `update_form` | Apply a Google Forms batchUpdate request to a form. |
-| `get_form` | Get a Google Form, including info, items, settings, and revision ID. |
-| `list_forms` | List Google Forms in the authenticated user's Drive. |
-| `copy_form` | Copy a Google Form through the Drive API, with optional rename or parent folder. |
-| `rename_form` | Rename the Drive file that backs a Google Form. |
-| `delete_form` | Permanently delete a Google Form through the Drive API. |
-| `move_form` | Move a Google Form to a different Drive folder. |
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_form_copy_form` | Write | Copy a Google Form through the Drive API, with optional rename or parent folder. | `form_id`, `new_name`, `parent_id` |
+| `google_form_create_form` | Write | Create a Google Form with initial title metadata. | `title`, `document_title`, `description` |
+| `google_form_delete_form` | Delete | Permanently delete a Google Form through the Drive API. | `form_id` |
+| `google_form_get_form` | Read | Get a Google Form, including info, items, settings, and revision ID. | `form_id` |
+| `google_form_list_forms` | Read | List Google Forms in the authenticated user's Drive. | `page_size`, `include_team_drives`, `name_contains` |
+| `google_form_move_form` | Write | Move a Google Form to a different Drive folder. | `form_id`, `add_parent_id`, `remove_parent_id` |
+| `google_form_rename_form` | Write | Rename the Drive file that backs a Google Form. | `form_id`, `new_name` |
+| `google_form_trash_form` | Write | Move a Google Form to Drive trash without permanently deleting it. | `form_id` |
+| `google_form_update_form` | Write | Apply a Google Forms batchUpdate request to a form. | `form_id`, `requests`, `include_form_in_response`, `write_control_required_revision_id`, `write_control_target_revision_id` |
 
 ### Responses
 
-| Tool | Description |
-|------|-------------|
-| `list_responses` | List submitted responses for a form, with optional filtering and pagination. |
-| `list_new_responses` | List form responses submitted after an RFC3339 timestamp. |
-| `get_response` | Get a specific submitted response for a form by response ID. |
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_form_get_response` | Read | Get a specific submitted response for a form by response ID. | `form_id`, `response_id` |
+| `google_form_list_new_responses` | Read | List form responses submitted after an RFC3339 timestamp. | `form_id`, `since_time`, `page_size` |
+| `google_form_list_responses` | Read | List submitted responses for a form, with optional filtering and pagination. | `form_id`, `page_size`, `page_token`, `filter` |
 
-### Permissions
+### Sharing and permissions
 
-| Tool | Description |
-|------|-------------|
-| `share_form` | Share a Google Form by creating a Drive permission. |
-| `list_form_permissions` | List Drive permissions on a Google Form. |
-| `revoke_form_permission` | Remove a Drive permission from a Google Form by permission ID. |
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_form_list_form_permissions` | Read | List Drive permissions on a Google Form. | `form_id` |
+| `google_form_revoke_form_permission` | Delete | Remove a Drive permission from a Google Form by permission ID. | `form_id`, `permission_id` |
+| `google_form_share_form` | Write | Share a Google Form by creating a Drive permission. | `form_id`, `role`, `type`, `email_address`, `domain`, `send_notification`, `email_message` |
 
 ### Watches
 
-| Tool | Description |
-|------|-------------|
-| `create_watch` | Create a Pub/Sub watch for form response or schema changes. |
-| `delete_watch` | Delete a Pub/Sub watch by watch ID. |
-| `list_watches` | List active Pub/Sub watches on a form. |
-| `renew_watch` | Renew a Pub/Sub watch before it expires. |
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_form_create_watch` | Write | Create a Pub/Sub watch for form response or schema changes. | `form_id`, `topic_name`, `event_type`, `watch_id` |
+| `google_form_delete_watch` | Delete | Delete a Pub/Sub watch by watch ID. | `form_id`, `watch_id` |
+| `google_form_list_watches` | Read | List active Pub/Sub watches on a form. | `form_id` |
+| `google_form_renew_watch` | Write | Renew a Pub/Sub watch before it expires. | `form_id`, `watch_id` |
 
 ## Example
 
-Poll new survey responses since the last workflow run:
+Fetch responses submitted since the last run. `since_time` is an RFC 3339 timestamp.
 
 ```json
 {
   "id": "poll-responses",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Fetch new form responses",
-  "tool_name": "list_new_responses",
+  "tool_name": "google_form_list_new_responses",
   "tool_args": {
     "form_id": "{{input.nps_form_id}}",
     "since_time": "{{input.last_poll_time}}",
     "page_size": 100
   },
-  "depends_on": [],
   "timeout_s": 45
 }
 ```
 
+## Configuration
+
+Google connectors take no keys from you: the permissions come from your Google account connection.
+
+**Google permissions (scopes) requested when you tick this service:**
+
+- `https://www.googleapis.com/auth/forms.body`
+- `https://www.googleapis.com/auth/forms.responses.readonly`
+- `https://www.googleapis.com/auth/drive`
+
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
+
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on Google connection | Re-authorize OAuth; Forms and Drive scopes may have been revoked |
-| `update_form` concurrency error | Pass the current `revision_id` from `get_form` as write-control fields |
-| Watch stopped firing | Pub/Sub watches expire after seven days — schedule `renew_watch` or recreate with `create_watch` |
-| Empty `list_new_responses` | Confirm `since_time` is RFC3339 and earlier than submission timestamps |
+| Problem | What to do |
+|---------|------------|
+| `google_form_update_form` fails with a revision error | Read the form with `google_form_get_form` first and pass its revision ID in the write control arguments. |
+| A watch stops sending notifications | Watches expire after seven days. Run `google_form_renew_watch` on a schedule. |
+| `google_form_list_new_responses` is empty | Check that `since_time` is an RFC 3339 timestamp earlier than the submissions you expect. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

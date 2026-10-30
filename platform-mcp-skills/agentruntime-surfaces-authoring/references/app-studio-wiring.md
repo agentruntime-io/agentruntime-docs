@@ -8,12 +8,12 @@ There is **no** Platform MCP tool named “attach workflow” or “attach data 
 
 | Studio concept | What actually persists | MCP / API |
 |----------------|------------------------|-----------|
-| **Attached workflows** (view header) | Top-level `workflows[]` on the **view document** **and** every `workflow_ref` inside `bind` / `events.*.action` | `surfaces_apps_put_view` — compile upserts `surface_app_workflow_usage` |
+| **Attached workflows** (view header) | Top-level `workflows[]` on the **view document** **and** every `workflow_ref` inside `bind` / `events.*.action` | `surfaces_apps_put_view` — compile records which workflows the app uses |
 | **Run / approve actions** | Button `events.onClick.action` with `type`: `workflow.run`, `workflow.operation`, or `workflow.cancel` | Same PUT view body; runtime executes via **`POST /v1/surfaces/action`** (no Platform MCP wrapper today) |
-| **Data source (`database.query`)** | Row in `surface_app_queries` + `bind.source: "database.query"` with matching `query_id` | `surfaces_apps_put_query` **before** view binds reference the id |
-| **HITL gate → view route** | `surface_app_gate_bindings` (separate from view tree) | `surfaces_apps_put_gate_bindings` |
+| **Data source (`database.query`)** | A saved query document + `bind.source: "database.query"` with matching `query_id` | `surfaces_apps_put_query` **before** view binds reference the id |
+| **HITL gate → view route** | Gate bindings saved on the app (separate from the view tree) | `surfaces_apps_put_gate_bindings` |
 
-Console parity: monorepo `docs/surfaces/CONSOLE_GUIDE.md` (Preview tab starts runs; Queries tab defines SQL).
+Console parity: App Studio's Preview tab starts runs; its Queries tab defines SQL.
 
 ## Order of operations (agents)
 
@@ -62,7 +62,7 @@ Clicking **Start** does **not** open a separate platform modal. Required workflo
 }
 ```
 
-   For row-driven starts, use `params` with `{ "from": "selection", "path": "id" }` per `SURFACES_SCHEMA.md` §6.
+   For row-driven starts, use `params` with `{ "from": "selection", "path": "id" }` (see [schema-catalog.md](schema-catalog.md), Actions).
 
 4. **Pattern C — MCP / API functional test (recommended evidence)**
 
@@ -80,7 +80,7 @@ Clicking **Start** does **not** open a separate platform modal. Required workflo
 2. Input fields + **`workflow.run`** button (Patterns A or B above).
 3. Optional **review** path: `human` step + **`workflow.operation`** approve/reject buttons **only if** the product includes review gates — see gate section below.
 
-Reference: monorepo `docs/surfaces/examples/tiktok/publish-view.json` (gate actions) + `SURFACES_SCHEMA.md` §6.
+Reference: the approve/reject `workflow.operation` button shape is in [schema-catalog.md](schema-catalog.md) (Actions).
 
 ## Browse / list views (`database.query`)
 
@@ -100,7 +100,7 @@ Reference: monorepo `docs/surfaces/examples/tiktok/publish-view.json` (gate acti
 }
 ```
 
-4. View `workflows[]` may use `role: "data"` when browse-only (see `queue-view.json`).
+4. View `workflows[]` may use `role: "data"` when browse-only.
 
 ## Compile status (`bind_compile`)
 
@@ -112,7 +112,7 @@ Every `surfaces_apps_put_view` runs compile and stores `bind_compile` on the vie
 | `import_pending` | Non-UUID `workflow_ref` on a **workflow** binding or action |
 | `error` | Unknown or archived workflow, or `node_id` not on the Live graph |
 
-**Spec:** `database.query` binds should **not** set `import_pending` (no `workflow_ref`). If compile reports `import_pending` on a pure `database.query` path, treat that as **unexpected platform behaviour** — capture `binding_path`, view id, and `bind_compile` JSON and report internally; do not assume the agent mis-authored the bind.
+**Spec:** `database.query` binds should **not** set `import_pending` (no `workflow_ref`). If compile reports `import_pending` on a pure `database.query` path, treat that as **unexpected platform behaviour** — capture `binding_path`, view id, and `bind_compile` JSON and report it to AgentRuntime support; do not assume the agent mis-authored the bind.
 
 **Agents must read back:** `surfaces_apps_get_view` → `bind_compile`; `surfaces_apps_get` → app `bind_compile_status`.
 
@@ -153,7 +153,7 @@ Expect **`mode": "run"`** in the response, plus optional `run`, `gate`, `subscri
 
 Optional **`fixtures`** (preview host): mock binding values for designer-only previews — not a substitute for live Tenant Data rows.
 
-Human-task inbox render may also set `context.task_id` (see monorepo `examples/tiktok/render-request.json`).
+Human-task inbox render may also set `context.task_id` (with `host: "inbox"`).
 
 ## Functional evidence (required before “app works”)
 
@@ -170,8 +170,8 @@ List **`checks_performed`** with app id, view ids, compile statuses, **`run_id`*
 
 ## Product gaps (do not pretend otherwise)
 
-- No MCP **`surfaces_action`** — button parity in automation may require BFF **`POST /v1/surfaces/action`** or operator Console until a tool exists.
+- No MCP **`surfaces_action`** — button parity in automation may require the HTTP API **`POST /v1/surfaces/action`** or operator Console until a tool exists.
 - No MCP “attach workflow to app” besides view JSON + compile side effects.
 - Compile runs on view PUT only; occasional **`import_pending`** on non-workflow binds should be reported as platform bugs.
 
-When Studio and MCP disagree, monorepo **`docs/surfaces/SURFACES_RUNTIME_CONTRACTS.md`** is authoritative for compile and render behaviour.
+When Studio and MCP disagree, trust what `surfaces_apps_get_view` (`bind_compile`) and `surfaces_render` return for the saved documents, and report the discrepancy.

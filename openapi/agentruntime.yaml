@@ -1,0 +1,1373 @@
+openapi: 3.1.0
+info:
+  title: AgentRuntime API
+  version: 1.0.0
+  description: |
+    ## Overview
+
+    The AgentRuntime API lets you **register, execute, monitor, and manage AI agent workflows**
+    programmatically. Workflows are defined as directed acyclic graphs (DAGs) whose steps can call
+    MCP tool servers, invoke LLMs, pause for human review, or run sandboxed Lua transforms.
+
+
+    ## Authentication
+
+    All endpoints require a Bearer token passed in the `Authorization` header:
+
+    ```
+    Authorization: Bearer <your-api-key>
+    ```
+
+    Obtain your API key from the AgentRuntime dashboard or waitlist onboarding email.
+
+
+    ## Base URL
+
+    ```
+    https://api.agentruntime.io
+    ```
+
+
+    ## Request / Response format
+
+    All request and response bodies are `application/json`. Dates are ISO 8601 strings.
+
+
+    ## Async execution model
+
+    Workflow execution is **asynchronous**. `POST /workflows/{id}/command` with `"start"` returns
+    the initial run state immediately — the workflow continues running in the background. Use the
+    WebSocket stream (`GET /workflows/{id}/stream`) or poll `GET /workflows/{id}/runs` to track
+    progress.
+
+
+    ## Step types
+
+    | Type | What it does |
+    |------|-------------|
+    | `mcp_call` | Calls a tool on a remote MCP server |
+    | `llm_call` | Sends a prompt to an LLM and captures the response |
+    | `human_task` | Pauses the workflow until a human submits a decision |
+    | `lua_script` | Runs a sandboxed Lua script inline — no external round-trip |
+
+
+    ## Template variables
+
+    Step arguments can reference upstream results and the workflow's input payload:
+
+    ```
+    {{steps.<step-id>.result.<field>}}   — result of a completed upstream step
+    {{input.<field>}}                    — value from the workflow start payload
+    ```
+
+    Parallel execution emerges automatically: steps whose `depends_on` are all satisfied run
+    concurrently without any extra configuration.
+
+
+    ## Error handling
+
+    All errors return a JSON body with `error` (human-readable) and optional `code` (machine-readable).
+    HTTP status codes follow REST conventions: 400 Bad Request, 401 Unauthorized, 404 Not Found,
+    409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error.
+
+
+    ## Rate limits
+
+    Rate limits are applied per API key. The `X-RateLimit-Remaining` and `X-RateLimit-Reset`
+    headers are included in every response.
+
+
+  contact:
+    email: hello@agentruntime.io
+    url: https://agentruntime.io
+  license:
+    name: Proprietary
+    url: https://www.agentruntime.io/legal
+
+servers:
+  - url: https://api.agentruntime.io
+    description: Production
+
+tags:
+  - name: Workflows
+    description: |
+      Create, update, and delete workflow definitions. A workflow is a named, versioned JSON graph
+      of steps. Definitions are immutable once a run is active — update the definition to create a
+      new version.
+  - name: Execution
+    description: |
+      Trigger and control workflow runs. Use `POST /command` to start, pause, resume, or cancel.
+      Use `GET /stream` for a WebSocket connection that pushes real-time events as the workflow executes.
+  - name: Runs
+    description: |
+      Query run history, event logs, and context snapshots. Every action in a run produces an
+      immutable event — use the event log for debugging and audit.
+  - name: Tasks
+    description: |
+      Human-in-the-loop (HITL) task management. When a workflow reaches a `human_task` step it
+      pauses and creates a pending task. Submit a decision to resume execution.
+  - name: MCP Tools
+    description: List tool definitions discovered from registered MCP servers.
+  - name: Credentials
+    description: |
+      Manage per-MCP OAuth tokens and API keys. Credentials are stored in HashiCorp Vault and
+      cached in Redis. Updating a credential invalidates the cache automatically.
+  - name: Builtin Tools
+    description: |
+      Query metadata about built-in tool capabilities provided by the runtime itself
+      (LLM invocation, human_task, etc.).
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        API key obtained from the AgentRuntime dashboard. Pass as
+        `Authorization: Bearer <key>` on every request.
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable description of what went wrong.
+          example: "workflow not found"
+        code:
+          type: string
+          description: Machine-readable error code for programmatic handling.
+          example: "NOT_FOUND"
+      example:
+        error: "workflow not found"
+        code: "NOT_FOUND"
+
+    Workflow:
+      type: object
+      required: [id, name, definition]
+      description: |
+        A saved workflow definition. The `definition` field holds the full JSON graph (steps,
+        dependencies, step configuration). Definitions are versioned — each `PUT` or `PATCH`
+        increments `version`.
+      properties:
+        id:
+          type: string
+          description: Unique workflow identifier, assigned on creation.
+          example: wf_01hw3k9x4v8m
+        name:
+          type: string
+          description: Human-readable name. Used in URLs and run logs.
+          example: customer-support-v2
+        description:
+          type: string
+          description: Optional longer description shown in the dashboard.
+          example: "Routes support tickets, drafts replies with GPT-4o, escalates on low confidence."
+        definition:
+          type: object
+          description: |
+            Full workflow graph definition. Must include `tenant_id`, `workflow_id`, and a
+            `steps` array. See the Workflow Graph Schema for the full specification.
+          example:
+            tenant_id: "acme-corp"
+            workflow_id: "customer-support-v2"
+            steps:
+              - id: "classify"
+                type: "mcp_call"
+                name: "Classify intent"
+                tool_name: "classify_ticket"
+                tool_args:
+                  text: "{{input.message}}"
+                server_url: "https://tools.acme.com/mcp"
+                timeout_s: 10
+              - id: "draft-reply"
+                type: "llm_call"
+                name: "Draft reply"
+                model: "gpt-4o-mini"
+                prompt: "You are a support agent. Ticket: {{input.message}}. Category: {{steps.classify.result.category}}. Write a helpful reply."
+                depends_on: ["classify"]
+              - id: "human-review"
+                type: "human_task"
+                name: "Agent review"
+                task_type: "reply_approval"
+                task_payload:
+                  draft: "{{steps.draft-reply.result}}"
+                  category: "{{steps.classify.result.category}}"
+                depends_on: ["draft-reply"]
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-15T09:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-03-22T14:12:00Z"
+        version:
+          type: integer
+          description: Increments on every update. Useful for cache-busting and auditing.
+          example: 3
+
+    WorkflowCreate:
+      type: object
+      required: [name, definition]
+      description: Payload for creating or replacing a workflow definition.
+      properties:
+        name:
+          type: string
+          example: customer-support-v2
+        description:
+          type: string
+          example: "Routes support tickets, drafts replies with GPT-4o, escalates on low confidence."
+        definition:
+          type: object
+          description: Full workflow graph. See the Workflow type for a full example.
+
+    WorkflowRun:
+      type: object
+      description: |
+        Represents a single execution of a workflow. Runs are immutable once completed.
+        `status` progresses through `pending → running → paused / completed / failed / cancelled`.
+      properties:
+        id:
+          type: string
+          description: Unique run identifier.
+          example: run_01hw3k9x4v8m
+        workflow_id:
+          type: string
+          example: wf_01hw3k9x4v8m
+        status:
+          type: string
+          enum: [pending, running, paused, completed, failed, cancelled]
+          description: |
+            - `pending`: accepted but not yet dispatched
+            - `running`: actively executing steps
+            - `paused`: execution halted (manual pause or awaiting human task)
+            - `completed`: all steps finished successfully
+            - `failed`: one or more steps failed with no remaining retries
+            - `cancelled`: stopped via a cancel command
+          example: running
+        started_at:
+          type: string
+          format: date-time
+          example: "2026-04-10T11:00:00Z"
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        inputs:
+          type: object
+          description: The input payload provided when the run was started.
+          example:
+            message: "I need help cancelling my subscription"
+            customer_id: "cust_8821"
+        outputs:
+          type: object
+          description: Outputs produced by the final step(s) of the run.
+          nullable: true
+          example: null
+
+    RunEvent:
+      type: object
+      description: |
+        An immutable record of something that happened during a run. Events are ordered by
+        `timestamp` and cover step lifecycle, human tasks, and run-level state changes.
+        Common `type` values: `step_started`, `step_completed`, `step_failed`,
+        `human_task_created`, `human_task_completed`, `run_completed`, `run_failed`.
+      properties:
+        id:
+          type: string
+          example: evt_01hw3k9x4v8m
+        run_id:
+          type: string
+          example: run_01hw3k9x4v8m
+        type:
+          type: string
+          description: Event type identifier.
+          example: step_completed
+        data:
+          type: object
+          description: Event-specific payload. Shape varies by event type.
+          example:
+            step_id: "classify"
+            result:
+              category: "billing"
+              confidence: 0.94
+            duration_ms: 312
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-04-10T11:00:01.312Z"
+
+    PendingTask:
+      type: object
+      description: |
+        A human-in-the-loop task waiting for a decision. Created when a workflow reaches a
+        `human_task` step. The workflow run stays in `paused` state until the task is completed.
+      properties:
+        id:
+          type: string
+          example: task_01hw3k9x4v8m
+        run_id:
+          type: string
+          example: run_01hw3k9x4v8m
+        workflow_id:
+          type: string
+          example: wf_01hw3k9x4v8m
+        task_type:
+          type: string
+          description: Identifier for the type of review required, as defined in the workflow step.
+          example: reply_approval
+        prompt:
+          type: string
+          description: Instructions shown to the human reviewer. Derived from the step's `task_payload`.
+          example: "Please review the AI-drafted support reply before sending."
+        context:
+          type: object
+          description: |
+            The full `task_payload` from the workflow step, with template variables resolved
+            against the run's current context.
+          example:
+            draft: "Hi! I can help you cancel your subscription. Please visit account settings → Billing → Cancel Plan."
+            category: "billing"
+            confidence: 0.94
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-04-10T11:00:02.001Z"
+
+    Credential:
+      type: object
+      description: |
+        A stored MCP credential (API key, OAuth token, etc.). The secret value is write-only —
+        it is stored in HashiCorp Vault and never returned in API responses.
+      properties:
+        id:
+          type: string
+          example: cred_01hw3k9x4v8m
+        name:
+          type: string
+          description: Human-readable label for this credential.
+          example: "Acme CRM API Key"
+        mcp_id:
+          type: string
+          description: The MCP server instance this credential is scoped to.
+          example: "mcp_acme_crm"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-02-01T08:00:00Z"
+
+    Tool:
+      type: object
+      description: |
+        Metadata about a tool available to workflows. For MCP tools, `mcp_id` identifies
+        the source server. For builtin tools, `mcp_id` is omitted.
+      properties:
+        name:
+          type: string
+          description: Tool identifier used in `tool_name` fields of `mcp_call` steps.
+          example: classify_ticket
+        description:
+          type: string
+          description: Human-readable description of what the tool does.
+          example: "Classifies a support ticket into a category and returns a confidence score."
+        input_schema:
+          type: object
+          description: JSON Schema for the tool's input arguments.
+          example:
+            type: object
+            required: [text]
+            properties:
+              text:
+                type: string
+                description: "The ticket text to classify."
+        mcp_id:
+          type: string
+          description: The MCP server this tool belongs to. Omitted for builtin tools.
+          example: mcp_acme_crm
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid Bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "unauthorized"
+            code: "UNAUTHORIZED"
+    NotFound:
+      description: The requested resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "workflow not found"
+            code: "NOT_FOUND"
+    UnprocessableEntity:
+      description: The request body is valid JSON but fails business validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "workflow definition is missing required field: steps"
+            code: "VALIDATION_ERROR"
+    InternalError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "internal server error"
+            code: "INTERNAL_ERROR"
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ── Workflows ──────────────────────────────────────────────────────────────
+  /api/v1/workflows:
+    get:
+      tags: [Workflows]
+      summary: List workflows
+      description: |
+        Returns all workflow definitions for the authenticated project, ordered by `updated_at`
+        descending. Definitions include the full graph — use this to inspect step configuration
+        or check the current version number before running.
+      responses:
+        "200":
+          description: Array of workflow definitions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflows:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Workflow"
+              example:
+                workflows:
+                  - id: wf_01hw3k9x4v8m
+                    name: customer-support-v2
+                    description: "Routes support tickets and drafts replies."
+                    version: 3
+                    created_at: "2026-01-15T09:30:00Z"
+                    updated_at: "2026-03-22T14:12:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    post:
+      tags: [Workflows]
+      summary: Create a workflow
+      description: |
+        Creates a new workflow definition. The `definition` must include `tenant_id`,
+        `workflow_id`, and a non-empty `steps` array. Each step requires `id`, `type`, and
+        `name`, plus type-specific required fields:
+
+        - `mcp_call` requires `tool_name` and `server_url`
+        - `llm_call` requires `model` and `prompt`
+        - `human_task` requires `task_type`
+        - `lua_script` requires `script` (max 64 KB)
+
+        Returns `201 Created` with the saved workflow including its assigned `id`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCreate"
+            example:
+              name: customer-support-v2
+              description: "Routes support tickets, drafts replies, escalates on low confidence."
+              definition:
+                tenant_id: "acme-corp"
+                workflow_id: "customer-support-v2"
+                steps:
+                  - id: "classify"
+                    type: "mcp_call"
+                    name: "Classify intent"
+                    tool_name: "classify_ticket"
+                    tool_args:
+                      text: "{{input.message}}"
+                    server_url: "https://tools.acme.com/mcp"
+                    timeout_s: 10
+                  - id: "draft-reply"
+                    type: "llm_call"
+                    name: "Draft reply"
+                    model: "gpt-4o-mini"
+                    prompt: "Ticket: {{input.message}}. Category: {{steps.classify.result.category}}. Write a helpful reply."
+                    depends_on: ["classify"]
+                  - id: "human-review"
+                    type: "human_task"
+                    name: "Agent review"
+                    task_type: "reply_approval"
+                    task_payload:
+                      draft: "{{steps.draft-reply.result}}"
+                    depends_on: ["draft-reply"]
+      responses:
+        "201":
+          description: Workflow created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+              example:
+                id: wf_01hw3k9x4v8m
+                name: customer-support-v2
+                version: 1
+                created_at: "2026-04-10T10:00:00Z"
+                updated_at: "2026-04-10T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/workflows/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Workflow ID returned by `POST /workflows`.
+        example: wf_01hw3k9x4v8m
+    get:
+      tags: [Workflows]
+      summary: Get a workflow
+      description: Returns the full workflow definition including the current graph and version number.
+      responses:
+        "200":
+          description: Workflow definition.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Workflows]
+      summary: Replace a workflow definition
+      description: |
+        Replaces the entire workflow definition and increments `version`. Use this when you want
+        to make a clean change to the graph. In-flight runs continue using the previous version
+        until they complete.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCreate"
+      responses:
+        "200":
+          description: Updated workflow.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    patch:
+      tags: [Workflows]
+      summary: Partially update a workflow
+      description: |
+        Updates only the fields provided. Useful for changing the `description` or `name`
+        without replacing the full `definition`. Increments `version` if `definition` is included.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCreate"
+            example:
+              description: "Updated description — now includes sentiment analysis."
+      responses:
+        "200":
+          description: Updated workflow.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Workflows]
+      summary: Delete a workflow
+      description: |
+        Permanently deletes the workflow definition. Active runs are not affected and will
+        complete normally. Future runs cannot be started once the definition is deleted.
+      responses:
+        "204":
+          description: Workflow deleted. No response body.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Execution ──────────────────────────────────────────────────────────────
+  /api/v1/workflows/{id}/command:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: wf_01hw3k9x4v8m
+    post:
+      tags: [Execution]
+      summary: Execute a workflow command
+      description: |
+        Sends a control command to a workflow. The `command` field determines the action:
+
+
+        **`start`** — Creates a new run. Pass `inputs` to provide the trigger payload; step
+        arguments can reference these values via `{{input.<field>}}`. Returns the new run object
+        with `status: "pending"` or `status: "running"`. Execution continues asynchronously —
+        subscribe to the WebSocket stream to follow progress.
+
+
+        **`pause`** — Halts dispatching of new steps for the specified `run_id`. In-flight steps
+        complete normally. The run moves to `status: "paused"`.
+
+
+        **`resume`** — Re-evaluates the graph from the current state and resumes dispatching
+        ready steps. The run moves back to `status: "running"`.
+
+
+        **`cancel`** — Terminates all in-flight steps and moves the run to `status: "cancelled"`.
+        This action is irreversible.
+
+
+        > **Tip:** Subscribe to `GET /workflows/{id}/stream` before sending `start` to capture
+        > all events from the beginning of the run.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [command]
+              properties:
+                command:
+                  type: string
+                  enum: [start, pause, resume, cancel]
+                  description: The action to perform.
+                  example: start
+                inputs:
+                  type: object
+                  description: |
+                    Input payload for the workflow run. Available in step arguments as
+                    `{{input.<field>}}`. Only used with the `start` command.
+                  example:
+                    message: "I need help cancelling my subscription"
+                    customer_id: "cust_8821"
+                    priority: "normal"
+                context:
+                  type: object
+                  description: |
+                    Session and user metadata attached to the run for tracking purposes.
+                    Not passed to steps — use `inputs` for data that steps need.
+                  example:
+                    session_id: "sess_abc123"
+                    user_id: "user_456"
+                    source: "web-chat"
+                run_id:
+                  type: string
+                  description: |
+                    Required for `pause`, `resume`, and `cancel` commands — identifies the
+                    specific run to act on.
+                  example: run_01hw3k9x4v8m
+            examples:
+              start:
+                summary: Start a new run
+                value:
+                  command: start
+                  inputs:
+                    message: "I need help cancelling my subscription"
+                    customer_id: "cust_8821"
+                  context:
+                    session_id: "sess_abc123"
+                    user_id: "user_456"
+              pause:
+                summary: Pause a running run
+                value:
+                  command: pause
+                  run_id: run_01hw3k9x4v8m
+              resume:
+                summary: Resume a paused run
+                value:
+                  command: resume
+                  run_id: run_01hw3k9x4v8m
+              cancel:
+                summary: Cancel a run
+                value:
+                  command: cancel
+                  run_id: run_01hw3k9x4v8m
+      responses:
+        "200":
+          description: Command accepted. Returns current run state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowRun"
+              example:
+                id: run_01hw3k9x4v8m
+                workflow_id: wf_01hw3k9x4v8m
+                status: running
+                started_at: "2026-04-10T11:00:00Z"
+                completed_at: null
+                inputs:
+                  message: "I need help cancelling my subscription"
+                  customer_id: "cust_8821"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/workflows/{id}/stream:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: wf_01hw3k9x4v8m
+      - name: run_id
+        in: query
+        schema:
+          type: string
+        description: |
+          Filter the stream to a specific run. If omitted, events for all runs of this workflow
+          are sent on the same connection.
+        example: run_01hw3k9x4v8m
+    get:
+      tags: [Execution]
+      summary: Real-time event stream (WebSocket)
+      description: |
+        Upgrades the connection to a **WebSocket**. The server pushes `RunEvent` objects as
+        JSON text frames as the workflow executes.
+
+
+        **Subscribe before starting** — open the WebSocket connection before calling
+        `POST /command` with `"start"` to ensure you receive all events from the beginning.
+
+
+        **Event types you will receive:**
+
+        | Type | When |
+        |------|------|
+        | `step_started` | A step has been dispatched |
+        | `step_completed` | A step finished successfully; `data.result` holds the output |
+        | `step_failed` | A step failed; `data.error` describes the failure |
+        | `human_task_created` | A `human_task` step created a pending task; run is now paused |
+        | `human_task_completed` | A human submitted a decision; run is resuming |
+        | `run_completed` | All steps finished; `data.outputs` holds the final outputs |
+        | `run_failed` | The run terminated with an error |
+        | `run_paused` | The run was paused via a pause command |
+        | `run_cancelled` | The run was cancelled |
+
+
+        **JavaScript example:**
+        ```js
+        const ws = new WebSocket(
+          'wss://api.agentruntime.io/api/v1/workflows/wf_01hw3k9x4v8m/stream?run_id=run_01hw3k9x4v8m',
+          [],
+          { headers: { Authorization: 'Bearer <your-api-key>' } }
+        );
+
+        ws.onmessage = (event) => {
+          const e = JSON.parse(event.data);
+          console.log(e.type, e.data);
+          if (e.type === 'run_completed') ws.close();
+        };
+        ```
+      responses:
+        "101":
+          description: WebSocket upgrade successful. Events will be pushed as JSON text frames.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Runs ───────────────────────────────────────────────────────────────────
+  /api/v1/workflows/{id}/runs:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: wf_01hw3k9x4v8m
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 20
+          maximum: 100
+        description: Number of runs to return. Max 100.
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          default: 0
+        description: Pagination offset.
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [pending, running, paused, completed, failed, cancelled]
+        description: Filter by run status.
+    get:
+      tags: [Runs]
+      summary: List runs for a workflow
+      description: |
+        Returns paginated run history for the workflow, ordered by `started_at` descending
+        (most recent first). Use `status` to filter — for example, `?status=paused` to find
+        runs waiting for human review.
+      responses:
+        "200":
+          description: Paginated list of workflow runs.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WorkflowRun"
+                  total:
+                    type: integer
+                    description: Total number of runs matching the query (for pagination).
+              example:
+                total: 142
+                runs:
+                  - id: run_01hw3k9x4v8m
+                    workflow_id: wf_01hw3k9x4v8m
+                    status: completed
+                    started_at: "2026-04-10T11:00:00Z"
+                    completed_at: "2026-04-10T11:00:04.812Z"
+                  - id: run_01hw3k9x4v8n
+                    workflow_id: wf_01hw3k9x4v8m
+                    status: paused
+                    started_at: "2026-04-10T10:45:00Z"
+                    completed_at: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/workflows/{id}/runs/{run_id}/events:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: run_01hw3k9x4v8m
+    get:
+      tags: [Runs]
+      summary: List events for a run
+      description: |
+        Returns the full **ordered event log** for a specific run. Every action — step
+        dispatched, step completed, human task created, run finished — produces an immutable
+        event. Use this for debugging, auditing, and replaying what happened.
+
+
+        Events are ordered chronologically. The `data` field shape varies by `type` — see the
+        WebSocket stream description for common event types.
+      responses:
+        "200":
+          description: Ordered event log.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RunEvent"
+              example:
+                events:
+                  - id: evt_001
+                    run_id: run_01hw3k9x4v8m
+                    type: step_started
+                    data:
+                      step_id: classify
+                    timestamp: "2026-04-10T11:00:00.050Z"
+                  - id: evt_002
+                    run_id: run_01hw3k9x4v8m
+                    type: step_completed
+                    data:
+                      step_id: classify
+                      result:
+                        category: billing
+                        confidence: 0.94
+                      duration_ms: 312
+                    timestamp: "2026-04-10T11:00:00.362Z"
+                  - id: evt_003
+                    run_id: run_01hw3k9x4v8m
+                    type: step_started
+                    data:
+                      step_id: draft-reply
+                    timestamp: "2026-04-10T11:00:00.380Z"
+                  - id: evt_004
+                    run_id: run_01hw3k9x4v8m
+                    type: step_completed
+                    data:
+                      step_id: draft-reply
+                      result: "Hi! I can help you cancel. Go to Account Settings → Billing → Cancel Plan."
+                      duration_ms: 1840
+                    timestamp: "2026-04-10T11:00:02.220Z"
+                  - id: evt_005
+                    run_id: run_01hw3k9x4v8m
+                    type: human_task_created
+                    data:
+                      task_id: task_01hw3k9x4v8m
+                      step_id: human-review
+                    timestamp: "2026-04-10T11:00:02.240Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/workflows/{id}/runs/{run_id}/context:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: run_01hw3k9x4v8m
+    get:
+      tags: [Runs]
+      summary: Get run context snapshot
+      description: |
+        Returns the **current accumulated state** of the run — all resolved step results and
+        input values as a single object. Useful for inspecting what data is available to
+        pending steps, or for debugging an unexpected result.
+
+
+        This is a snapshot of the Redis-backed context at the time of the request. The shape is
+        `{ input: { ... }, steps: { <step-id>: { result: { ... } }, ... } }`.
+      responses:
+        "200":
+          description: Context snapshot.
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                input:
+                  message: "I need help cancelling my subscription"
+                  customer_id: "cust_8821"
+                steps:
+                  classify:
+                    result:
+                      category: billing
+                      confidence: 0.94
+                  draft-reply:
+                    result: "Hi! I can help you cancel. Go to Account Settings → Billing → Cancel Plan."
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Human-in-the-loop Tasks ────────────────────────────────────────────────
+  /api/v1/workflows/{id}/runs/{run_id}/tasks/pending:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: run_01hw3k9x4v8m
+    get:
+      tags: [Tasks]
+      summary: List pending human tasks
+      description: |
+        Returns all human-in-the-loop tasks currently awaiting a decision for this run.
+        A run with pending tasks has `status: "paused"` and will not proceed until all
+        pending tasks are completed.
+
+
+        **Typical integration pattern:**
+        1. Subscribe to the WebSocket stream
+        2. When you receive a `human_task_created` event, show the task to a reviewer in your UI
+        3. The reviewer submits a decision via `POST .../tasks/{task_id}/complete`
+        4. The run resumes automatically
+      responses:
+        "200":
+          description: Pending tasks for this run.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PendingTask"
+              example:
+                tasks:
+                  - id: task_01hw3k9x4v8m
+                    run_id: run_01hw3k9x4v8m
+                    workflow_id: wf_01hw3k9x4v8m
+                    task_type: reply_approval
+                    prompt: "Please review the AI-drafted support reply before sending."
+                    context:
+                      draft: "Hi! I can help you cancel. Go to Account Settings → Billing → Cancel Plan."
+                      category: billing
+                      confidence: 0.94
+                    created_at: "2026-04-10T11:00:02.001Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/workflows/{id}/runs/{run_id}/tasks/{task_id}/complete:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: run_01hw3k9x4v8m
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: task_01hw3k9x4v8m
+    post:
+      tags: [Tasks]
+      summary: Complete a human task
+      description: |
+        Submits a human decision that unblocks a paused workflow run.
+
+
+        - **`approve`** — marks the task complete and signals the workflow to continue.
+          Downstream steps that depend on this `human_task` step will be dispatched next.
+        - **`reject`** — marks the task rejected. Workflow behaviour on rejection depends on
+          the step's `retry_count` and whether a fallback step is defined.
+
+
+        The optional `notes` field is attached to the completion event and is available in
+        the run's event log for audit purposes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [approve, reject]
+                  example: approve
+                notes:
+                  type: string
+                  description: Optional reviewer notes attached to the decision event.
+                  example: "Reply looks good — tone is correct and cancellation steps are accurate."
+            examples:
+              approve:
+                summary: Approve the task
+                value:
+                  decision: approve
+                  notes: "Reply looks good — tone is correct and cancellation steps are accurate."
+              reject:
+                summary: Reject the task
+                value:
+                  decision: reject
+                  notes: "Too generic — doesn't address the specific billing issue."
+      responses:
+        "200":
+          description: Task completed. The workflow run will resume automatically.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                  decision:
+                    type: string
+                  run_id:
+                    type: string
+              example:
+                task_id: task_01hw3k9x4v8m
+                decision: approve
+                run_id: run_01hw3k9x4v8m
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Task is already completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "task already completed"
+                code: "CONFLICT"
+
+  # ── MCP Tools ──────────────────────────────────────────────────────────────
+  /api/v1/mcp/tools:
+    get:
+      tags: [MCP Tools]
+      summary: List available MCP tools
+      description: |
+        Returns all tool definitions discovered from registered MCP servers. Use this to see
+        which `tool_name` values are valid for `mcp_call` steps, and to inspect each tool's
+        `input_schema` before authoring step arguments.
+
+
+        The list is cached in Redis (300 second TTL) and refreshed automatically when a
+        credential is rotated or a new MCP server is connected.
+      responses:
+        "200":
+          description: All registered MCP tools.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Tool"
+              example:
+                tools:
+                  - name: classify_ticket
+                    description: "Classifies a support ticket into a category and returns a confidence score."
+                    mcp_id: mcp_acme_crm
+                    input_schema:
+                      type: object
+                      required: [text]
+                      properties:
+                        text:
+                          type: string
+                  - name: get_customer
+                    description: "Retrieves a customer record by email address."
+                    mcp_id: mcp_acme_crm
+                    input_schema:
+                      type: object
+                      required: [email]
+                      properties:
+                        email:
+                          type: string
+                          format: email
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ── Credentials ────────────────────────────────────────────────────────────
+  /api/v1/credentials/mcp:
+    get:
+      tags: [Credentials]
+      summary: List MCP credentials
+      description: |
+        Returns all stored MCP credentials for the project. Secret values are **never returned** —
+        only metadata (id, name, mcp_id, created_at).
+      responses:
+        "200":
+          description: List of credentials.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credentials:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Credential"
+              example:
+                credentials:
+                  - id: cred_01hw3k9x4v8m
+                    name: "Acme CRM API Key"
+                    mcp_id: mcp_acme_crm
+                    created_at: "2026-02-01T08:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Credentials]
+      summary: Create an MCP credential
+      description: |
+        Stores a new MCP credential in HashiCorp Vault. The `value` is the raw secret
+        (API key, OAuth bearer token, etc.) — it is encrypted at rest and never returned
+        by the API after creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, mcp_id, value]
+              properties:
+                name:
+                  type: string
+                  description: Human-readable label.
+                  example: "Acme CRM API Key"
+                mcp_id:
+                  type: string
+                  description: The MCP server instance this credential belongs to.
+                  example: mcp_acme_crm
+                value:
+                  type: string
+                  description: The secret value. Write-only — never returned by the API.
+                  example: "sk-acme-XXXXXXXXXXXXXXXX"
+      responses:
+        "201":
+          description: Credential created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Credential"
+              example:
+                id: cred_01hw3k9x4v8m
+                name: "Acme CRM API Key"
+                mcp_id: mcp_acme_crm
+                created_at: "2026-04-10T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/v1/credentials/mcp/{secret_id}:
+    parameters:
+      - name: secret_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: cred_01hw3k9x4v8m
+    put:
+      tags: [Credentials]
+      summary: Rotate a credential
+      description: |
+        Updates the secret value for an existing credential and **immediately invalidates
+        the Redis cache** for that MCP server — active sessions will re-authenticate with
+        the new credential on the next tool call.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  type: string
+                  description: The new secret value.
+                  example: "sk-acme-YYYYYYYYYYYYYYYY"
+      responses:
+        "200":
+          description: Credential updated. Cache invalidated.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Credentials]
+      summary: Delete a credential
+      description: |
+        Permanently removes the credential from Vault and invalidates the cache.
+        Any running workflow that needs this credential will fail on its next tool call.
+      responses:
+        "204":
+          description: Credential deleted. No response body.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Builtin Tools ──────────────────────────────────────────────────────────
+  /api/v1/builtin-tools:
+    get:
+      tags: [Builtin Tools]
+      summary: List built-in tool capabilities
+      description: |
+        Returns metadata about capabilities built directly into the runtime — such as
+        LLM invocation and human task handling. Use this to see what step types are
+        supported and their expected argument schemas, without needing an external MCP server.
+      responses:
+        "200":
+          description: Built-in tool capabilities.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Tool"
+              example:
+                tools:
+                  - name: llm_call
+                    description: "Invoke a language model with a templated prompt."
+                    input_schema:
+                      type: object
+                      required: [model, prompt]
+                      properties:
+                        model:
+                          type: string
+                          example: gpt-4o-mini
+                        prompt:
+                          type: string
+                  - name: human_task
+                    description: "Pause the workflow and create a task for human review."
+                    input_schema:
+                      type: object
+                      required: [task_type]
+                      properties:
+                        task_type:
+                          type: string
+                        task_payload:
+                          type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"

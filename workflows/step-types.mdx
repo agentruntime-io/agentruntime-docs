@@ -1,126 +1,216 @@
 ---
 title: Step types
-description: MCP calls, LLM steps, human tasks, Lua scripts, and for-each loops in AgentRuntime workflows.
+description: What each workflow step does, its main fields, and the settings every step shares.
 ---
 
-Workflow graphs are made of typed **steps**. Each step has an `id`, `type`, `name`, optional `depends_on`, and type-specific fields.
+A workflow is a graph of **steps**. Each step does one job: call a tool, ask a model, run an agent, wait for a person, or loop over a list.
 
-The JSON schema is published at [agentruntime.io/schemas/workflow-graph.schema.json](https://agentruntime.io/schemas/workflow-graph.schema.json). Runtime graphs use **`{ "steps": [...] }`** — not a top-level step-id map.
+**Who this is for:** people building workflows in [Workflow Studio](/workflows/studio), or writing the graph as JSON. In Studio you fill in forms; the JSON shown here is what Studio saves for you.
 
-## mcp_call
+**What you will learn:** the nine step types, which fields matter, how to read data from an earlier step, and the settings that every step shares.
 
-Invoke a tool on an MCP instance.
+## The basics
 
-| Field | Description |
-|-------|-------------|
-| `server_url` | **Portable** system `canonical_url` — use when sharing graphs across workspaces |
-| `instance_id` | Tenant MCP instance UUID — optional override; Studio sets this when you pick an instance |
-| `tool_name` | Tool to call on the server |
-| `tool_args` | JSON arguments; supports template variables |
-| `timeout_s` | Step timeout in seconds |
-| `retry_count` | Number of retries on failure |
+Every step has:
 
-At run start the engine resolves `server_url` → `instance_id` when needed (and may auto-create a tenant instance). Dry-run validation warns when an instance will be created.
+| Field | What it is |
+|---|---|
+| `id` | A unique name inside the workflow. Other steps use it to read this step's output. Studio gives canvas steps a UUID. |
+| `type` | One of the types below. Use the short names exactly as written: `mcp`, `lua`, `llm`, `agent`, `human`, `workflow`, `for_each`, `while`, `external_agent`. |
+| `name` | A label for people. Never use the `name` in a template; use the `id`. |
+| `depends_on` | The step ids that must finish first. This sets the order. It does not pass data. |
 
-**Importing shared graphs:** Workflow Studio **Import** accepts canvas JSON or `{ "steps": [] }`, previews the graph, then maps each `server_url` to an instance in your workspace before applying to the canvas.
-
-**Example use cases:** Send an email via Resend, query Postgres, create a GitHub issue, post a WhatsApp message.
-
-## llm_call
-
-Call a large language model with a prompt.
-
-| Field | Description |
-|-------|-------------|
-| `model` | Wire model name (for example `gpt-4o`). Required if `model_ref` is omitted. |
-| `model_ref` | Providers catalog reference (for example `direct.openai.gpt-4o`). Required if `model` is omitted. |
-| `prompt` | Prompt text with template variables |
-| `llm_params` | Temperature, max tokens, and other provider params |
-| `llm_credential_id` / `llm_credential_scope` | Optional explicit tenant or system API key from **Providers** |
-
-In Workflow Studio, use the **LLM Call** palette node and pick model + source in the node config; the editor writes these fields on save. At run time, the platform resolves `model_ref` against your **Providers** keys automatically.
-
-## human_task
-
-Pause the run until a human approves, rejects, or provides input.
-
-| Field | Description |
-|-------|-------------|
-| `task_type` | Task category (for example, `approval`) |
-| `task_payload` | Data shown in Command Center (title, description, editable fields) |
-
-The run enters a paused state until the task is completed via the Console or API.
-
-## lua_script
-
-Run inline Lua to transform upstream data.
-
-| Field | Description |
-|-------|-------------|
-| `script` | Lua source (max 64 KB). Upstream: `steps["<step-id>"].result` or `steps.<id>.result` (use graph **id**, not the display **name**). Trigger input: `input.<field>`. Must return a table. |
-
-Use Lua for lightweight mapping, filtering, and aggregation without an extra MCP round-trip.
-
-## for_each
-
-Fan out over a list with controlled parallelism.
-
-| Field | Description |
-|-------|-------------|
-| `for_each_items` | Template or path to an array, e.g. `{{steps.gen.result.items}}` |
-| `for_each_max_parallel` | Max concurrent body runs (default 10, max 100) |
-| `for_each_item_timeout_s` | Optional per-item wall-clock cap for the inner chain (max 3600s) |
-| `for_each_body_steps` | Ordered inline inner step chain per item (`lua_script`, `llm_call`, `mcp_call`, `agent_call`, `workflow_call`) |
-Inner `agent_call` steps run **synchronously** inside the parent; they do not participate in episode handoff routing.
-Inside `for_each_body_steps`, reference resolved inner inputs with `{{steps.<inner-id>.input.<field>}}` (use the inner step `id` from the body array, not the runtime qualified key `parent#body#inner`).
-## while
-
-Conditional loop (L5): repeat an inline step chain until a stop condition or `while_max_iterations`.
-
-| Field | Description |
-|-------|-------------|
-| `while_mode` | `until` (stop when condition true) or `while` (continue while condition true) |
-| `while_max_iterations` | Hard cap on iterations (required, ≥ 1) |
-| `while_iteration_timeout_s` | Optional per-iteration wall-clock cap for the inner chain (max 3600s) |
-| `while_body_steps` | Ordered inline inner steps per iteration (`lua_script`, `llm_call`, `mcp_call`, `agent_call`, `workflow_call`) |
-| `while_condition` | Template boolean, e.g. `{{body.score.result.pass}}` |
-| `while_eval_script` | Lua returning `{ pass = true/false }`; wins if both condition fields are set |
-
-Template scopes inside composite bodies: `{{body.<innerId>.*}}`, `{{while.iteration}}`, `{{while.prev.<innerId>.*}}`. In Lua use `loop` (not `while`) and `body` globals.
-Reference resolved inner step inputs with `{{steps.<inner-id>.input.<field>}}` and parent loop inputs with `{{steps.<while-node-id>.input.while_condition}}` (and related `while_*` fields).
-## Template variables (Studio + JSON)
-Workflow Studio **Variables** drawer and autocomplete expose copyable paths. At run time the engine resolves templates after each step's inputs are prepared.
-| Syntax | Resolves to |
-|--------|-------------|
-| `{{input.field}}` | Workflow trigger / run-setup payload |
-| `{{steps.<step-id>.result.field}}` | Upstream step output (after completion). `<step-id>` is the graph step id, not the display name. Dot syntax only in `{{…}}` fields. |
-| `{{steps.<step-id>.input.field}}` | Resolved call parameters for that step (after template expansion) |
-| `{{foreach.item}}` / `{{item}}` | Current list element in `for_each` body |
-| `{{foreach.index}}` / `{{index}}` | Zero-based index in `for_each` body |
-| `{{body.<inner-id>.field}}` | Inner step output in the **current** composite iteration |
-| `{{while.iteration}}` | Current while iteration (0-based) |
-| `{{while.prev.<inner-id>.field}}` | Previous while iteration inner output |
-**Composite inner steps:** `steps.<id>.input.*` uses the inner step **authoring id** from `for_each_body_steps[]` or `while_body_steps[]`. Parent `for_each` / `while` nodes use the canvas step id for their own `input.*` fields (`for_each_items`, `while_condition`, etc.).
-**Legacy authoring (do not use on new graphs):** `for_each_body`, slug step ids, catalog-agent-only canvas nodes.
-## Execution controls
-
-All step types support:
-
-| Field | Description |
-|-------|-------------|
-| `depends_on` | Array of step IDs that must complete first |
-| `enabled` | When `false`, step is skipped with a synthetic completion |
-| `retry_count` | Retries after failure |
-| `timeout_s` | Per-step timeout |
-| `no_auto_start` | When `true` on a root, block auto-start until `trigger_steps` grants entry |
-| `terminal` | When `true`, completing this step may close an autonomous/mixed episode |
-See [Autonomous episodes](/workflows/autonomous-episodes) for gated agents, handoffs, `done: true`, chat session runs, and how episode close works end to end.
-
-## Parallelism
-
-Parallelism emerges naturally from the DAG. Steps with no dependency relationship run concurrently. The runtime manages step scheduling, retries, and failure propagation.
+A workflow graph is `{ "steps": [ ... ] }`. The portable workflow schema and authoring rules are published with the [Platform MCP authoring skills](/api/platform-mcp-authoring-skills). For copy-and-paste graphs see the [JSON cookbook](/workflows/json-schema-cookbook).
 
 <Note>
-  Author graphs with `depends_on`, `no_auto_start`, and `trigger_steps` — not legacy `condition`, `parallel`, or `sequence` step types (removed from the engine).
+  The canonical names are the short ones above: `mcp`, `lua`, `llm`, `agent`, `human`, `workflow`, `for_each`, `while`, `external_agent`. Older spellings such as `mcp_call`, `lua_script`, `llm_call`, `agent_call`, `human_task`, and `workflow_call` are still read in some places (for example stored graphs and Autopilot plans) and converted, but they are never written. Always use the short names in new graphs.
 </Note>
 
+## Step types at a glance
+
+| Studio palette | `type` | Use it to |
+|---|---|---|
+| Connector tools | `mcp` | Call a tool on a connected integration (send an email, query a database) |
+| **LLM** | `llm` | Send a prompt to a model |
+| **Agent** | `agent` | Run one of your agents, with its own tools and memory |
+| **Human** | `human` | Pause for a person to approve, reply, or answer |
+| **Lua** | `lua` | Reshape data with a small script |
+| **For each** | `for_each` | Run steps once per item in a list |
+| **While** | `while` | Repeat steps until a condition is met |
+| **Workflow** | `workflow` | Run another workflow and use its result |
+| **External agent (Cursor Cloud)** | `external_agent` | Start a Cursor Cloud background agent on a GitHub repository |
+
+<Frame caption="The step palette in Workflow Studio">
+  <img src="/images/workflows/studio-palette.png" alt="The step palette listing Agent, External agent (Cursor Cloud), For each, Human, LLM, Lua, While and Workflow under Built-in, then Our MCP and Composio MCP" />
+</Frame>
+
+## `mcp`: call a tool
+
+Calls one tool on an MCP instance (an installed integration in your workspace).
+
+| Field | Description |
+|---|---|
+| `tool_name` | The tool to call |
+| `instance_id` | The MCP instance to use. Studio sets this when you pick an instance. |
+| `server_url` | A portable alternative that names the server instead. At run start AgentRuntime resolves it to an instance in your workspace. |
+| `tool_args` | The tool's arguments. Values can be templates. |
+| `connection_resolution` | Which connection the tool uses: `workspace`, `principal` (the end user's own, in Embedded Connect), or `inherit` |
+| `timeout_s` | Time limit in seconds. Studio sets 60. If a step has no `timeout_s`, the engine allows 120 seconds. |
+
+Examples: send an email with Gmail, query Postgres, create a GitHub issue, send a WhatsApp message. Pick tools from the [connector catalog](/integrations/connector-catalog). To learn how a tool gets its credentials, see [How connecting works](/integrations/how-connecting-works).
+
+## `llm`: ask a model {#llm}
+
+| Field | Description |
+|---|---|
+| `model_ref` | A model from your [Providers](/ai/llm-providers) catalog. Use this or `model`. |
+| `model` | A model name. Use this or `model_ref`. |
+| `prompt` | The prompt. Can contain templates. |
+| `system_prompt` | Optional instructions that frame the model's behaviour |
+| `llm_params` | Settings such as `temperature` and `max_tokens` |
+| `llm_credential_id`, `llm_credential_scope` | Optionally pin a specific provider key |
+| `timeout_s` | Time limit in seconds. Studio sets 60. With no `timeout_s`, the engine allows 120 seconds. |
+
+The reply is on the step as `result.text`. The text is not parsed. If you asked for JSON, decode it in a following `lua` step.
+
+## `agent`: run an agent
+
+Runs one of your [agents](/ai/autopilot-and-chat) for one turn, with its tools and memory.
+
+| Field | Description |
+|---|---|
+| `agent_id` | Which agent to run |
+| `prompt` | The task for this turn. Can contain templates. |
+| `input` | Optional structured input. Values can be templates. |
+| `timeout_s` | Time limit in seconds. Studio's default is 600. |
+
+The agent's reply is on the step as `result.message`. An agent with an output schema also returns its schema fields.
+
+Agent steps can also hand work to each other, ask a person a question, or talk to a contact in a conversation. See [Autonomous episodes](/workflows/autonomous-episodes) and [Conversation sessions](/workflows/conversation-sessions).
+
+## `human`: wait for a person
+
+Pauses the run and creates a task for a person in [Command Center](/workflows/command-center).
+
+| Field | Description |
+|---|---|
+| `task_type` | The kind of task. `approval` is the default. |
+| `task_payload` | What the person sees: a title, a message, and optionally a reply box |
+| `timeout_s` | How long to wait. Studio's default is 86400 (24 hours). |
+| `timeout_policy` | What happens when nobody answers |
+| `on_reject` | What happens when the person rejects |
+
+See [Human tasks](/workflows/human-tasks) for the full guide.
+
+## `lua`: reshape data
+
+Runs a small Lua script. Use it to rename fields, filter lists, or compute a value without calling a tool.
+
+| Field | Description |
+|---|---|
+| `script` | Lua source, up to 64 KiB |
+| `timeout_s` | Default 5 seconds. The maximum is 30 seconds, even if you set more. |
+
+Rules:
+
+- The script must **return a table**, for example `return { total = 42 }`. Returning a plain number or `true` fails.
+- Read earlier steps with `steps["<step-id>"].result` and start input with `input.<field>`.
+- Lua cannot use the network, files, or the operating system. A script result can be at most 1 MiB.
+- Do not write `{{…}}` in a script. Scripts do not use templates.
+
+## `for_each`: run steps once per item {#for_each}
+
+| Field | Description |
+|---|---|
+| `for_each_items` | A template that resolves to a list, for example `{{steps.gen.result.items}}` |
+| `for_each_body_steps` | The steps to run for each item, in order. Required, at least one. |
+| `for_each_max_parallel` | How many items run at once. Default 10, maximum 100. |
+| `for_each_error_policy` | `fail_fast`, `continue_on_error`, `pause`, or `human_review` |
+| `for_each_item_timeout_s` | Optional time limit per item (maximum 3600) |
+
+A loop handles at most 500 items per run of the step. Inside the body, `{{foreach.item}}` (or `{{item}}`) is the current item and `{{foreach.index}}` (or `{{index}}`) is its position, counting from 0. In Lua use `item` and `index`.
+
+Body steps can be `mcp`, `lua`, `llm`, `agent`, `workflow`, or another `for_each` or `while`: loops can nest, at any depth. A nested loop keeps the limits above (500 items, parallelism, item timeout) and runs inside its top-level step. Parallelism multiplies, so a `for_each` inside a parallel `for_each` can run as many items at once as outer times inner. A nested `for_each` set to `pause` or `human_review` cannot pause the run partway through: it stops at its first failure and fails the surrounding loop body, so the outermost loop's error policy applies. The result has `count`, `succeeded_count`, `failed_count`, and `results[]`, one entry per item.
+
+## `while`: repeat until done
+
+| Field | Description |
+|---|---|
+| `while_mode` | `until` (stop when the condition is true) or `while` (keep going while it is true) |
+| `while_max_iterations` | Required safety limit, at least 1 |
+| `while_body_steps` | The steps to repeat. Required. |
+| `while_condition` | A template that resolves to true or false, for example `{{body.score.pass}}` |
+| `while_eval_script` | A Lua script that returns `{ pass = true }` or `{ pass = false }`. Wins if you set both. |
+
+The body runs first, then the condition is checked. A `timeout_s` set on the `while` step limits each round (not the whole loop). Studio's **While** settings do not have a separate per-round field. Inside the body, `{{while.iteration}}` is the round number counting from 0, `{{body.<inner-id>.<field>}}` reads a step from the current round, and `{{while.prev.<inner-id>.<field>}}` reads the previous round. In Lua use `loop.iteration`, `loop.prev`, and `body`. When the limit is reached the result says `stopped_reason: "max_iterations"`; check it before treating the work as finished.
+
+## `workflow`: run another workflow
+
+| Field | Description |
+|---|---|
+| `workflow_id` | The child workflow to run |
+| `input` | The child's start input. Values can be templates. |
+| `wait` | `true` (default) waits for the child. `false` starts it and moves on. |
+| `output_from` | Where the step's result comes from: `terminal` (the child's terminal step, default) or a step id |
+| `child_target` | Which version of the child to run: leave empty for Live, or `"published"`, or a version number |
+| `timeout_s` | Studio's default is 600. Only a `workflow` step inside a loop body stops waiting for the child after this many seconds. A top-level `workflow` step does not enforce it: it waits until the child run finishes. |
+
+While you build, leave `child_target` empty so the child's **Live** copy runs. Pin `"published"` or a number only for shared children that must stay stable. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+
+## Read data from other steps
+
+Steps pass data with **templates** in double braces. Type `{{` in a Studio field for suggestions ([Template intellisense](/workflows/template-intellisense)).
+
+| Template | What it gives you |
+|---|---|
+| `{{input.field}}` | A value from the run's start input |
+| `{{steps.<step-id>.result.field}}` | An earlier step's output. Use the step `id`, with dot syntax only. |
+| `{{steps.<step-id>.input.field}}` | The values that step was actually called with |
+| `{{foreach.item}}`, `{{foreach.index}}` | The current item and its position inside a `for_each` body |
+| `{{body.<inner-id>.field}}` | A step in the current round of a loop body |
+| `{{while.iteration}}`, `{{while.prev.<inner-id>.field}}` | The round number, and the previous round's output |
+| `{{input.field \| "default"}}` | The default after `\|` is used when the value is missing or empty. End with `omit` to leave the key out. |
+
+A step can only read steps it depends on (directly or further up the chain). Inside a loop body, use the inner step's own `id`.
+
+## Settings every step shares {#settings-every-step-shares}
+
+Click a step on the canvas and scroll its settings panel to the **Execution** section. It has the **Step enabled** switch, **Skip when**, and **Timeout** (with **s**, **m** and **h** unit buttons).
+
+<Frame caption="The Execution section of a step's settings">
+  <img src="/images/workflows/step-types-execution-settings.png" alt="A Lua step's settings panel on the right of Workflow Studio, with the Execution section showing the Step enabled switch, the Skip when box and the Timeout field with s, m and h buttons" />
+</Frame>
+
+| Field | Description |
+|---|---|
+| `depends_on` | Step ids that must finish first |
+| `enabled` | When `false` the step is skipped, and steps after it still run. In Studio: **Step enabled**. |
+| `skip_when` | Skip the step on this run only. A single `{{…}}` value that is true, or one comparison such as `{{input.kind == "voice"}}`. In Studio: **Skip when**. |
+| `timeout_s` | Time limit for the step. In Studio: **Timeout**. |
+| `input_allowlist` | Which steps (or `human`) may send input or a handoff to this step. In Studio: **Accepts input from**. |
+| `no_auto_start`, `terminal` | For agents that hand work to each other. See [Autonomous episodes](/workflows/autonomous-episodes). |
+
+`skip_when` supports one value or one `==` / `!=` comparison. It does not support `&&` or `||`; compute a true/false value in a `lua` step and reference that. A step is skipped for `true`, the text `true`, `yes`, or `1`, or a non-zero number. A missing or unresolved value means the step runs.
+
+The graph schema lists a `retry_count` field, but the runtime does not use it: a step that fails is not retried, and the run fails. Fix the cause and start a new run (see [Run recovery](/workflows/run-recovery)).
+
+To branch, use `skip_when` on the steps of each path. There are no `condition`, `parallel`, or `sequence` step types; steps with no dependency between them run at the same time.
+
+## Limits
+
+Time limits, loop caps, and size limits are collected in [Limits](/platform/limits).
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| Dry-run says a field is unknown | Check the field name against the tables above. Dry-run rejects fields that do not exist on the step. |
+| A `lua` step fails with "must return a table" | End the script with `return { ... }`. |
+| A template stays as literal `{{…}}` text | Use the step `id`, dot syntax, and make sure the step is in `depends_on`. See [Dry-run validation](/workflows/dry-run). |
+| A loop fails to start | `for_each_items` must resolve to a list. Return `{ items = items }` from the Lua step before it, even if it is empty. |
+
+## Next steps
+
+- [Workflow Studio](/workflows/studio)
+- [Human tasks](/workflows/human-tasks)
+- [JSON cookbook](/workflows/json-schema-cookbook)

@@ -6,7 +6,7 @@ When designing CRM, inbox, or extraction flows, pick the right **durable layer**
 |-------|----------------|----------------------|-------------|
 | **Tenant Data** | Structured rows (people, accounts, history events) | `tenantdata_*` MCP on provisioned instance | This skill + `logical-schema.schema.json` |
 | **Work files** | Blobs (PDFs, exports, large paste attachments) | **`files_upload_content`**, **`files_list`**, **`files_get`**, **`files_mcp_provision`** | Store `file_id` in Tenant Data columns |
-| **Surfaces (control-service)** | App shell, views, queries (JSONB) | Render/action API; `database.query` binds | [agentruntime-surfaces-authoring](../agentruntime-surfaces-authoring/SKILL.md) |
+| **Surfaces** | App shell, views, queries (JSON documents) | Render/action API; `database.query` binds | [agentruntime-surfaces-authoring](../agentruntime-surfaces-authoring/SKILL.md) |
 | **Vault** | Secrets, MCP inline config | Connections / instance wiring | Platform MCP vault tools (risk subgroup) |
 | **Workflow run context** | Ephemeral step outputs | `{{steps.*}}` templates | Workflow skill |
 
@@ -21,6 +21,6 @@ Do not store large unstructured blobs in many `string` columns when a file refer
 
 ## Schema versioning
 
-Tenant Data keeps **`tenant_schema_versions`** (control DB) + **`current_schema_version`** on each database. Agents should read **`api_contract`** after every migrate, not cache column lists from memory.
+Tenant Data versions each database's schema (`current_schema_version`). Agents should read **`api_contract`** after every migrate, not cache column lists from memory.
 
-See monorepo: `docs/surfaces/SURFACES_STORAGE.md` for Surfaces-specific tables (`surface_apps`, `surface_app_views`, …).
+For how Surfaces documents are saved, see [agentruntime-surfaces-authoring/references/storage-and-compile.md](../../agentruntime-surfaces-authoring/references/storage-and-compile.md).

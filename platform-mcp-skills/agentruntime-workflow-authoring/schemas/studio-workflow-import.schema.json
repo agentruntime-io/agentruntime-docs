@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:agentruntime:workflow-authoring-profile:2026-09-10",
   "title": "AgentRuntime portable workflow authoring profile",
-  "description": "Conservative authoring profile for import envelopes. Canonical step field schema: GET /api/v1/workflows/schema or Platform MCP workflows_graph_schema (workflow/schema.go GraphJSONSchemaHash). On conflict, API schema and ValidateDryRun win. Compare workflows_graph_schema.schema_hash after fetch.",
+  "description": "Conservative authoring profile for import envelopes. Canonical step field schema: Platform MCP workflows_graph_schema. On conflict, that schema and the server dry-run (workflows_validate) win. Compare workflows_graph_schema.schema_hash after fetch.",
   "type": "object",
   "required": [
     "steps"

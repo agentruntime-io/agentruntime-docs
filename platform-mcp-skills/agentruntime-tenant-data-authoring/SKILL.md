@@ -3,7 +3,7 @@ name: agentruntime-tenant-data-authoring
 description: Author Tenant Data logical schemas ({ tables[] }), history/CRM patterns, and apply them via Platform MCP or Console Import JSON. Use with workflow authoring for tenantdata_* MCP steps.
 ---
 
-Design **durable row storage** (PostgreSQL per-tenant schemas) that agents and workflows access through **Tenant Data MCP** (`tenantdata_insert`, `tenantdata_select`, …).
+Design **durable row storage** (a relational database per workspace) that agents and workflows access through **Tenant Data MCP** (`tenantdata_insert`, `tenantdata_select`, …).
 
 ## Hosted copy (external agents)
 
@@ -19,7 +19,7 @@ Platform MCP: **`ar_get_started`** → `documentation.tenant_data_authoring_skil
 
 | File | When |
 |------|------|
-| [references/storage-stack.md](references/storage-stack.md) | Where data lives (Tenant Data vs files vs Surfaces JSONB) |
+| [references/storage-stack.md](references/storage-stack.md) | Where data lives (Tenant Data vs files vs Surfaces JSON documents) |
 | [references/history-and-upsert.md](references/history-and-upsert.md) | CRM current state + append-only history tables |
 | [references/platform-mcp-tenant-data.md](references/platform-mcp-tenant-data.md) | Apply schema, provision MCP, read api-contract |
 | [schemas/logical-schema.schema.json](schemas/logical-schema.schema.json) | Validate `{ "tables": [ … ] }` before apply |
@@ -30,7 +30,7 @@ Platform MCP: **`ar_get_started`** → `documentation.tenant_data_authoring_skil
 1. Body shape: `{ "tables": [ { "name", "display_name?", "on_duplicate?", "conflict_columns?", "upsert_columns?", "columns": [ … ] } ] }`.
 2. Every table needs a primary key (column with `"primary_key": true` or explicit PK columns). Prefer `uuid` + `"auto_generate": true` for entity ids.
 3. **`on_duplicate: "upsert"`** for current-state entities; use **`fail`** or **`ignore`** for append-only history/event tables.
-4. Logical **`references`** are documentation today (Postgres FK enforcement is limited); still model FK columns for agent clarity.
+4. Logical **`references`** are documentation today (foreign-key enforcement is limited); still model FK columns for agent clarity.
 5. After apply: **Provision MCP** on that database; workflow `instance_id` must target **that** instance (see workflow skill).
 6. Do not invent MCP tool argument keys — use `catalog_tools_schema` for `tenantdata_*`.
 
@@ -46,6 +46,6 @@ Platform MCP: **`ar_get_started`** → `documentation.tenant_data_authoring_skil
 
 Requires PAT with tenant-data access (same wires as Console Databases).
 
-## Examples in monorepo
+## Schema examples
 
-`workflow-examples/packages/*/tenant-data/*.schema.json` — copy patterns, not runtime IDs.
+Call **`tenantdata_logical_schema`** for the JSON Schema, and read [references/history-and-upsert.md](references/history-and-upsert.md) for table patterns (append-only history, upsert keys). Copy patterns, not runtime IDs.

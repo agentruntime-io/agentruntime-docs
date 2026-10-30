@@ -1,115 +1,103 @@
 ---
-title: Runs and Command Center
-description: Start, control, and observe workflow runs. Manage approvals from Command Center.
+title: Runs and observability
+description: Start a run, follow it step by step, control it, and understand why a step failed or was skipped.
 ---
 
-A **run** is one execution of a published workflow version. This guide covers run lifecycle, controls, observability, and the Command Center inbox.
+A **run** is one execution of a workflow. This page explains how runs start, what the run panel shows, how to control a run, and how to read step statuses.
 
-## Starting a run
+**Who this is for:** anyone who runs or supports workflows.
 
-Start runs from:
+## Start a run
 
-- **Workflow Studio** — Run button on a published workflow
-- **REST API** — `POST /v1/workflows/{id}/command` with command `start`
-- **Inbound webhooks** — Signed external triggers (see [Inbound webhooks](/integrations/inbound-webhooks))
-- **Autopilot** — Chat command to run a workflow by name
+| From | How |
+|---|---|
+| **Workflow Studio** | Click **Run**. It runs your **Live** copy with the input from **Workflow setup**. |
+| **API** | `POST /v1/workflows/{id}/command` with `"command": "start"`. See the [API reference](/api/reference). |
+| **Schedule** | A cron schedule you add in **Workflow setup → Cron** |
+| **Inbound webhook** | An outside system sends a signed request. See [Inbound webhooks](/integrations/inbound-webhooks). |
+| **Platform event** | **Workflow setup → Events**, for Embedded Connect events |
+| **Conversation** | A message from a contact joins or starts a [conversation session](/workflows/conversation-sessions) |
+| **Autopilot** | Ask Autopilot in Chat to run a workflow by name |
 
-Runs inherit the workflow's published graph and input `params`. MCP credentials resolve from each step's `instance_id` and catalog instance wiring.
+Each trigger chooses which version it runs: **Live**, **Last published**, or a fixed version. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions). A run keeps the version it started with, even if you edit the workflow later.
 
-## Run controls
+## Watch a run
 
-Send commands via the API or Studio run panel:
+Open the workflow in Workflow Studio and expand **Run logs and metrics** at the bottom. Pick a run from the **Runs** list on the left (filter it with **All**, **Running** or **Failed**). The run panel has these tabs:
 
-| Command | Effect |
-|---------|--------|
-| `start` | Begin a new run |
-| `pause` | Pause scheduling; in-flight steps may complete |
-| `resume` | Continue a paused run |
-| `stop` | Halt the run. Use `params.mode`: `immediate` (default) or `graceful` (drain in-flight work) |
+<Frame caption="The Events tab of a finished run: one row per step, with the step's output when you expand it">
+  <img src="/images/workflows/runs-events-tab.png" alt="The run panel for a successful run with the Events, Timeline, Context, Full Logs and Dry Run tabs. The Events tab lists three steps, Draft the summary, Approve the refund and Record the decision, each with a green check and its start and end time. Record the decision is expanded and shows its output" />
+</Frame>
 
-Stopping immediately cancels in-flight MCP tool calls. LLM calls are best-effort cancelled.
+- **Events**: a log of every step: started, tool result, model output, failure, pause. It updates live while the run is active.
+- **Timeline**: a bar for every step so you can see where time went. See [Execution timeline](/workflows/execution-timeline).
+- **Context**: the run's details and a graph of the steps in the order they ran.
+- **Full Logs**: the complete log lines for the run.
+- **Dry Run**: the latest [dry-run](/workflows/dry-run) result for the current canvas (not a replay of the selected run).
 
-## Observing runs
+For a step that ran an agent or a model, click **Watch LLM** to replay what it generated.
 
-### Workflow Studio
+Runs that wait for a person also appear in [Command Center](/workflows/command-center), which lists runs across the whole workspace.
 
-The run panel shows a live event log: step started, tool result, LLM output, failures, and pauses. Subscribe via WebSocket for sub-second updates.
+## Control a run
 
-**Timeline** tab (Execution panel) — Gantt-style view of step durations in execution order, nested agent activity from run events, composite loop estimates, and run state markers. See [Execution Timeline](/workflows/execution-timeline).
+In Studio, use the buttons next to **Run** while a run is selected. In Command Center, use the buttons on the run's row. The API takes the same commands.
 
-**Context** tab — static execution-order graph (step nodes + wiring) with an **Open graph** modal for interactive pan/zoom. See [Execution Timeline — Context graph](/workflows/execution-timeline#context-tab--execution-graph).
+| Control | Effect |
+|---|---|
+| **Pause** | No new steps start. Steps already running can finish. |
+| **Resume** | Continue a paused run. |
+| **Stop** | End the run. Options: **Force stop** (the main button), **Stop immediately**, **Stop gracefully**. |
 
-### Analytics
+- **Stop immediately** and **Force stop** cancel tool calls in flight. Model calls are cancelled on a best-effort basis.
+- **Stop gracefully** lets running steps finish and never starts the rest. The run ends as **Stopped**.
+- A stopped run cannot be resumed. Start a new run instead.
 
-The **Analytics** page (`/analytics`) shows workspace-level metrics:
+In the API, `stop` takes `params.mode`: `immediate` (default) or `graceful`.
 
-- Live and recent runs
-- Success rate
-- Steps executed
-- Credits consumed
-- Usage timeseries
+## When a step fails {#failure-handling}
 
-Project contributors can access analytics APIs at `/v1/analytics/*`.
+When a step fails, the run **fails** at once and cannot be resumed. The canvas and the **Events** tab show what happened to every step, so you can see which step caused it and which were only collateral:
 
-### Run APIs
+| Status shown | When |
+|---|---|
+| **Failed** | The step that caused the run to fail. Read its error in **Events**. |
+| **Cancelled** | The step was running at the same moment (for example a parallel model call) when another step failed |
+| **Skipped · Blocked** | The step never started because a step it needs failed |
+| **Success** | The step finished before the failure. Its output is still in the run's **Context**. |
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /v1/runs` | Tenant-wide run feed |
-| `GET /v1/workflows/{id}/runs` | Runs for one workflow |
-| `GET /v1/workflows/{id}/runs/{runID}/events` | Step event log |
-| `GET /v1/workflows/{id}/runs/{runID}/context` | Step state and variables |
-| `GET /v1/workflows/{id}/runs/{runID}/steps/{stepID}/turns/{turnID}/stream` | Agent turn replay (NDJSON; late-join snapshot from run events) |
+For example: branch A fails because a credential is missing. Branch B was still calling a model, so it shows **Cancelled**. The step that joins A and B shows **Skipped · Blocked**.
 
-### Replay and traces
-
-There is no separate “replay” POST API. **Run replay** means paginating persisted events:
-
-```http
-GET /v1/workflows/{id}/runs/{runID}/events?cursor=...
-```
-
-**Agent turn replay** uses the turn stream endpoint above when a step stores `turn_id` in its result. Workflow Studio **Watch LLM** consumes the same stream.
-
-**Distributed traces:** When OpenTelemetry is enabled, `workflow_runs.request_id` holds the trace id. Studio Execution panel shows an external **Trace** link when Jaeger/Grafana is configured.
-
-Episode runs also expose `custom.episode` in run context (`in_scope`, `entry_granted`, `episode_closed`) — see [Autonomous episodes](/workflows/autonomous-episodes).
-
-## Command Center
-
-**Command Center** (`/command-center`) is your workspace-wide run inbox for approvals, active runs, and recent failures.
-
-See the dedicated [Command Center guide](/workflows/command-center) for daily operator workflows, run controls, and what to do when a run looks stuck.
-
-## Failure handling
-
-When a step fails, the run becomes **`failed`** (terminal). The canvas and event log show distinct step outcomes — not stale “Processing” or “Pending” on branches that cannot complete.
-
-### Step status badges
-
-| Badge | When |
-|-------|------|
-| **Failed** | The step that caused the run failure (read the error in Events) |
-| **Cancelled** | Was **in flight** (e.g. parallel LLM call) when another step failed the run |
-| **Skipped (Blocked)** | Never started — blocked because an upstream or parallel dependency failed |
-| **Success** | Completed before the failure (outputs may still be in run context) |
-
-Parallel example: branch A fails on missing credential; branch B (still calling the LLM) shows **Cancelled**; join step C shows **Skipped (Blocked)**.
+Other skip reasons you may see in **Events**: **Disabled** (the step is switched off), **Excluded this run** (you left it out in setup), **Approval rejected**, **Out of scope** (see [Autonomous episodes](/workflows/autonomous-episodes)).
 
 <Note>
-  **Cancelled** on a step is not the same as run status `stopped`. Operator **Stop** marks in-flight steps differently (`RUN_STOPPED`). Step failure uses fail-fast cancellation.
+  A step **Cancelled** by a failure is not the same as a run you stopped yourself. A stopped run shows **Stopped by operator**.
 </Note>
 
-Failed runs do **not** resume today. Fix the root cause (model, credential, tool args), publish if the graph changed, and **start a new run**. Planned checkpoint/retry flows are described in [Run recovery (roadmap)](/workflows/run-recovery).
+Fix the cause (model, credential, tool arguments), then start a **new run**. See [Run recovery](/workflows/run-recovery). The events behind these statuses are listed in the [API reference](/api/reference#run-event-types).
 
-Review the event log for error messages and tool responses. Persisted event types include `step_failed`, `step_cancelled`, and `step_completed` with `skipped: true` and `reason: "blocked"` — see [Run event types](/api/reference#run-event-types).
+## Replay a run
 
-## Related
+There is no separate replay command. Open the run in Studio and read **Events**. Through the API, page through `GET /v1/workflows/{id}/runs/{runID}/events`.
 
-- [Run recovery (roadmap)](/workflows/run-recovery) — planned checkpoint retry
+## Analytics
+
+The **Analytics** page shows workspace-wide numbers: live and recent runs, success rate, steps run, credits used, and usage over time. See [Analytics](/platform/analytics).
+
+## Credits
+
+Model tokens, tool calls, and workflow steps use credits according to your plan. Usage appears on the Analytics page and in billing. See [Billing and credits](/platform/billing-and-credits).
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| The run shows **Paused** | It may be waiting for a person. Open [Command Center](/workflows/command-center) and answer the task. |
+| The run is **Running** but nothing changes | Open **Events** and read the last step. A slow tool or model is the usual cause. See [Troubleshooting](/platform/troubleshooting). |
+| **Insufficient credits** | Top up in billing, then start a new run. |
+
+## Next steps
+
 - [Command Center](/workflows/command-center)
+- [Run recovery](/workflows/run-recovery)
 - [Troubleshooting](/platform/troubleshooting)
-
-## Credits and metering
-
-Each action (LLM tokens, MCP tool calls, workflow steps) consumes credits according to your plan's action pricing. Usage appears in Analytics and on the billing usage page.

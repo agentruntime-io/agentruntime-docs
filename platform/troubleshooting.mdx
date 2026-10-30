@@ -1,191 +1,127 @@
 ---
 title: Troubleshooting
-description: Fix failed runs, MCP binding errors, credit exhaustion, OAuth reconnects, and API auth issues.
+description: Fix failed runs, stuck runs, tool connection errors, missing credits, expired sign-ins and permission errors.
 ---
 
-This guide covers the most common operator issues in AgentRuntime. Start from [Command Center](/workflows/command-center) for run-level triage, then use the sections below by symptom.
+This page is for anyone whose workflow did not do what they expected. Find your symptom below, follow the steps, and use the table at the end if you still need help.
 
-## Failed runs
+## Before you start
 
-### Find the error
+Have these ready: the workflow name, the run you are looking at, and the time it happened. You can find runs in [Command Center](/workflows/command-center) and in **Workflow Studio**.
 
-1. Open **Command Center → Failed recently** (last 24 hours)
-2. Click **Open run** to view the event log in Workflow Studio
-3. Find the first step with **Failed** status and read the error message
-4. Check other steps on the canvas — **Cancelled** and **Skipped (Blocked)** are expected on fail-fast runs (not bugs)
+## A run failed
 
-### Step status on failed runs
+### Find the cause
 
-When one step fails, the run is terminal **`failed`**. Other steps are labeled explicitly:
+1. Open **Command Center**. Runs that need attention appear under **Needs you** (approvals) and **Issues today** (the last 24 hours). The **Stopped with errors** list shows failed runs.
+2. Click the failed run to open it.
+3. Find the step marked **Failed**. Read its error message. This is the step that caused the failure.
 
-| Studio badge | Meaning | Action |
-|--------------|---------|--------|
-| **Failed** | Root cause step | Fix model, credential, tool args, or graph |
-| **Cancelled** | Was running in parallel when the run failed | No fix needed — audit only |
-| **Skipped (Blocked)** | Never ran — blocked by failed dependency | No fix needed — will run on a **new** run after upstream succeeds |
-| **Success** | Finished before the failure | Outputs remain in run context for inspection |
+**You should see:** one step marked **Failed**, and other steps marked **Completed**, **Cancelled** or **Skipped**.
 
-If the **Events** panel still shows “Processing…” on a **Cancelled** step after a refresh, reload the run — the event log should include a `step_cancelled` event. See [Runs and Command Center](/workflows/runs-and-command-center#failure-handling).
+### What the step labels mean
 
-### Failure codes
+When one step fails, the whole run fails. The other steps explain what happened around it.
 
-| Code | Meaning | What to do |
-|------|---------|------------|
-| `MCP_TOOL_FAILED` | MCP tool returned an error | Check tool args, connection binding, external API status |
-| `LLM_REQUEST_FAILED` | LLM call failed | Verify provider key in **Providers**; confirm model ID |
-| `INSUFFICIENT_CREDITS` | Out of credits | Top up PAYG or upgrade plan — see [Billing](/platform/billing-and-credits) |
-| `RUN_STALLED_OR_TIMED_OUT` | No progress within timeout | Increase `timeout_s`; check for hung external API |
-| `DRAIN_TIMEOUT` | Graceful stop took too long | Use immediate stop; investigate slow in-flight step |
-| `RUN_STOPPED` | Operator stopped the run | Expected — start a new run if needed |
-| `HUMAN_TASK_FAILED` | Human task step error | Check task payload; re-run with fixed graph |
-| `UPSTREAM_ERROR` | Internal service unavailable | Retry later; contact support if persistent |
-| `DEPENDENCY_UNAVAILABLE` | Could not reach workflow service | Check platform status; retry |
+| Label | Meaning | What to do |
+|-------|---------|------------|
+| **Failed** | This step caused the failure | Fix the cause (model, credential, tool settings or workflow) |
+| **Cancelled** | It was running at the same time when the run failed | Nothing. It is part of the record. |
+| **Skipped** | It never started because a step before it failed | Nothing. It will run on a new run once the earlier step works. |
+| **Completed** | It finished before the failure | Its output is available for you to inspect |
 
-### Retry after fixing
+### Common failure reasons
 
-Failed runs are terminal. After fixing the root cause:
+The Console shows a short reason on the run. The code is shown for support and API users.
 
-1. Publish a new workflow version if the graph changed
-2. Start a **new run** — do not expect the old run to resume
+| Console message | Code | What to do |
+|-----------------|------|------------|
+| MCP tool error | `MCP_TOOL_FAILED` | Check the tool's inputs, the connection, and whether the outside service is up |
+| LLM request failed | `LLM_REQUEST_FAILED` | Check your key under **Providers** and the model name |
+| Insufficient credits | `INSUFFICIENT_CREDITS` | Add credits or change plan. See [Billing and credits](/platform/billing-and-credits). |
+| Run timed out (no progress) | `RUN_STALLED_OR_TIMED_OUT` | Check for a slow outside service. Raise the step's `timeout_s` if needed. |
+| Graceful stop timed out | `DRAIN_TIMEOUT` | Stop the run immediately, then look at the slow step |
+| Stopped by operator | `RUN_STOPPED` | Expected. Someone stopped the run. Start a new one if needed. |
+| Human review step failed | `HUMAN_TASK_FAILED` | Check the approval step's settings, fix them, and run again |
+| Service unavailable | `UPSTREAM_ERROR` | Try again in a few minutes. Contact support if it keeps happening. |
+| Could not reach workflow service | `DEPENDENCY_UNAVAILABLE` | Try again in a few minutes |
 
-**Cancelled** and **Skipped (Blocked)** steps on the old run are historical — they record what happened on that attempt. A new run executes the graph from the beginning (or from a future checkpoint API when shipped).
+### Try again after fixing
 
-For transient API errors, add `retry_count` on flaky steps. See [Workflow patterns](/workflows/patterns).
+A failed run cannot be resumed. Fix the cause, publish a new version if you changed the workflow, and start a **new run**. For short-lived outside errors, you can set `retry_count` on a step. See [Step types](/workflows/step-types) and [Workflow patterns](/workflows/patterns). Resuming from the failed step is planned but not available yet. See [Run recovery](/workflows/run-recovery).
 
-Planned **continue-from-failure** (checkpoint retry, same-run retry) is documented in [Run recovery (roadmap)](/workflows/run-recovery) — not available yet.
+## A run seems stuck
 
-## Run appears stuck
+| What you see | What it usually means | What to do |
+|--------------|-----------------------|------------|
+| **Paused** | Someone paused it, or an approval step is waiting | Click **Resume**, or approve the task in **Command Center** |
+| Waiting for approval | A `human` step is waiting for a person | This is normal. Approve or reject it. |
+| **Draining** | A graceful stop is in progress | Wait, or stop it immediately |
+| A step stays **Running** | A slow tool or AI call | Check the outside service. Stop the run if needed. |
+| **Queued** or **Starting** for a long time | The run has not begun | Check that you have credits and that **Dry-run** shows no errors |
 
-| Symptom | Likely cause | Action |
-|---------|--------------|--------|
-| Status `paused` | Operator paused or awaiting resume | Click **Resume** in Command Center |
-| Pending approval | `human_task` waiting | Approve or reject in Command Center |
-| Status `draining` | Graceful stop in progress | Wait, or escalate to immediate stop |
-| Step `running` for a long time | Slow MCP/LLM call | Check external API; increase timeout; stop if needed |
-| Status `queued` / `starting` | Startup delay | Wait 30s; check credits and validation errors |
+A run that is waiting for a person is working as designed. It is not stuck.
 
-A run waiting on human approval is **working as designed**, not stuck.
-
-## MCP binding errors
-
-Symptoms: `MCP_TOOL_FAILED` on the first tool step, validation errors mentioning bindings, or "instance not resolved" in dry-run.
+## A tool step fails or "not connected"
 
 <Steps>
-  <Step title="Validate the instance">
-    Go to **MCP**, open **Instance config** for the instance, confirm the connection is wired and the profile is **active**. Optionally run **MCP validation** at `/mcp/{server_id}/validate`.
+  <Step title="Check the connector">
+    Go to **MCP**, open the connector, and open **Instance config**. Confirm it is linked to a connection and that the connection is active. The **Validate** page for the connector (`/mcp/<server>/validate`) can also check it.
   </Step>
   <Step title="Check the connection">
-    Confirm the bound connection exists and credentials are current. OAuth connections showing **Reconnect** need re-authorization.
+    Go to **Connections**. If the connection needs signing in again, click **Reconnect** (for example on a Google account).
   </Step>
-  <Step title="Dry-run validate">
-    In Workflow Studio, click **Validate** to surface binding errors before running.
-  </Step>
-</Steps>
-
-### Per-connector guides
-
-- [Google Workspace](/integrations/google-workspace) — OAuth reconnect and scopes
-- [WhatsApp](/connectors/whatsapp) — token and WABA IDs
-- [Gmail](/connectors/gmail) — send permissions
-- [Postgres](/connectors/postgres) — DSN and network access
-
-## Credit exhaustion
-
-Symptoms: `INSUFFICIENT_CREDITS` failure code, runs fail to start, billing warnings in Console.
-
-<Steps>
-  <Step title="Check balance">
-    Go to **Settings → Billing → Usage** or `GET /v1/billing/usage`.
-  </Step>
-  <Step title="Identify spend">
-    Review **Analytics** credits consumed and usage history for heavy workflows.
-  </Step>
-  <Step title="Add credits">
-    **PAYG top-up** from Billing, or upgrade plan if included credits are insufficient.
+  <Step title="Dry-run the workflow">
+    In Workflow Studio, click **Dry-run**. Each problem is listed on its step as a **Dry-run error** or **Dry-run warning**. See [Dry-run](/workflows/dry-run).
   </Step>
 </Steps>
 
-Credit spend order: **trial → included → PAYG**. See [Billing and credits](/platform/billing-and-credits).
+Connector guides: [Google Workspace](/integrations/google-workspace), [WhatsApp](/connectors/whatsapp), [Gmail](/connectors/gmail), [Postgres](/connectors/postgres).
 
-## OAuth reconnect
+After you reconnect or change credentials, old failed runs are not fixed. Start a new run.
 
-Symptoms: **Reconnect** banner on a connection, `401`/`403` from Google or LinkedIn MCP tools, token refresh failures.
+## You are out of credits
 
-<Steps>
-  <Step title="Reconnect">
-    On **Connections**, open the **Google account** card (or the relevant provider) and **Reconnect** / re-authorize.
-  </Step>
-  <Step title="Re-validate MCP instances">
-    Validate all instances bound to that connection.
-  </Step>
-  <Step title="Check admin policy">
-    For Google Workspace, confirm your admin allows third-party app access and required scopes.
-  </Step>
-</Steps>
+1. Go to **Settings → Usage & History** and look at **Credits remaining**.
+2. Look at **Usage history**, and at **Analytics**, to see which workflows use the most.
+3. Go to **Settings → Billing Overview** and click **Add credits**, or change plan under **Plans**. You need the workspace **Admin** or **Owner** role.
 
-Rotating credentials does not retroactively fix failed runs — start new runs after reconnect.
+Credits are used in this order: trial, then included, then pay-as-you-go. See [Billing and credits](/platform/billing-and-credits).
 
-## API 401 and 403 errors
+## A connection says Reconnect
 
-### 401 Unauthorized
+This usually means a login expired or was revoked at the service (Google, LinkedIn and others).
 
-| Cause | Fix |
-|-------|-----|
-| Missing `Authorization` header | Add `Bearer pat_...` or session cookie |
-| Expired session | Re-login to Console; refresh token |
-| Revoked PAT | Create a new PAT |
+1. Open **Connections**, open the account, and click **Reconnect**.
+2. Check the connectors that use it in **MCP**.
+3. For Google Workspace, ask your Google admin whether third-party apps are allowed.
 
-### 403 Forbidden
+## API errors
 
-| Cause | Fix |
-|-------|-----|
-| Insufficient project role | Need **project_contributor** for writes; **project_viewer** for reads only |
-| Missing PAT scope | Add `workflow:run` or `mcp:execute` to the token |
-| Wrong tenant/project context | Send `X-Tenant-Id` and `X-Project-Id` headers |
-| Tenant admin action as contributor | Billing mutations need **tenant_admin** |
+| Error | Likely cause | What to do |
+|-------|--------------|------------|
+| `401` | Missing, expired or revoked credentials | Send `Authorization: Bearer <key>`. Sign in again, or create a new API key in **Settings → API keys**. |
+| `403` | Your project role or the key's scopes are too narrow | You need **Contributor** to change things. Billing changes need a workspace admin. Add scopes such as `workflow:run` or `mcp:execute` to the key. |
+| `400 X-Tenant-Id required` | The workspace could not be worked out | Send the `X-Tenant-Id` header, and `X-Project-Id` where needed |
 
 See [API authentication](/api/authentication) and [Roles and permissions](/platform/roles-permissions).
 
-## Validation errors (422)
+## Template values look wrong
 
-Dry-run validation (`POST /v1/workflows/{id}/validate`) catches issues before execution:
+If a field shows a literal `{{ ... }}` in a run, or a variable is missing, clear the field and pick the variable again from the suggestions. Click **Dry-run** to check step references. See [Template intellisense](/workflows/template-intellisense).
 
-| Error | Fix |
-|-------|-----|
-| Dependency cycle | Remove circular `depends_on` |
-| Missing `tool_name` / `server_url` | Complete MCP step configuration |
-| Lua syntax error | Fix `script` in `lua_script` steps |
-| Unknown MCP instance | Install instance, fix reference, or use **Import** to remap `server_url` bindings |
-| Invalid template | Check `{{steps.id.result}}` references exist |
+## Still stuck?
 
-### Template fields look wrong after editing
+Email [support@agentruntime.io](mailto:support@agentruntime.io) with:
 
-| Symptom | What to do |
-|---------|------------|
-| Nested or duplicated `{{` / `}}` in a prompt or start-input field | Clear the field; re-insert variables from the **variable** picker or [Template intellisense](/workflows/template-intellisense) |
-| Variable left as literal text in run output | Confirm the path matches a real step **Step ID** and field; use **Validate** (dry-run) before running |
-| Undo (Ctrl+Z) left the field in a odd state | Clear and re-pick from suggestions, or use **Variables** tab to copy a clean path |
+- the workflow name and run
+- the error message or failure reason
+- the step that failed
+- the time it happened
 
-See [Feature availability](/platform/feature-availability) for preview vs GA features.
+## Next steps
 
-## Memory errors (preview)
-
-| Error | Fix |
-|-------|-----|
-| `memory kernel not configured` | Memory not enabled in this environment |
-| `queue unavailable` | Extract infrastructure down — contact support |
-| Empty search results | Confirm index job completed — see [Memory](/ai/memory) |
-
-## Still blocked?
-
-1. Gather: workflow ID, run ID, failure code, step ID, timestamp
-2. Check [Command Center](/workflows/command-center) and the run event log
-3. Email [support@agentruntime.io](mailto:support@agentruntime.io) with the details
-
-## Related docs
-
-- [Command Center](/workflows/command-center) — daily operator inbox
-- [Runs and Command Center](/workflows/runs-and-command-center) — Cancelled / Blocked badges on failure
-- [Run recovery (roadmap)](/workflows/run-recovery) — planned checkpoint retry
-- [Workflow patterns](/workflows/patterns) — retries and error handling
-- [Connections](/integrations/connections) — credential management
+- [Command Center](/workflows/command-center)
+- [Runs and Command Center](/workflows/runs-and-command-center)
+- [Workflow patterns](/workflows/patterns)
+- [Connections](/integrations/connections)

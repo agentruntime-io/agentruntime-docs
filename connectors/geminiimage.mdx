@@ -1,67 +1,68 @@
 ---
-title: Gemini Images connector
-description: Generate, edit, and compose images with Google Gemini and Imagen models from AgentRuntime workflows.
+title: Gemini Image connector
+description: Generate, edit, and combine images with Google Gemini and Imagen models.
 ---
 
-The **geminiimage** MCP adapter connects to [Google AI Studio](https://aistudio.google.com/) image APIs. Generate images from prompts, edit existing images with instructions, and compose multiple inputs — using Gemini multimodal models or Imagen predict endpoints.
+The **geminiimage** connector uses [Google AI Studio](https://aistudio.google.com/) image models. Your workflow can create an image from a text prompt, edit an existing image with instructions, or combine several images into one.
 
 ## Prerequisites
 
-- A Google AI Studio account with an **API key**
-- Billing or quota enabled for Gemini image and/or Imagen models on your key
-- For edit/compose: source images as base64 (data URL prefixes accepted)
-- **project_contributor** access in AgentRuntime
+- A Google AI Studio **API key** with access to the image models you want to use.
+- For editing and combining: the source images as base64 text. A data URL prefix is accepted.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Get a Google AI Studio API key">
-    Create a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Enable the image models you plan to use.
+  <Step title="Create a Google AI Studio API key">
+    Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey), create an API key, and copy it.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`. Set `DefaultModel` (e.g. `gemini-2.5-flash-image`) if desired.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Gemini Image** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add geminiimage MCP instance">
-    Go to **MCP**, click **Add instance** for **geminiimage**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_key` (your AI Studio key) and, optionally, `default_model`. Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Generate a test image">
-    Run **mcp_call** → `gemini_text_to_image` with a simple prompt to verify model access.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `gemini_image_text_to_image` tool from your **Gemini Image** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. A short `prompt` is enough.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
-
 <Note>
-  `gemini_edit_image` and `gemini_compose_images` require Gemini image models. Imagen models (`imagen-4-*`, `imagen-3-*`) support text-to-image via predict but not edit/compose handlers.
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
 </Note>
 
 ## What you can build
 
-- **Brand assets** — `gemini_text_to_image` with Imagen aspect ratios for ads and social formats.
-- **Photo retouching** — Product photo base64 → `gemini_edit_image` with "remove background" or style prompts.
-- **Collage generation** — Multiple reference images → `gemini_compose_images` with layout instructions.
-- **Multimodal reports** — LLM writes caption → image tool → append to Google Slides or Docs.
+- **Brand assets.** `gemini_image_text_to_image` with an Imagen model and an `aspect_ratio` makes ad and social images.
+- **Photo edits.** `gemini_image_edit_image` takes a product photo and an instruction such as "remove the background".
+- **Collages.** `gemini_image_compose_images` combines several reference images using a prompt.
+- **Illustrated reports.** An LLM writes a caption, an image tool creates the picture, and a later step adds both to a document.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `gemini_text_to_image` | Generate from prompt (Gemini generateContent or Imagen predict) |
-| `gemini_edit_image` | Edit a base64 image with a text prompt (Gemini models only) |
-| `gemini_compose_images` | Combine multiple input images per prompt (Gemini models only) |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+Editing and composing work with Gemini image models only (`gemini-2.5-flash-image` or `gemini-3-pro-image-preview`). Imagen models (`imagen-4-*`, `imagen-3-*`) work for text-to-image only, and are the only ones that use `number_of_images`, `aspect_ratio`, and `negative_prompt`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `gemini_image_compose_images` | Write | Compose one or more base64-encoded input images using a text prompt and Gemini generateContent. | `prompt`, `images` |
+| `gemini_image_edit_image` | Write | Edit a base64-encoded image using a text prompt and Gemini multimodal generateContent. | `prompt`, `image_base64` |
+| `gemini_image_text_to_image` | Write | Generate an image from a text prompt using Gemini or Imagen image models. | `prompt` |
 
 ## Example
 
-Generate a square marketing image with Imagen:
+Generate a square image with an Imagen model.
 
 ```json
 {
   "id": "gemini-image",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Generate product image",
-  "tool_name": "gemini_text_to_image",
+  "tool_name": "gemini_image_text_to_image",
   "tool_args": {
-    "prompt": "Minimal flat illustration of a cloud workflow, brand colors blue and white",
+    "prompt": "Minimal flat illustration of a cloud workflow, blue and white",
     "model": "imagen-4.0-generate-001",
     "aspect_ratio": "1:1",
     "number_of_images": 1
@@ -74,22 +75,24 @@ Generate a square marketing image with Imagen:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | Google AI Studio API key |
-| `DefaultModel` | No | Default when tools omit `model` (e.g. `gemini-2.5-flash-image`) |
-| `APIBase` | No | Gemini API base URL |
+| `api_key` | Yes | Google AI Studio API key. |
+| `default_model` | No | Model used when a tool call omits `model`. Default `gemini-2.5-flash-image`. |
+| `api_base` | No | Gemini API base URL. Default `https://generativelanguage.googleapis.com/v1beta`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| Imagen rejected on edit | Use Gemini model for `gemini_edit_image` and `gemini_compose_images` |
-| Empty image in response | Check safety filters; simplify prompt; verify model ID spelling |
-| Wrong aspect ratio | Set `aspect_ratio` for Imagen; Gemini generateContent ignores Imagen-only fields |
-| Quota errors | Review AI Studio quotas; reduce concurrent workflow image steps |
+| Problem | What to do |
+|---------|------------|
+| An Imagen model is rejected on edit or compose | Use `gemini-2.5-flash-image` or `gemini-3-pro-image-preview` for `gemini_image_edit_image` and `gemini_image_compose_images`. |
+| `aspect_ratio` has no effect | It only applies to Imagen models. It is ignored for Gemini models. |
+| Quota or permission errors | Check the key's access to the model and your quota in Google AI Studio. |
+| No image comes back | Check `text_response` in the result for an explanation, then simplify the prompt and confirm the model name. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [OpenAI Images connector](/connectors/openaiimage) — alternative image generation
+- [OpenAI Images connector](/connectors/openaiimage) for another image generator
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

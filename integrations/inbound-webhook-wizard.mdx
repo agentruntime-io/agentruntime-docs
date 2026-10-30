@@ -1,100 +1,81 @@
 ---
 title: Inbound webhook wizard
-description: Step-by-step walkthrough for creating signed webhook subscriptions in Workflow Studio, Settings, and Autopilot Chat.
+description: Step-by-step guide to creating a signed inbound webhook in Workflow Studio, Settings, or Autopilot chat.
 ---
 
-This page walks through the **Console UI** for inbound webhooks. For the security model, signature algorithm, and API reference, see [Inbound webhooks](/integrations/inbound-webhooks).
+This page walks you through the Console screens for creating an inbound webhook. It is for anyone who wants an outside system (a payment provider, a CI job, your own backend) to start a workflow. For how senders must sign requests, see [Inbound webhooks](/integrations/inbound-webhooks).
 
 ## Before you start
 
-- A **saved workflow** in Workflow Studio (draft-only graphs cannot subscribe)
-- **project_contributor** role
-- At least one **API key** (PAT) under **Settings → API keys** — webhooks use this for `Authorization: Bearer pat_…` on ingress
-- `inbound_webhooks` enabled on your deployment (default **on**)
+- A **saved** workflow in Workflow Studio. If you have not saved it, the **Inbound** tab says "Save the workflow to manage inbound webhooks."
+- The **project_contributor** role or higher. Other roles see "Contributors can add inbound webhooks."
+- At least one API key (personal access token) under **Settings → API keys**. The webhook uses it as the identity its runs execute as. See [API authentication](/api/authentication).
 
-## Path A — Workflow Studio (recommended)
+## Create a webhook in Workflow Studio
 
 <Steps>
   <Step title="Open the workflow">
-    Navigate to **Workflow Studio** at `/workflow/{workflow_id}` for the graph you want to trigger.
+    Open your workflow in **Workflow Studio**.
   </Step>
   <Step title="Open the Inbound tab">
-    In the workflow configuration panel, select **Inbound**. This tab lists subscriptions for **this workflow only**.
+    In the workflow configuration panel, open **Inbound**. It lists the webhooks for this workflow only.
   </Step>
-  <Step title="Name the subscription">
-    Enter a label (for example `shopify-fulfillment` or `weekly-cron`). Names appear in **Settings → Inbound webhooks** too.
+  <Step title="Name it">
+    Enter a **Label**, for example `shopify-orders`. The label shows in the list so you can recognize the webhook later.
   </Step>
-  <Step title="Select automation API key">
-    Choose an existing key from the dropdown. Create one first under **Settings → API keys** if the list is empty.
+  <Step title="Choose the purpose">
+    Under **Webhook purpose**, keep **Start workflow run** for the usual case: each request starts a run. The other option, **Append to agent inbox (mid-turn)**, sends a message into an agent run that is already in progress.
   </Step>
-  <Step title="Create">
-    Click create. A dialog shows the **signing secret** and **ingress URL** — copy both immediately.
+  <Step title="Choose the sender type">
+    Under **Vendor adapter**, leave **Direct caller only** if your own code or a CI job will call the webhook. Pick a listed vendor adapter if the service (for example GitHub or Telegram) registers the webhook itself. Then select the **Connection** that holds that vendor's credentials.
   </Step>
-  <Step title="Copy curl template">
-    Use the generated curl example to verify HMAC signing and PAT auth before wiring your external system.
+  <Step title="Choose which version runs">
+    Under **Runs**, choose whether requests run your latest saved edits (**Live**) or the newest published version (**Last published**).
   </Step>
-</Steps>
-
-### PAT paste fallback
-
-If AgentRuntime cannot read the PAT secret automatically (for example, an older key created before secret storage changed), the UI prompts you to **paste the PAT secret once**. The plaintext is used only for subscription setup and is not shown again.
-
-This same fallback appears in Autopilot's wizard and matches the API's optional `automation_bearer` field.
-
-## Path B — Settings (workspace-wide)
-
-<Steps>
-  <Step title="Open Settings → Inbound webhooks">
-    Go to `/settings?tab=inboundWebhooks` for a workspace-wide list of all subscriptions.
+  <Step title="Choose the automation API key">
+    Under **Automation API key**, pick the key the runs should execute as. If the Console cannot read the key automatically, a field appears where you paste the `pat_…` secret once.
   </Step>
-  <Step title="Review and delete">
-    Use this view to audit subscriptions across workflows or remove unused hooks. Creation still requires a workflow context — use Workflow Studio or Autopilot for new subscriptions.
+  <Step title="Create it">
+    Click **Create subscription**. A dialog titled **Signing secret (copy now)** appears.
   </Step>
 </Steps>
 
-## Path C — Autopilot Chat wizard
+You should see two copy fields: **Signing secret** and **Ingress URL (start run)**. For the agent inbox purpose you also see **Agent inbox URL (mid-turn append)**. Copy them now. The signing secret cannot be shown again. Store it in your secrets manager.
 
-When you ask Autopilot to trigger a workflow from external events, Chat may render an **Inbound webhook** card:
+## See and remove webhooks across the workspace
 
-<Steps>
-  <Step title="Open a saved workflow">
-    The wizard requires `workflow_id` from the workflow open in Studio. If missing, Autopilot shows: *"Open a saved workflow in Workflow Studio first."*
-  </Step>
-  <Step title="Fill the card">
-    Set **Label**, pick **Automation API key**, and click **Create webhook**.
-  </Step>
-  <Step title="Copy secrets from success state">
-    After creation, the card shows signing secret, ingress URL, and example curl — same as the Studio dialog.
-  </Step>
-</Steps>
+Open **Settings** and the **Inbound webhooks** tab. It lists every webhook in the workspace. You can delete one with the delete button and confirm in **Delete inbound subscription?**. Create new webhooks from a workflow's **Inbound** tab, not here.
 
-Ask in Chat: *"Create an inbound webhook for this workflow"* or *"I need a signed URL to trigger this graph from Shopify."*
+## Create a webhook from Autopilot chat
 
-## After creation
+In Autopilot chat, ask something like "Create an inbound webhook for this workflow". Autopilot shows an inbound webhook card.
 
-| Item | Notes |
-|------|-------|
-| **Signing secret** | Shown once. Store in your secrets manager. Used for `X-Agentruntime-Signature`. |
-| **Ingress URL** | Public POST target. Body becomes workflow `input`. |
-| **Automation PAT** | Must be sent on every ingress request. Tied to the subscription at create time. |
+1. Open a saved workflow in Workflow Studio first. Without one, Autopilot asks you to open a saved workflow.
+2. In the card, set the name and **Automation API key**, then create the webhook.
+3. Copy the signing secret and ingress URL from the result. The card also shows an example `curl` command.
 
-Test with the curl template, then map your provider's webhook fields to workflow `input` (for example map `pull_request.number` → `pr_number`).
+## After creating the webhook
 
-## Example ingress request
+| Item | What to know |
+|------|--------------|
+| **Signing secret** | Shown once. Use it to sign every request. |
+| **Ingress URL** | The address senders POST to. |
+| **Automation API key** | Stored with the webhook. Senders do not send it. |
 
-```bash
-curl -X POST 'https://api.agentruntime.io/v1/inbound-webhooks/{subscription_id}' \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer pat_…' \
-  -H 'X-Agentruntime-Signature: sha256=<hmac-sha256 of raw body>' \
-  -d '{"order_id": "5678901234"}'
-```
+Next, send a signed test request, as described in [Inbound webhooks](/integrations/inbound-webhooks#verify-signatures). Check **Runs** to see the run start.
 
-See [API examples — inbound webhooks](/api/examples#create-inbound-webhook-subscription) for programmatic create/list/delete.
+## Common problems
+
+| Problem | What to do |
+|---------|------------|
+| The **Inbound** tab is empty or disabled | Save the workflow first, and make sure you have the contributor role. |
+| The **Automation API key** list is empty | Create a key under **Settings → API keys**, then come back. |
+| Requests return `400` | Check the `X-Agentruntime-Signature` and `Idempotency-Key` headers. See [Inbound webhooks](/integrations/inbound-webhooks). |
+| You lost the signing secret | Delete the webhook and create a new one. |
 
 ## Related
 
-- [Inbound webhooks](/integrations/inbound-webhooks) — security model and payload mapping
-- [API authentication](/api/authentication) — create PATs
-- [Guides](/guides/overview) — recipes that start with webhooks
+- [Inbound webhooks](/integrations/inbound-webhooks) — signing and payloads
+- [API authentication](/api/authentication) — create API keys
+- [End-to-end guides](/guides/overview)
 - [Workflow patterns](/workflows/patterns#inbound-webhook-triggers)

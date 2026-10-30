@@ -1,136 +1,141 @@
 ---
 title: GitHub PR → LLM review → comment
-description: Fetch a pull request, generate an LLM review summary, get human approval, and post a comment on GitHub.
+description: Draft a pull request review with an LLM, approve it yourself in Command Center, then post it as a GitHub comment.
 ---
 
-Automate first-pass **pull request reviews** without posting unreviewed AI text to your repo. The workflow fetches PR metadata and diffs, drafts a review with an LLM, pauses for **human approval** in Command Center, then posts an approved comment on GitHub.
+In this guide you build a workflow that does a **first-pass review of a pull request**. It reads the pull request and its changed files from GitHub, asks an LLM to draft a review, **pauses for your approval**, and only then posts the comment.
 
-## What you'll build
+It is for developers and team leads who want AI help with reviews without anything being posted unchecked. It takes about 20 minutes.
 
 ```mermaid
 flowchart LR
-  Trigger[Webhook or manual] --> GetPR[get_pull_request]
-  GetPR --> Files[list_pull_request_files]
-  Files --> LLM[llm_call review]
-  LLM --> Human[human_task approval]
-  Human -->|approved| Comment[add_issue_comment]
-  Human -->|rejected| End[Run ends]
+  Start[Manual run or API] --> GetPR[github_pull_request_read: get]
+  GetPR --> Files[github_pull_request_read: get_files]
+  Files --> LLM[LLM review]
+  LLM --> Human[Human approval]
+  Human -->|approved| Comment[github_add_issue_comment]
+  Human -->|rejected| End[Comment step skipped]
 ```
 
-**Outcome:** Reviewers see a structured summary in Command Center, edit or reject it, and only approved text is published as a GitHub comment.
+**Outcome:** you see the draft in Command Center, approve or reject it, and only approved text is posted to the pull request.
 
 ## Prerequisites
 
-- **project_contributor** access
-- [GitHub personal access token](/connectors/github) with `repo` scope on target repositories
-- LLM provider configured in **Providers**
-- Optional: inbound webhook from GitHub (`pull_request` events) or manual runs with `owner`, `repo`, `pr_number`
+- The `project_contributor` role
+- A [GitHub connection](/connectors/github) with access to the repositories you want to review (a personal access token with the `repo` scope)
+- A model your workspace can use. See [LLM providers](/ai/llm-providers)
+- The pull request's `owner`, `repo`, and number
 
 ## Connectors to install
 
 | Adapter | Purpose |
 |---------|---------|
-| [github](/connectors/github) | Read PR, list files, post comment |
+| [github](/connectors/github) | Read the pull request and post the comment |
+
+Install it from **MCP → Add connectors** (click the connector, then **Add to workspace**), then connect it on **Instance config**.
 
 ## Build the workflow
 
 <Steps>
-  <Step title="Create workflow">
+  <Step title="Create the workflow">
     Name it `github-pr-review` in **Workflow Studio**.
   </Step>
-  <Step title="Validate input">
-    **lua_script** requires `owner`, `repo`, and `pr_number`.
+  <Step title="Check the input">
+    Add a `lua` step that requires `owner`, `repo`, and `pr_number`.
   </Step>
-  <Step title="Fetch PR and files">
-    Chain **mcp_call** → `get_pull_request` then `list_pull_request_files`.
+  <Step title="Fetch the pull request and its files">
+    Add two `mcp` steps that use `github_pull_request_read`: one with `method` set to `get`, one with `get_files`.
   </Step>
-  <Step title="LLM review">
-    **llm_call** with PR title, body, and file list in the prompt. Ask for risks, test gaps, and a suggested comment body.
+  <Step title="Draft the review">
+    Add an **LLM** step. Put the title, description, and file list in the prompt. Ask for risks, missing tests, and a suggested comment.
   </Step>
-  <Step title="Human approval">
-    **human_task** with `task_type: "approval"` showing the draft comment. See [Human tasks](/workflows/human-tasks).
+  <Step title="Ask for approval">
+    Add a `human` step with `task_type` set to `approval`, showing the draft. See [Human tasks](/workflows/human-tasks).
   </Step>
-  <Step title="Post comment">
-    **mcp_call** → `add_issue_comment` using the LLM draft text, gated by `{{steps.approve-review.result.approved}}`.
-  </Step>
-  <Step title="Trigger">
-    Start runs manually, via API, or wire a GitHub webhook to an [inbound subscription](/integrations/inbound-webhooks) that maps `pull_request.number` to `pr_number`.
+  <Step title="Post the comment">
+    Add an `mcp` step with `github_add_issue_comment`, after the approval.
   </Step>
 </Steps>
 
-### Validate input
+### Check the input
 
 ```json
 {
   "id": "validate",
-  "type": "lua_script",
+  "type": "lua",
   "name": "Validate PR coordinates",
   "script": "if not input.owner or not input.repo or not input.pr_number then error('owner, repo, pr_number required') end\nreturn {\n  owner = input.owner,\n  repo = input.repo,\n  pr_number = tonumber(input.pr_number)\n}",
   "timeout_s": 10
 }
 ```
 
-### Fetch PR
+### Fetch the pull request
 
 ```json
 {
   "id": "get-pr",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Get pull request",
-  "tool_name": "get_pull_request",
+  "instance_id": "REPLACE_GITHUB_INSTANCE",
+  "tool_name": "github_pull_request_read",
   "tool_args": {
+    "method": "get",
     "owner": "{{steps.validate.result.owner}}",
     "repo": "{{steps.validate.result.repo}}",
-    "pull_number": "{{steps.validate.result.pr_number}}"
+    "pullNumber": "{{steps.validate.result.pr_number}}"
   },
   "depends_on": ["validate"],
   "timeout_s": 30
 }
 ```
 
-### List changed files
+The pull request is returned under `data`, so the title is `{{steps.get-pr.result.data.title}}`.
+
+### List the changed files
 
 ```json
 {
   "id": "list-files",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "List PR files",
-  "tool_name": "list_pull_request_files",
+  "instance_id": "REPLACE_GITHUB_INSTANCE",
+  "tool_name": "github_pull_request_read",
   "tool_args": {
+    "method": "get_files",
     "owner": "{{steps.validate.result.owner}}",
     "repo": "{{steps.validate.result.repo}}",
-    "pull_number": "{{steps.validate.result.pr_number}}"
+    "pullNumber": "{{steps.validate.result.pr_number}}"
   },
   "depends_on": ["get-pr"],
   "timeout_s": 30
 }
 ```
 
-### LLM review
+### Draft the review
 
 ```json
 {
   "id": "draft-review",
-  "type": "llm_call",
+  "type": "llm",
   "name": "Draft PR review",
-  "model": "gpt-4o",
-  "prompt": "You are a senior engineer reviewing a pull request.\n\nTitle: {{steps.get-pr.result.title}}\nDescription: {{steps.get-pr.result.body}}\nFiles changed: {{steps.list-files.result}}\n\nWrite a concise review comment (markdown) covering: summary, risks, testing suggestions, and approval recommendation. Output only the comment body.",
+  "model_ref": "REPLACE_MODEL_REF",
+  "prompt": "You are a senior engineer reviewing a pull request.\n\nTitle: {{steps.get-pr.result.data.title}}\nDescription: {{steps.get-pr.result.data.body}}\nFiles changed: {{steps.list-files.result.data}}\n\nWrite a concise review comment (markdown) covering: summary, risks, testing suggestions, and approval recommendation. Output only the comment body.",
   "depends_on": ["list-files"],
   "timeout_s": 180
 }
 ```
 
-### Human approval
+### Ask for approval
 
 ```json
 {
   "id": "approve-review",
-  "type": "human_task",
+  "type": "human",
   "name": "Approve review comment",
   "task_type": "approval",
   "task_payload": {
     "title": "Post PR review on {{steps.validate.result.owner}}/{{steps.validate.result.repo}}#{{steps.validate.result.pr_number}}",
-    "description": "Edit or reject before posting to GitHub.",
+    "description": "Read the draft below. Approve to post it to GitHub, or reject to cancel.",
     "draft_body": "{{steps.draft-review.result.text}}"
   },
   "depends_on": ["draft-review"],
@@ -138,90 +143,93 @@ flowchart LR
 }
 ```
 
-### Post comment
+### Post the comment
 
 ```json
 {
   "id": "post-comment",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Add GitHub comment",
-  "tool_name": "add_issue_comment",
+  "instance_id": "REPLACE_GITHUB_INSTANCE",
+  "tool_name": "github_add_issue_comment",
   "tool_args": {
     "owner": "{{steps.validate.result.owner}}",
     "repo": "{{steps.validate.result.repo}}",
-    "issue_number": "{{steps.validate.result.pr_number}}",
+    "number": "{{steps.validate.result.pr_number}}",
     "body": "{{steps.draft-review.result.text}}"
   },
   "depends_on": ["approve-review"],
-  "condition": "{{steps.approve-review.result.approved}}",
   "timeout_s": 30
 }
 ```
 
+If you **reject** the task, the steps that come after it are skipped by default, so nothing is posted.
+
 <Note>
-  Command **Approve** only sets `approved: true` on the human task step — it does not copy `draft_body` into the result. Reference the LLM step for comment text, or complete the task via API with a custom `result` object. See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
+  **Approve** only sets `approved: true` on the task. It does not copy `draft_body` anywhere. The comment text comes from the LLM step. To post text you edited, complete the task through the API with a custom `result`. See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
 </Note>
 
-## Full workflow graph (copy-paste)
+## Full workflow
 
-Replace `tenant_id`, `workflow_id`, and bind your `github` MCP instance on each `mcp_call` step in Workflow Studio (instance picker sets `server_url` at publish time).
+Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE_GITHUB_INSTANCE` with the id of your `github` instance on each `mcp` step, and `REPLACE_MODEL_REF` with a model from your [Providers](/ai/llm-providers) catalog.
 
 ```json
 {
-  "tenant_id": "your-workspace-slug",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440010",
-  "params": {},
   "steps": [
     {
       "id": "validate",
-      "type": "lua_script",
+      "type": "lua",
       "name": "Validate PR coordinates",
       "script": "if not input.owner or not input.repo or not input.pr_number then error('owner, repo, pr_number required') end\nreturn {\n  owner = input.owner,\n  repo = input.repo,\n  pr_number = tonumber(input.pr_number)\n}",
       "timeout_s": 10
     },
     {
       "id": "get-pr",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Get pull request",
-      "tool_name": "get_pull_request",
+      "instance_id": "REPLACE_GITHUB_INSTANCE",
+      "tool_name": "github_pull_request_read",
       "tool_args": {
+        "method": "get",
         "owner": "{{steps.validate.result.owner}}",
         "repo": "{{steps.validate.result.repo}}",
-        "pull_number": "{{steps.validate.result.pr_number}}"
+        "pullNumber": "{{steps.validate.result.pr_number}}"
       },
       "depends_on": ["validate"],
       "timeout_s": 30
     },
     {
       "id": "list-files",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "List PR files",
-      "tool_name": "list_pull_request_files",
+      "instance_id": "REPLACE_GITHUB_INSTANCE",
+      "tool_name": "github_pull_request_read",
       "tool_args": {
+        "method": "get_files",
         "owner": "{{steps.validate.result.owner}}",
         "repo": "{{steps.validate.result.repo}}",
-        "pull_number": "{{steps.validate.result.pr_number}}"
+        "pullNumber": "{{steps.validate.result.pr_number}}"
       },
       "depends_on": ["get-pr"],
       "timeout_s": 30
     },
     {
       "id": "draft-review",
-      "type": "llm_call",
+      "type": "llm",
       "name": "Draft PR review",
-      "model": "gpt-4o",
-      "prompt": "You are a senior engineer reviewing a pull request.\n\nTitle: {{steps.get-pr.result.title}}\nDescription: {{steps.get-pr.result.body}}\nFiles changed: {{steps.list-files.result}}\n\nWrite a concise review comment (markdown) covering: summary, risks, testing suggestions, and approval recommendation. Output only the comment body.",
+      "model_ref": "REPLACE_MODEL_REF",
+      "prompt": "You are a senior engineer reviewing a pull request.\n\nTitle: {{steps.get-pr.result.data.title}}\nDescription: {{steps.get-pr.result.data.body}}\nFiles changed: {{steps.list-files.result.data}}\n\nWrite a concise review comment (markdown) covering: summary, risks, testing suggestions, and approval recommendation. Output only the comment body.",
       "depends_on": ["list-files"],
       "timeout_s": 180
     },
     {
       "id": "approve-review",
-      "type": "human_task",
+      "type": "human",
       "name": "Approve review comment",
       "task_type": "approval",
       "task_payload": {
         "title": "Post PR review on {{steps.validate.result.owner}}/{{steps.validate.result.repo}}#{{steps.validate.result.pr_number}}",
-        "description": "Review the draft in Command Center. Reject to cancel the GitHub comment.",
+        "description": "Read the draft below. Approve to post it to GitHub, or reject to cancel.",
         "draft_body": "{{steps.draft-review.result.text}}"
       },
       "depends_on": ["draft-review"],
@@ -229,33 +237,26 @@ Replace `tenant_id`, `workflow_id`, and bind your `github` MCP instance on each 
     },
     {
       "id": "post-comment",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Add GitHub comment",
-      "tool_name": "add_issue_comment",
+      "instance_id": "REPLACE_GITHUB_INSTANCE",
+      "tool_name": "github_add_issue_comment",
       "tool_args": {
         "owner": "{{steps.validate.result.owner}}",
         "repo": "{{steps.validate.result.repo}}",
-        "issue_number": "{{steps.validate.result.pr_number}}",
+        "number": "{{steps.validate.result.pr_number}}",
         "body": "{{steps.draft-review.result.text}}"
       },
       "depends_on": ["approve-review"],
-      "condition": "{{steps.approve-review.result.approved}}",
       "timeout_s": 30
     }
   ]
 }
 ```
 
-Start a run via **Workflow Studio** or:
+## Run it
 
-```
-POST /v1/workflows/{id}/command
-{ "command": "start", "params": { "owner": "your-org", "repo": "your-repo", "pr_number": 42 } }
-```
-
-## Test run
-
-Start a manual run:
+Start a manual run in Workflow Studio with this input:
 
 ```json
 {
@@ -265,15 +266,29 @@ Start a manual run:
 }
 ```
 
-Open **Command Center**, approve or edit the draft, then confirm the comment appears on the PR.
+You can also start it from code. See [API examples](/api/examples#start-a-run).
+
+**What you should see:** the run pauses at **Approve review comment**. Open [Command Center](/workflows/command-center), read the draft, and click **Approve** or **Reject**. After you approve, the comment appears on the pull request.
+
+To run it automatically when a pull request opens, create an [inbound webhook](/integrations/inbound-webhooks) and choose the **GitHub** vendor adapter.
+
+## Common problems
+
+| Problem | What to check |
+|---------|---------------|
+| `owner, repo, pr_number required` | The run input is missing a field |
+| A GitHub step fails with not found or forbidden | The connection's token cannot see that repository |
+| The draft shows empty title or description | Check the field names under `data` in the run's step results, in the run view |
+| The run seems stuck | It is waiting for your approval. Open Command Center |
+| A comment was posted after I rejected | Check that the `post-comment` step lists `approve-review` in `depends_on` |
 
 ## Variations
 
-- Add `compare_commits` for larger diff context before the LLM step.
-- Route low-confidence reviews: Lua checks for "BLOCK" in LLM output → always require human task.
-- On approval, call `merge_pull_request` instead of commenting (separate workflow with stricter gates).
+- Add a `github_compare_commits` step for more context before the LLM step.
+- After approval, call `github_merge_pull_request` in a separate workflow with stricter checks.
+- Ask the LLM to output the word `BLOCK` for risky changes, and add a Lua step that always requires approval in that case.
 
-## Related
+## Next steps
 
 - [GitHub connector](/connectors/github)
 - [Approve then send](/workflows/patterns#approve-then-send)

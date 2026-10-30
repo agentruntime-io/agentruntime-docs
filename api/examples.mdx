@@ -1,423 +1,274 @@
 ---
 title: API examples
-description: Copy-paste request and response samples for common AgentRuntime REST operations.
+description: Copy-paste requests for the most common AgentRuntime API tasks, with what to expect back.
 ---
 
-These examples use the public BFF at **`https://api.agentruntime.io`**. Replace tenant slug, project ID, workflow UUIDs, and tokens with your values.
+This page is for developers who want a working request they can paste into a terminal. Each example says what you need, shows the request, and describes what you should see.
 
-All authenticated examples require:
+**Base URL:** `https://api.agentruntime.io`
+
+## Before you start
+
+1. Create a personal access token (PAT) in the Console under **Settings → API keys**. See [API authentication](/api/authentication).
+2. Set two variables in your terminal:
 
 ```bash
 export AR_API="https://api.agentruntime.io"
 export AR_TOKEN="pat_…"
-export AR_TENANT="your-workspace-slug"
-export AR_PROJECT="your-project-id"
 ```
+
+3. Check that the token works:
 
 ```bash
-curl -sS "$AR_API/v1/workflows" \
-  -H "Authorization: Bearer $AR_TOKEN" \
-  -H "X-Tenant-Id: $AR_TENANT" \
-  -H "X-Project-Id: $AR_PROJECT"
+curl -sS "$AR_API/v1/workflows" -H "Authorization: Bearer $AR_TOKEN"
 ```
 
-See [API authentication](/api/authentication) for PAT scopes and session cookies.
+**What you should see:** a JSON list of workflows (it may be empty). `401` means the token is wrong or revoked. `403` means the token needs the `workflow:read` scope.
+
+The token already belongs to one workspace, so no workspace header is needed. Replace values like `WORKFLOW_ID` with your own.
 
 ---
 
 ## Create a workflow
 
-`POST /v1/workflows` — **project_contributor**
+**Needs:** a token with the `workflow:edit` scope, and the `project_contributor` role.
 
-**Request:**
+`POST /v1/workflows`
 
-```json
-{
-  "name": "hello-mcp",
-  "description": "Smoke test",
-  "graph": {
-    "steps": [
-      {
-        "id": "ping",
-        "type": "lua_script",
-        "name": "Echo input",
-        "script": "return { message = 'ok', input = input }",
-        "timeout_s": 10
-      }
-    ]
-  }
-}
+```bash
+curl -sS -X POST "$AR_API/v1/workflows" \
+  -H "Authorization: Bearer $AR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "hello-api",
+    "description": "Smoke test",
+    "graph": {
+      "steps": [
+        {
+          "id": "ping",
+          "type": "lua",
+          "name": "Echo input",
+          "script": "return { message = \"ok\", input = input }",
+          "timeout_s": 10
+        }
+      ]
+    }
+  }'
 ```
 
-**Response** (`201`):
+**What you should see:** a `201` response with the new workflow, including its `id`, `name`, and `graph`. Keep the `id`. The workflow now appears in the Console under **Workflows**.
 
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "hello-mcp",
-  "description": "Smoke test",
-  "tenant_id": "your-workspace-slug",
-  "project_id": "your-project-id",
-  "status": "draft",
-  "graph": { "steps": ["…"] },
-  "created_at": "2026-06-06T12:00:00Z",
-  "updated_at": "2026-06-06T12:00:00Z"
-}
-```
-
----
-
-## Publish a version
-
-`POST /v1/workflows/{id}/versions` — **project_contributor**
-
-**Request:**
-
-```json
-{
-  "changelog": "Initial publish"
-}
-```
-
-**Response** (`201`):
-
-```json
-{
-  "version": 1,
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
-  "published_at": "2026-06-06T12:05:00Z",
-  "graph_snapshot": { "steps": ["…"] }
-}
-```
-
-Runs always execute a **published** snapshot, not draft edits.
+A step's `type` is one of `mcp`, `lua`, `llm`, `human`, `agent`, `for_each`, `while`, `workflow`, or `external_agent`. See [Step types](/workflows/step-types) and the [JSON cookbook](/workflows/json-schema-cookbook).
 
 ---
 
 ## Start a run
 
-`POST /v1/workflows/{id}/command` — **project_contributor**
+**Needs:** the `workflow:run` scope (add `mcp:execute` if the workflow has MCP steps).
 
-**Request:**
+`POST /v1/workflows/{id}/command`
 
-```json
-{
-  "command": "start",
-  "params": {
-    "customer_email": "alex@example.com",
-    "order_id": "12345"
-  }
-}
+```bash
+curl -sS -X POST "$AR_API/v1/workflows/WORKFLOW_ID/command" \
+  -H "Authorization: Bearer $AR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "command": "start",
+    "params": {
+      "trigger_payload": {
+        "customer_email": "alex@example.com",
+        "order_id": "12345"
+      }
+    }
+  }'
 ```
 
-**Response** (`200`):
+**What you should see:** a `202` response with a `run_id` and a `status`. Steps read the values you sent as `{{input.customer_email}}`, `{{input.order_id}}`, and so on.
 
-```json
-{
-  "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-  "status": "running",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
-  "started_at": "2026-06-06T12:10:00Z"
-}
+By default a run uses the workflow's **Live** copy: the latest version you saved. To run a frozen version instead, add `"version": "published"` (the newest published version) or a number such as `"version": 3` next to `command`.
+
+### Check on the run
+
+```bash
+curl -sS "$AR_API/v1/workflows/WORKFLOW_ID/runs/RUN_ID/summary" \
+  -H "Authorization: Bearer $AR_TOKEN"
 ```
 
-`params` become workflow **input** (`{{input.customer_email}}`, etc.).
+**What you should see:** the run's current status. For the step-by-step log use `.../runs/RUN_ID/events`, and for step results use `.../runs/RUN_ID/context`. You can also watch the run in **Command Center**.
 
-### Pause, resume, stop
-
-```json
-{ "command": "pause", "params": { "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7" } }
-```
+### Pause, resume, or stop
 
 ```json
-{ "command": "resume", "params": { "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7" } }
+{ "command": "pause", "params": { "run_id": "RUN_ID" } }
 ```
 
 ```json
-{ "command": "stop", "params": { "run_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "mode": "graceful" } }
+{ "command": "resume", "params": { "run_id": "RUN_ID" } }
 ```
+
+```json
+{ "command": "stop", "params": { "run_id": "RUN_ID", "mode": "graceful" } }
+```
+
+`mode` is `immediate` (the default) or `graceful`.
 
 ---
 
-## Complete a human task
+## Publish a version
 
-`POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` — **project_contributor**
+You only need this when you want a frozen copy that callers can pin to. Runs and webhooks use the Live copy unless you say otherwise.
 
-**Approve only** (Console default):
+**Needs:** the `workflow:edit` scope.
 
-```json
-{
-  "approved": true
-}
+`POST /v1/workflows/{id}/versions`
+
+```bash
+curl -sS -X POST "$AR_API/v1/workflows/WORKFLOW_ID/versions" \
+  -H "Authorization: Bearer $AR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "note": "First stable version" }'
 ```
 
-**Approve with custom result fields:**
+**What you should see:** a `201` response with the workflow and its `published_version` number. The Live copy stays editable.
+
+---
+
+## Find and complete a human task
+
+When a run reaches a **human** step it waits for a person. List what is waiting:
+
+```bash
+curl -sS "$AR_API/v1/tasks/pending" -H "Authorization: Bearer $AR_TOKEN"
+```
+
+Then approve (or reject) one. **Needs:** the `task:complete:agent_review` or `task:complete:on_behalf` scope, depending on who the task is for. See [Human tasks](/workflows/human-tasks).
+
+`POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete`
+
+```json
+{ "approved": true }
+```
+
+To send extra fields into the step result, add a `result` object:
 
 ```json
 {
   "approved": true,
-  "result": {
-    "comment_body": "Edited review text posted to GitHub"
-  }
+  "result": { "comment_body": "Edited review text" }
 }
 ```
 
-**Response** (`200`):
-
-```json
-{
-  "status": "completed",
-  "task_id": "approve-review",
-  "approved": true
-}
-```
-
-See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
+The step result always includes `approved`, and the run carries on. A rejection skips the steps that depend on the task. See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
 
 ---
 
-## Create inbound webhook subscription
+## Create an inbound webhook
 
-`POST /v1/inbound-webhooks` — **project_contributor**
+An inbound webhook gives another system a URL it can call to start a workflow.
 
-**Request** (Vault-backed PAT id):
+**Needs:** the `webhook:manage` scope.
 
-```json
-{
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "form-leads",
-  "automation_pat_id": "pat-abc123"
-}
-```
+`POST /v1/inbound-webhooks`
 
-**Request** (paste bearer once):
-
-```json
-{
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "form-leads",
-  "automation_pat_id": "pat-abc123",
-  "automation_bearer": "pat_…"
-}
-```
-
-**Response** (`201`):
-
-```json
-{
-  "subscription": {
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "tenant_id": "your-workspace-slug",
-    "project_id": "your-project-id",
-    "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+```bash
+curl -sS -X POST "$AR_API/v1/inbound-webhooks" \
+  -H "Authorization: Bearer $AR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workflow_id": "WORKFLOW_ID",
     "name": "form-leads",
-    "enabled": true,
-    "created_at": "2026-06-06T12:00:00Z",
-    "updated_at": "2026-06-06T12:00:00Z"
-  },
-  "signing_secret": "whsec_…",
-  "ingress_url": "https://api.agentruntime.io/v1/inbound-webhooks/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "ingress_path": "/v1/inbound-webhooks/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
+    "automation_bearer": "pat_…"
+  }'
 ```
 
-`signing_secret` is returned **once**. List endpoints never include secrets.
+`automation_bearer` is the API key the runs will act as. You can send `automation_pat_id` (the id of an existing key) instead.
 
-### Public ingress (external sender)
+**What you should see:** a `201` response with `ingress_url` (the URL to give the sender) and `signing_secret`. The secret is shown **once**. Copy it now.
 
-`POST /v1/inbound-webhooks/{subscription_id}` — **HMAC + Bearer PAT** (no session cookie)
+### Call the webhook (the sender's side)
+
+The sender signs the request with the signing secret. It does not send a token.
 
 ```bash
 BODY='{"email":"alex@example.com"}'
-SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$WHSEC" | sed 's/^.* //')
-curl -X POST "$AR_API/v1/inbound-webhooks/$SUBSCRIPTION_ID" \
+T=$(date +%s)
+SIG=$(printf '%s' "$T.$BODY" | openssl dgst -sha256 -hmac "$WHSEC" | sed 's/^.* //')
+curl -X POST "$INGRESS_URL" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $AR_TOKEN" \
-  -H "X-Agentruntime-Signature: sha256=$SIG" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "X-Agentruntime-Signature: t=$T,v1=$SIG" \
   -d "$BODY"
 ```
+
+**What you should see:** `202` and a run started. Sending the same `Idempotency-Key` again returns `200` with `"duplicate": true` instead of starting a second run. See [Inbound webhooks](/integrations/inbound-webhooks) for all responses.
 
 ---
 
 ## Create a custom connection
 
-`POST /v1/connections` — **project_contributor**
+**Needs:** the `mcp:write` scope.
 
-**Request:**
+`POST /v1/connections`
 
 ```json
 {
   "display_name": "GitHub CI",
   "provider": "custom",
-  "service": "api_key",
   "credentials": {
     "api_key": "ghp_…"
   }
 }
 ```
 
-**Response** (`201`):
-
-```json
-{
-  "id": "conn-uuid",
-  "name": "GitHub CI",
-  "provider": "custom",
-  "service": "api_key",
-  "status": "active",
-  "credential_keys": ["api_key"]
-}
-```
-
-Secrets are stored in Vault; list/get responses do not return plaintext values.
+**What you should see:** a `201` response with the new connection's `id`. Secret values are never returned by later calls. In the Console the connection appears under **Connections**. See [Connections](/integrations/connections).
 
 ---
 
-## Register a custom MCP server
+## Create a personal access token
 
-`POST /v1/mcp/servers` — **project_contributor**
+You can create tokens from code as well as in the Console.
 
-**Request:**
+**Needs:** the `project_contributor` role.
 
-```json
-{
-  "name": "Internal tools",
-  "canonical_url": "https://tools.example.com/mcp",
-  "mode": "third_party",
-  "auth_mode": "token"
-}
-```
-
-**Response** (`201`):
+`POST /v1/pats`
 
 ```json
 {
-  "id": "server-uuid",
-  "name": "Internal tools",
-  "service": "internal_tools",
-  "canonical_url": "https://tools.example.com/mcp",
-  "status": "draft",
-  "auth_mode": "token",
-  "tool_count": 0
-}
-```
-
-Follow with discover → publish version → validate → `POST /v1/mcp/instances`. See [Custom MCP servers](/integrations/custom-mcp-servers).
-
----
-
-## Create a PAT
-
-`POST /v1/pats` — **project_contributor**
-
-**Request:**
-
-```json
-{
-  "display_name": "CI deploy",
+  "name": "CI deploy",
   "scopes": ["workflow:read", "workflow:run"]
 }
 ```
 
-**Response** (`201`):
-
-```json
-{
-  "id": "pat-metadata-id",
-  "display_name": "CI deploy",
-  "token": "pat_…",
-  "scopes": ["workflow:read", "workflow:run"],
-  "created_at": "2026-06-06T12:00:00Z"
-}
-```
-
-`token` is shown **once**. Create keys in the Console under **Settings → API keys**.
+**What you should see:** a `201` response with the `token` (shown **once**) and `metadata` about the key, including its `id` and `scopes`. A token can never have more permissions than the person who created it.
 
 ---
 
-## Billing usage snapshot
+## Read your credit balance
 
-`GET /v1/billing/usage` — **project_contributor**
+**Needs:** the `billing:read` scope.
 
-**Response** (`200`):
+`GET /v1/billing/usage`
 
-```json
-{
-  "trial_remaining": 2000000,
-  "included_remaining": 10000000,
-  "payg_remaining": 5000000,
-  "total_remaining_microcredits": 17000000
-}
+```bash
+curl -sS "$AR_API/v1/billing/usage" -H "Authorization: Bearer $AR_TOKEN"
 ```
 
-Values are **microcredits** (1 credit = 1,000,000 microcredits). See [Billing and credits](/platform/billing-and-credits).
+**What you should see:** your remaining credits, with a `credit_breakdown` showing the trial, included, and pay-as-you-go balances. Amounts use **microcredits**: 1 credit is 1,000,000 microcredits. See [Billing and credits](/platform/billing-and-credits).
 
 ---
 
-## Plan catalog (product-scoped)
+## Common problems
 
-`GET /v1/billing/plans` — **project_contributor**
+| Problem | What to do |
+|---------|------------|
+| `401` | The token is mistyped, revoked, or not sent as `Authorization: Bearer pat_…` |
+| `403` | Add the missing scope to the token, or ask for a higher role |
+| `409 revision_conflict` when updating a workflow | Someone saved a newer version. Read the workflow again and re-apply your change |
+| `422` when creating or validating a workflow | The graph has an error. The response says which step. See [Dry run](/workflows/dry-run) |
+| Run starts but an MCP step fails | The token is missing `mcp:execute`, or the instance has no connection. See [MCP instances](/integrations/mcp-instances) |
 
-The BFF filters to its deployment `product_code` (`agentruntime` on `api.agentruntime.io`). Response omits `product_code` — it is implicit for this host.
+## Next steps
 
-**Response** (`200`, excerpt):
-
-```json
-{
-  "plans": [
-    {
-      "plan_code": "pro",
-      "stripe_price_id": "price_1Example",
-      "amount": 4900,
-      "currency": "usd",
-      "interval": "month",
-      "interval_count": 1,
-      "product_name": "AgentRuntime Pro",
-      "trial_enabled": true,
-      "trial_requires_card": false,
-      "trial_days": 14,
-      "trial_credits_granted": 5000000,
-      "onboarding_default": true,
-      "self_serve_onboarding": true
-    },
-    {
-      "plan_code": "free",
-      "amount": 0,
-      "currency": "usd",
-      "interval": "month",
-      "interval_count": 1,
-      "product_name": "AgentRuntime Free",
-      "trial_enabled": false
-    }
-  ]
-}
-```
-
-Use `stripe_price_id` when starting trials or subscriptions via `POST /v1/billing/subscription`. See [Multi-product billing](/platform/multi-product-billing).
-
----
-
-## Error responses
-
-Most endpoints return JSON errors:
-
-```json
-{
-  "error": "invalid request body"
-}
-```
-
-| Status | Meaning |
-|--------|---------|
-| `401` | Missing or invalid auth |
-| `403` | Role or scope insufficient |
-| `404` | Resource or feature not found |
-| `503` | Dependency unavailable (Vault, inbound PAT resolution, analytics) |
-
----
-
-## Related
-
-- [API reference](/api/reference) — full endpoint tables
-- [API authentication](/api/authentication)
-- [Platform MCP](/api/platform-mcp)
+- [API reference](/api/reference): every endpoint and the role it needs
+- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Platform MCP](/api/platform-mcp): do the same from an AI assistant

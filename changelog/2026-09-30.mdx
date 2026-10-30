@@ -1,31 +1,31 @@
 ---
-title: Copilot session v2 and workflow graph dry-run
+title: Autopilot conversation flow and workflow graph dry-run
 date: 2026-09-30
 version: "0.10.5"
 areas:
   - platform
   - workflows
   - ai
-summary: Workspace Copilot runs on an updated session workflow (Ask vs Act), Studio graph dry-run validation, and Chat client actions for Autopilot.
+summary: Autopilot conversations separate asking from acting, Studio graph dry-run validation, and Console actions driven from Workspace Chat.
 added:
-  - "**Copilot session v2** — platform session workflow uses turn_prepare plus Ask and Act agent steps with skip_when **GA** · Workspace Chat"
+  - "**Ask and Autopilot conversation flow** — each turn works out whether you are asking a question or asking Autopilot to act; Ask answers read-only, while Autopilot can use Platform MCP and Console actions **GA** · Workspace Chat"
   - "**Graph dry-run** — validate workflow graphs from Studio with structured validation evidence **GA** · Workflow Studio"
 changed:
-  - "**Autopilot client actions** — Workspace Chat can apply copilot_navigate and related UI actions from agent responses **GA** · Workspace Chat"
-  - "**Session binding** — chat sessions bind to the workspace Copilot session workflow for consistent turn handling **GA** · Workspace Chat"
+  - "**Autopilot Console actions** — Workspace Chat can navigate the Console and apply related UI actions from Autopilot responses **GA** · Workspace Chat"
+  - "**Conversation handling** — chat conversations use the workspace Autopilot workflow for consistent turn handling **GA** · Workspace Chat"
 ---
 
-**Platform v0.10.5** ships Copilot session v2 across control, engine, chat, BFF, Console, and Workspace Chat.
+**Platform v0.10.5** updates how Autopilot handles conversations in Console and Workspace Chat.
 
-## Workspace Chat and Copilot
+## Workspace Chat and Autopilot
 
-**Ask vs Act** — each turn prepares mode from the user message; Ask answers read-only, Act may use Platform MCP and Console UI action tools.
+**Ask vs Autopilot** — each turn decides its mode from your message. Ask answers read-only; Autopilot may use Platform MCP and Console UI actions.
 
-**Client actions** — Act-mode responses can drive navigation and Studio spotlight behavior in the Console when embedded with Workspace Chat.
+**Console actions** — Autopilot responses can drive navigation and Studio spotlight behavior in the Console when used with Workspace Chat.
 
 ## Workflow Studio
 
-**Graph dry-run** — run validation from Studio before publish; evidence is stored with workflow versions when the control migration is applied.
+**Graph dry-run** — run validation from Studio before publish; validation results are stored with workflow versions.
 
 ## Related docs
 

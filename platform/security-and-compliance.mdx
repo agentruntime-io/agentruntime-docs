@@ -1,137 +1,92 @@
 ---
 title: Security and compliance
-description: How AgentRuntime protects workspaces, credentials, and data — with links to legal policies.
+description: How AgentRuntime protects workspaces, credentials and data, and what you are responsible for.
 ---
 
-AgentRuntime is a multi-tenant platform for running AI agent workflows. This page summarizes security practices for builders and enterprise evaluators. It is an overview — not a contractual commitment. Binding terms live in the legal policies linked below.
+This page is for builders and for people evaluating AgentRuntime for their company. It summarizes how access and secrets are handled and what to consider for regulated data.
 
-## Architecture overview
+It is an overview, not a contract. Binding terms are in the [legal policies](#legal-policies).
 
-```mermaid
-flowchart TB
-  subgraph customer [Your organization]
-    Console[Console browser]
-    Ext[External webhooks]
-    IDE[IDE / CI with PAT]
-  end
-  subgraph edge [AgentRuntime edge]
-    BFF[BFF api.agentruntime.io]
-    Ingress[Inbound webhook ingress]
-  end
-  subgraph runtime [Execution]
-    WF[Workflow runtime]
-    MCP[MCP tool servers]
-  end
-  Console -->|Session cookie| BFF
-  IDE -->|Bearer PAT| BFF
-  Ext -->|HMAC + PAT| Ingress --> BFF
-  BFF --> WF --> MCP
-```
+## How people and systems get in
 
-- **Console** — Session cookies scoped to `.agentruntime.io`; HTTPS only in production
-- **REST / Platform MCP** — Personal access tokens with scoped permissions
-- **Inbound webhooks** — HMAC-signed body + automation PAT; no session cookie on public ingress
-- **Workflow runs** — Execute in tenant-scoped projects with role checks on every API call
+| Way in | How it is protected |
+|--------|--------------------|
+| **Console** | Sign in with email and password (email verification required) or with Google. You stay signed in with a browser session. |
+| **API and Platform MCP** | Personal access tokens (API keys) with scopes. They can never do more than the person who created them. |
+| **Inbound webhooks** | Each request must carry a signature and an automation key. See [Inbound webhooks](/integrations/inbound-webhooks). |
 
-Customer integrations should always use **`https://api.agentruntime.io`**. Do not call internal service URLs directly.
+Always call AgentRuntime through `https://api.agentruntime.io`.
 
-## Tenant isolation
+## Workspace and project separation
 
-| Layer | Isolation |
-|-------|-----------|
-| **Workspace (tenant)** | Billing, members, vault paths, workspace-wide MCP resources |
-| **Project** | Workflows (required home project); optional scope for agents, connections, inbound subscriptions |
-| **Roles** | `tenant_admin`, `project_admin`, `project_contributor`, `project_viewer` — see [Roles and permissions](/platform/roles-permissions) |
+| Layer | What it separates |
+|-------|-------------------|
+| **Workspace** | Members, billing, and workspace-wide connections and tools. Workspaces cannot see each other. |
+| **Project** | Workflows, and optionally agents, connections and webhook subscriptions. Private projects are visible only to their members. |
+| **Roles** | What each person can do. See [Roles and permissions](/platform/roles-permissions). |
 
-API requests require `X-Tenant-Id`. Project-scoped writes (for example workflow create) accept an explicit `project_id` or resolve the workspace **default project**. PATs are validated against user identity and project role.
+Workspace admins can also restrict who may join: require invites, allow only verified company email domains, and review access requests. See [User management](/platform/user-management). Admin actions such as invites, membership changes and access policy changes are recorded in **Settings → Audit log**.
 
 ## Secrets and credentials
 
-| Secret type | Storage | Console path |
-|-------------|---------|--------------|
-| Connector API keys | Vault-backed **Connections** | **Connections** |
-| LLM vendor keys | Vault-backed **Providers** | **Providers** |
-| Automation PATs | Vault-backed API keys | **Settings → API keys** |
-| Webhook signing secrets | Shown once at subscription create | **Workflow → Inbound** |
-| Workspace vault paths | Tenant vault | **Settings** (admins) |
+| What | Where you manage it |
+|------|---------------------|
+| Tool logins and API keys | **Connections** |
+| AI model provider keys | **Providers** |
+| API keys for scripts and CI | **Settings → API keys**. The secret is shown once. |
+| Webhook signing secrets | Shown once when you create a subscription |
+| Workspace secret paths | **Vault** (workspace admins) |
 
-**Do not** embed secrets in workflow graphs, Lua scripts, or client-side code. Use connections and provider keys.
+Do not put secrets in workflow graphs, Lua scripts or code that runs in a browser. Use connections and provider keys instead.
 
-Rotate compromised tokens immediately: revoke in the Console, audit recent runs, and create replacements.
+If a key may be exposed, revoke it in the Console, review your recent runs, and create a replacement.
 
-## Authentication
+## How your data is handled
 
-- **Email + password** with verification for new accounts
-- **Google OAuth** (Sign in with Google / One Tap)
-- **PATs** for CI, scripts, inbound webhook automation, and Platform MCP
-- **Domain verification** — Tenant admins can restrict workspace access to verified email domains
+| Data | What to know |
+|------|--------------|
+| **Workflows** | Stored per project. Published versions cannot be edited. |
+| **Runs** | Run history shows each step's events so you can troubleshoot and approve work in [Command Center](/workflows/command-center). |
+| **AI prompts** | Sent to the model provider you set up. Review that provider's terms. |
+| **Tool calls** | Run against the connections you linked. The third-party service's own policies apply. |
+| **Billing records** | Kept separately for each workspace. |
 
-See [API authentication](/api/authentication) and [Workspace settings](/platform/settings).
+Memory features are in preview. See [Memory](/ai/memory) and [Feature availability](/platform/feature-availability).
 
-## Inbound webhook security
+## Compliance guidance
 
-External senders must provide:
+AgentRuntime is not certified for regulated workloads out of the box. Check your own requirements before using it with sensitive data.
 
-- `Authorization: Bearer pat_…` (automation PAT bound to the subscription)
-- `X-Agentruntime-Signature: sha256=<hmac-sha256 of raw body>` using the signing secret
-
-AgentRuntime rejects requests with invalid signatures, expired skew, or missing auth before starting a run. See [Inbound webhooks](/integrations/inbound-webhooks).
-
-## Data handling
-
-| Data | Notes |
-|------|-------|
-| **Workflow graphs** | Stored per project; published versions are immutable snapshots |
-| **Run events** | Step inputs/outputs logged for observability and Command Center |
-| **LLM prompts** | Sent to the model provider you configure (tenant or platform key) |
-| **MCP tool calls** | Executed against your bound connections; third-party adapters follow their vendor policies |
-| **Billing ledger** | Usage events and credit debits, isolated per workspace |
-
-Memory indexing and search are **preview** — see [Memory](/ai/memory) and [Feature availability](/platform/feature-availability).
-
-## Compliance posture
-
-AgentRuntime is **not** certified for regulated workloads out of the box. Evaluate against your requirements:
-
-| Topic | Current guidance |
-|-------|------------------|
-| **HIPAA / PHI** | Do not use the **healthcare** connector in production — mock APIs only. Do not store PHI in workflows without a BAA and architecture review. |
-| **PCI** | Do not pass cardholder data through workflow input or MCP tools. Use Stripe Checkout for payments. |
-| **SOC 2 / ISO** | Contact sales for current attestation status and security packet. |
-| **Data residency** | Discuss deployment region and subprocessors with sales for enterprise contracts. |
-| **AI subprocessors** | LLM calls route to vendors you configure (OpenAI, Anthropic, Google, etc.). Review their DPAs. |
-
-For security questionnaires, vulnerability reports, or enterprise reviews, use [agentruntime.io/contact](https://agentruntime.io/contact) and select the appropriate topic (security / enterprise).
+| Topic | Guidance |
+|-------|----------|
+| **Health data (HIPAA)** | The **healthcare** connector uses mock data only. Do not use it with real patient data. Do not put protected health information in workflows without an agreement and review. |
+| **Card data (PCI)** | Do not pass card numbers through workflow inputs or tools. |
+| **Certifications and data location** | For SOC 2, ISO, regional hosting or subprocessor questions, [contact us](https://agentruntime.io/contact). |
+| **AI providers** | AI calls go to the provider you configure (such as OpenAI, Anthropic or Google). Review their data terms. |
 
 ## Shared responsibility
 
 | You are responsible for | AgentRuntime is responsible for |
 |-------------------------|--------------------------------|
-| PAT and webhook secret hygiene | Platform patching and edge TLS |
-| Connector credential scope (least privilege) | Tenant-scoped API authorization |
-| Workflow logic and data minimization | Vault storage for configured secrets |
-| External webhook sender integrity | Signature verification on ingress |
-| LLM prompt content and PII policies | Metering and audit of billable actions |
+| Keeping API keys and webhook secrets private | Checking permissions on every request |
+| Giving connections only the access they need | Separating workspaces from each other |
+| What your workflows do and what data they handle | Verifying webhook signatures |
+| What you put into AI prompts | Measuring usage and recording admin actions |
 
 ## Legal policies
 
-Review the current policies on the marketing site:
-
-| Policy | URL |
-|--------|-----|
+| Policy | Link |
+|--------|------|
 | Privacy | [agentruntime.io/legal/privacy-policy](https://agentruntime.io/legal/privacy-policy) |
 | Terms of service | [agentruntime.io/legal/terms-of-service](https://agentruntime.io/legal/terms-of-service) |
 | Billing and credits | [agentruntime.io/legal/billing](https://agentruntime.io/legal/billing) |
 
-Additional policies may appear under [agentruntime.io/legal/](https://agentruntime.io/legal/privacy-policy) as the product evolves.
+## Report a security issue
 
-## Reporting security issues
+Please report vulnerabilities privately through [agentruntime.io/contact](https://agentruntime.io/contact). Include steps to reproduce and the impact. Do not post details publicly.
 
-Report vulnerabilities responsibly via [agentruntime.io/contact](https://agentruntime.io/contact) — do not post exploit details in public issues. Include reproduction steps and impact assessment.
-
-## Related
+## Next steps
 
 - [Roles and permissions](/platform/roles-permissions)
 - [API authentication](/api/authentication)
 - [Troubleshooting](/platform/troubleshooting)
-- [Billing and credits](/platform/billing-and-credits)

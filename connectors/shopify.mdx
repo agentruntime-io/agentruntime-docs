@@ -1,71 +1,92 @@
 ---
 title: Shopify connector
-description: Manage products, orders, customers, and inventory in Shopify from AgentRuntime workflows.
+description: Read and manage products, orders, customers, and inventory in your Shopify store from AgentRuntime workflows.
 ---
 
-The **shopify** MCP adapter connects to your store's [Admin REST API](https://shopify.dev/docs/api/admin-rest). Automate catalog updates, order lookups, customer sync, and inventory adjustments when agents or scheduled workflows run.
+[Shopify](https://www.shopify.com) is an online store platform. The **shopify** connector calls your store's Admin API so workflows can look up orders, list and update products, create customers, and adjust stock levels, for example when a webhook fires, on a schedule, or when an agent needs store data.
 
 ## Prerequisites
 
-- A Shopify store (development or production)
-- A **custom app** or private app with an **Admin API access token** (`shpat_...`)
-- API scopes matching the tools you use (products, orders, customers, inventory)
-- **project_contributor** access
+- A Shopify store, with permission to create an app in its admin.
+- An Admin API access token for that store. Shopify gives you one when you create and install a custom app. Treat it like a password.
+- The access scopes your workflows need on that app. Shopify scope names follow the pattern `read_products`, `write_products`, `read_orders`, `read_customers`, `write_customers`, `read_inventory`, and `write_inventory`. Grant only the ones you use.
+- The **project_contributor** role or higher in your workspace.
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Create an Admin API token">
-    In Shopify Admin → **Settings → Apps and sales channels → Develop apps**, create an app and install it on your store. Copy the **Admin API access token**.
+  <Step title="Create an Admin API token in Shopify">
+    In your Shopify admin, create a custom app (Shopify's help center describes this under "Develop apps"), give it the Admin API scopes you need, install it on your store, and copy the **Admin API access token**. Shopify shows the token only once. Menu names in Shopify change over time, so follow Shopify's current documentation for this step.
   </Step>
   <Step title="Create a connection">
-    Go to **Connections**, click **New custom connection**, and store your shop domain (e.g. `your-store.myshopify.com`) and access token. See [Authentication](/integrations/authentication).
+    Open **Connections** in the [Console](https://console.agentruntime.io) and click **New custom connection**. Enter a **Display name** (for example `My store`). Under **Credentials**, add one row per setting, using **Add field** for more rows:
+
+    - **Key** `shopify_shop`, **Value** your store address, for example `your-store.myshopify.com`.
+    - **Key** `shopify_admin_access_token`, **Value** the Admin API access token.
+
+    Click **Save**. The dialog also asks who can use the connection; choose the option that fits your team. See [Authentication](/integrations/authentication).
   </Step>
-  <Step title="Add shopify MCP instance">
-    Go to **MCP**, click **Add instance** for **shopify**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the shopify MCP instance">
+    Open **MCP**, click **Add connectors**, find **shopify**, and add it to your workspace. Open the instance, and on **Instance config** create or open a profile, choose your connection in the **Connection** picker, set the profile **Status** to **Active**, and click **Save**, then **Use this profile for workflows**.
   </Step>
   <Step title="Smoke test">
-    Run **mcp_call** → `get_shopify_shop` to confirm the token and shop name.
+    In **Workflow Studio**, add a connector tools step that calls `shopify_get_shop` with no arguments and run it. A result with a `shop` object means the token and store address work.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **Low-stock alerts** — `list_shopify_inventory_levels` → filter below threshold → Resend or Slack notify ops → optional `adjust_shopify_inventory` after **human_task** approval.
-- **Order support bot** — Chat or webhook provides order ID → `get_shopify_order` + `list_shopify_fulfillments` → LLM drafts reply → Gmail `send_email`.
-- **Product feed sync** — `list_shopify_products` → transform in Lua → `update_shopify_product` or append rows to Google Sheets.
-- **New customer welcome** — Webhook on order paid → `get_shopify_customer` → ActiveCampaign `activecampaign_create_contact` + `send_email`.
+- **Low-stock alerts.** Call `shopify_list_inventory_levels`, filter for quantities below your threshold, and notify your team. Add a **human** approval step before `shopify_adjust_inventory`.
+- **Order support.** A chat or webhook supplies an order ID. Call `shopify_get_order` and `shopify_list_fulfillments`, let an LLM draft the reply, and send it by email.
+- **Catalog sync.** Call `shopify_list_products`, reshape the data with a Lua step, and write changes back with `shopify_update_product`, or save rows to a spreadsheet.
+- **New customer follow-up.** When an order webhook arrives, call `shopify_get_customer` and pass the details to your email or CRM tool.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `get_shopify_shop` | Store metadata |
-| `list_shopify_products` | List products |
-| `get_shopify_product` | Get one product |
-| `create_shopify_product` | Create a product |
-| `update_shopify_product` | Update a product |
-| `delete_shopify_product` | Delete a product |
-| `list_shopify_orders` | List orders |
-| `get_shopify_order` | Get one order |
-| `list_shopify_customers` | List customers |
-| `get_shopify_customer` | Get one customer |
-| `create_shopify_customer` | Create a customer |
-| `list_shopify_inventory_levels` | Inventory levels by location |
-| `adjust_shopify_inventory` | Adjust inventory quantity |
-| `list_shopify_fulfillments` | Fulfillments for an order |
-| `shopify_admin_rest` | Raw Admin REST call for endpoints not wrapped as tools |
+Tools marked **Changes data** write to your store. The others only read.
+
+| Tool | What it does |
+|------|--------------|
+| `shopify_get_shop` | Get your store's details. |
+| `shopify_list_products` | List products. Filter by `status` (`active`, `archived`, or `draft`). |
+| `shopify_get_product` | Get one product by ID. |
+| `shopify_create_product` | Create a product. Changes data. |
+| `shopify_update_product` | Update fields of a product by ID. Changes data. |
+| `shopify_delete_product` | Delete a product by ID. Changes data. |
+| `shopify_list_orders` | List orders, filtered by `status` or `financial_status`. |
+| `shopify_get_order` | Get one order by ID. |
+| `shopify_list_fulfillments` | List the fulfillments of an order. |
+| `shopify_list_customers` | List customers, with filters for dates, IDs, and status. |
+| `shopify_get_customer` | Get one customer by ID. |
+| `shopify_create_customer` | Create a customer. Changes data. |
+| `shopify_list_inventory_levels` | List stock levels by inventory item or location. |
+| `shopify_adjust_inventory` | Add or remove available stock at a location. Changes data. |
+| `shopify_admin_rest` | Make a raw Admin REST call (`GET`, `POST`, `PUT`, or `DELETE`) for anything the tools above do not cover. Can change data. |
+
+Parameters:
+
+- IDs such as `product_id`, `order_id`, and `customer_id` are the numeric Shopify IDs, passed as strings.
+- `shopify_list_products`: optional `limit` (default 50, maximum 250), `page_info`, and `status`.
+- `shopify_list_orders`: optional `limit` (default 50), `status` (`open`, `closed`, `cancelled`, or `any`), and `financial_status` (for example `paid`, `pending`, `refunded`).
+- `shopify_list_customers`: optional `limit` (default 50, maximum 250), `ids`, `status`, `fields`, `since_id`, `page_info`, `created_at_min`, `created_at_max`, `updated_at_min`, and `updated_at_max`.
+- `shopify_create_product`: `title` (required), and optionally `body_html`, `vendor`, `product_type`, and `status` (`active` or `draft`).
+- `shopify_update_product`: `product_id` and `fields` (both required). `fields` is an object of the product fields to change, such as `title`, `tags`, or `status`.
+- `shopify_create_customer`: `email` (required), and optionally `first_name`, `last_name`, and `phone`.
+- `shopify_list_inventory_levels`: optional `inventory_item_ids` and `location_ids` (comma-separated), and `limit` (default 50).
+- `shopify_adjust_inventory`: `inventory_item_id`, `location_id`, and `available_adjustment` (a positive or negative whole number), all required.
+- `shopify_admin_rest`: `method` and `path` (required; the path starts with `/`, for example `/products.json`), and optionally `query` and `body`.
 
 ## Example
 
-Fetch an order for a support workflow:
+Look up an order for a support workflow:
 
 ```json
 {
   "id": "get-order",
-  "type": "mcp_call",
-  "name": "Lookup Shopify order",
-  "tool_name": "get_shopify_order",
+  "type": "mcp",
+  "name": "Look up Shopify order",
+  "instance_id": "YOUR_SHOPIFY_INSTANCE_ID",
+  "tool_name": "shopify_get_order",
   "tool_args": {
     "order_id": "{{input.order_id}}"
   },
@@ -73,26 +94,34 @@ Fetch an order for a support workflow:
 }
 ```
 
+In Studio you pick the instance and tool from lists, and Studio fills in `instance_id`. The order is returned under `order`.
+
 ## Configuration
+
+These are the settings on the instance's config profile. When you use a connection, give its credential rows the same key names. Published key names carry the `shopify_` prefix.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `shopify_shop` | Yes | Shop hostname (e.g. `mystore.myshopify.com`) |
-| `shopify_admin_access_token` | Yes | Admin API access token |
-| `shopify_api_version` | No | API version (default `2026-04`) |
-| `shopify_request_timeout_seconds` | No | HTTP timeout (default `30`) |
+| `shopify_shop` | Yes, unless `shopify_api_base` is set | Store address, for example `your-store.myshopify.com`. A name without a dot, such as `your-store`, has `.myshopify.com` added. |
+| `shopify_admin_access_token` | Yes | Admin API access token. |
+| `shopify_api_version` | No | Shopify Admin API version. Default `2024-10`. |
+| `shopify_request_timeout_seconds` | No | Time limit for each Shopify request, in seconds. Default `30`. |
+| `shopify_api_base` | No | Replaces the store's Admin API address. Normally leave it empty. |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| `401 Unauthorized` | Regenerate token; confirm app is installed on the store |
-| `403` on write tools | Grant write scopes on the custom app |
-| Wrong shop | `shopify_shop` must match the store that issued the token |
+| `missing shopify admin_access_token` or `missing shopify shop or api_base` | The active profile is missing that setting. Add the rows to the connection and check the profile is **Active**. |
+| `Shopify API error 401` | The token is wrong, or the app was uninstalled. Create or reinstall the app and use **Rotate** on the connection. |
+| `Shopify API error 403` | The app does not have the scope for that call. Add the scope in Shopify and reinstall the app if Shopify asks. |
+| `Shopify API error 404` | The ID does not exist in this store, or the store address belongs to a different store than the token. |
+| Wrong data or missing fields | The connector uses the API version in `shopify_api_version`. Set another version there if you need newer fields. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [Inbound webhooks](/integrations/inbound-webhooks) — react to Shopify order events
+- [Inbound webhooks](/integrations/inbound-webhooks) to start a workflow from a Shopify event
+- [Shopify order to WhatsApp](/guides/shopify-order-whatsapp)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

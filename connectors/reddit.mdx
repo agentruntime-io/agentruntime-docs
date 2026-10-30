@@ -1,109 +1,142 @@
 ---
 title: Reddit connector
-description: Read posts and comments, create posts, and reply on Reddit from AgentRuntime workflows.
+description: Read Reddit posts and comments, publish posts, and reply from AgentRuntime workflows.
 ---
 
-The **reddit** MCP adapter connects to the [Reddit OAuth API](https://www.reddit.com/dev/api/). Fetch post details and comment threads, create self or link posts, comment, edit, and delete content — useful for community monitoring, moderated publishing, and social automation with human approval.
+The **reddit** connector uses the [Reddit API](https://www.reddit.com/dev/api/) on behalf of one Reddit account. It can read a post and its comments, and it can submit posts, comment, edit, and delete as that account.
+
+Typical uses:
+
+- Watch threads about your product and summarize the comments for your team.
+- Publish an announcement to a subreddit after a person approves the text.
+- Fix a typo in, or remove, a post or comment your account made.
 
 ## Prerequisites
 
-- A Reddit account and a [Reddit app](https://www.reddit.com/prefs/apps) (script or web app type)
-- OAuth **client ID**, **client secret**, and **refresh token** for the posting account
-- Moderator or posting permissions on target subreddits
-- A descriptive **User-Agent** string (Reddit requires unique app identification)
-- **project_contributor** access in AgentRuntime
+- A Reddit account that will do the posting. Everything the workflow does appears under this account.
+- A Reddit app for that account (created on Reddit's app preferences page) with its **client ID** and **client secret**.
+- An OAuth **refresh token** for that account. Reddit only issues refresh tokens when authorization is requested with `duration=permanent`.
+- Permission to post in the target subreddits, and knowledge of their rules.
+- The `project_contributor` role or higher in AgentRuntime.
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Create a Reddit application">
-    At [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps), create an app and note the client ID (under the app name) and client secret.
+  <Step title="Create a Reddit app">
+    While signed in to Reddit, open [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps) and create an app. Choose a type that supports the authorization code flow (a web app), set a redirect URI you control, and note the client ID (shown under the app name) and the secret. Reddit's API documentation and terms explain what access you need for your use.
   </Step>
-  <Step title="Obtain a refresh token">
-    Complete the OAuth authorization code flow for the Reddit account that will post or comment. Store the refresh token securely.
+  <Step title="Get a refresh token">
+    Run Reddit's OAuth authorization code flow once for the posting account with `duration=permanent` and the scopes you need. Reddit's documentation lists the scopes; reading needs `read`, submitting posts and comments needs `submit`, and editing and deleting need `edit`. Keep the refresh token secret.
   </Step>
   <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create a connection with `ClientID`, `ClientSecret`, `RefreshToken`, and `UserAgent` (e.g. `agentruntime:workflow:v1.0 (by /u/yourname)`).
+    In the Console, go to **Connections** and click **New custom connection**. Enter a display name, then use **Add field** under **Credentials** to add these keys and values:
+
+    - `reddit_client_id`
+    - `reddit_client_secret`
+    - `reddit_refresh_token`
+    - `reddit_user_agent`, for example `agentruntime-workflows/1.0 by u/your_username` (Reddit asks every app to identify itself with a unique value)
+
+    Click **Save**.
   </Step>
-  <Step title="Add reddit MCP instance">
-    Go to **MCP**, click **Add instance** for **reddit**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the MCP instance">
+    Go to **MCP**, click **Add connectors**, click the **reddit** connector and then **Add to workspace**, then open **Instance config**. Pick your connection, set the profile to **active**, and save.
   </Step>
-  <Step title="Test read access">
-    Run **mcp_call** → `retrieve_reddit_post` on a public post ID before enabling write tools.
+  <Step title="Smoke test with a read">
+    In **Workflow Studio**, add a connector step (type `mcp`) with `tool_name` `reddit_retrieve_reddit_post` and `tool_args` of `{ "post_id": "<id of any public post>" }`, then run it. Test reads before enabling any write tool.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+See [Integration authentication](/integrations/authentication) for how connections are bound to MCP instances.
 
-<Note>
-  Always use **human_task** approval before `create_reddit_post` or `create_reddit_comment` in production subreddits. Respect subreddit rules and Reddit API rate limits.
-</Note>
+<Warning>
+  Posts, comments, edits, and deletes go live under your Reddit account immediately. Put a **human** approval step before `reddit_create_reddit_post` and `reddit_create_reddit_comment`, and follow each subreddit's rules.
+</Warning>
 
 ## What you can build
 
-- **Community monitoring** — Scheduled `fetch_post_comments` → LLM sentiment summary → alert on negative trends.
-- **Approved publishing** — Draft post in workflow → **human_task** → `create_reddit_post` as self or link post.
-- **Support triage** — `get_reddit_post_details` on mentions → create ClickUp or GitLab ticket from thread context.
-- **Thread cleanup** — `edit_reddit_post_or_comment` or `delete_reddit_post_or_comment` after moderation review.
+- **Community monitoring.** On a schedule, `reddit_fetch_post_comments` pulls the comments on a thread and a model summarizes the mood.
+- **Approved publishing.** A model drafts a post, a **human** step approves it, and `reddit_create_reddit_post` submits it as a text or link post.
+- **Reply on behalf of the team.** After review, `reddit_create_reddit_comment` replies to a post or comment.
+- **Cleanup.** `reddit_edit_reddit_post_or_comment` or `reddit_delete_reddit_post_or_comment` corrects or removes your own content.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `retrieve_reddit_post` | Get a post by ID or fullname (`t3_...`) |
-| `get_reddit_post_details` | Detailed post metadata by ID or fullname |
-| `fetch_post_comments` | Comments for a post in a subreddit |
-| `create_reddit_post` | Create a self (text) or link post in a subreddit |
-| `create_reddit_comment` | Reply to a post or comment (`thing_id`) |
-| `edit_reddit_post_or_comment` | Edit post or comment text |
-| `delete_reddit_post_or_comment` | Delete a post or comment |
-| `reddit_custom_api_call` | Raw authenticated Reddit OAuth API request |
+| Tool | Description | Access |
+|------|-------------|--------|
+| `reddit_retrieve_reddit_post` | Get a post by ID or fullname | Read |
+| `reddit_get_reddit_post_details` | Same lookup as above under a second name | Read |
+| `reddit_fetch_post_comments` | Get the comments on a post | Read |
+| `reddit_create_reddit_post` | Submit a text (`self`) or link post to a subreddit | Writes |
+| `reddit_create_reddit_comment` | Reply to a post or comment | Writes |
+| `reddit_edit_reddit_post_or_comment` | Change the text of a post or comment | Writes |
+| `reddit_delete_reddit_post_or_comment` | Delete a post or comment | Deletes |
+| `reddit_custom_api_call` | Send any request to the Reddit OAuth API | Writes (can do anything the account allows) |
+
+Arguments, required ones first:
+
+| Tool | Arguments |
+|------|-----------|
+| `reddit_retrieve_reddit_post`, `reddit_get_reddit_post_details` | `post_id` (required): a bare ID or a `t3_` fullname |
+| `reddit_fetch_post_comments` | `subreddit` (without `r/`), `article_id` (the post's base36 ID from its URL) required; `limit` |
+| `reddit_create_reddit_post` | `subreddit`, `title`, `kind` (`self` or `link`) required; `text` (needed for `self`), `url` (needed for `link`), `nsfw`, `spoiler` |
+| `reddit_create_reddit_comment` | `thing_id` (the `t3_` post or `t1_` comment to reply to), `text` (both required) |
+| `reddit_edit_reddit_post_or_comment` | `thing_id` (`t3_` or `t1_`), `text` (both required) |
+| `reddit_delete_reddit_post_or_comment` | `thing_id` (required) |
+| `reddit_custom_api_call` | `method` and `path` (starts with `/`) required; `query`, `body` |
+
+`reddit_create_reddit_post` returns `success`, plus `id`, `name`, and `url` of the new post when it works, or `validation_error` and `validation_message` when Reddit rejects it.
 
 ## Example
 
-Post a link after human approval:
+Submit a link post after approval. A **human** step earlier in the workflow gates it, and the subreddit and link come from the run input:
 
 ```json
 {
   "id": "reddit-post",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Publish Reddit post",
-  "tool_name": "create_reddit_post",
+  "tool_name": "reddit_create_reddit_post",
   "tool_args": {
     "subreddit": "{{input.subreddit}}",
-    "title": "{{steps.human-approve.result.title}}",
+    "title": "{{input.title}}",
     "kind": "link",
     "url": "{{input.article_url}}"
   },
-  "depends_on": ["human-approve"],
+  "depends_on": ["approve-post"],
   "timeout_s": 30
 }
 ```
 
+In Workflow Studio you pick the MCP instance on the step.
+
 ## Configuration
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `ClientID` | Yes | Reddit application client ID |
-| `ClientSecret` | Yes | Reddit application client secret |
-| `RefreshToken` | Yes | OAuth refresh token for the authenticated user |
-| `UserAgent` | No | Unique User-Agent string (strongly recommended) |
-| `RequestTimeoutSecond` | No | HTTP timeout in seconds |
-| `OAuthBaseURL` | No | Reddit OAuth API base URL |
-| `TokenURL` | No | OAuth token endpoint |
+These are the keys the connector reads. A custom connection whose field names match these keys is wired automatically on **Instance config**.
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `reddit_client_id` | Yes | none | Reddit app client ID |
+| `reddit_client_secret` | Yes | none | Reddit app client secret |
+| `reddit_refresh_token` | Yes | none | OAuth refresh token for the posting account |
+| `reddit_user_agent` | No | `agentruntime-reddit-mcp/1.0 by u/your_reddit_username` | User-Agent sent to Reddit. Set your own, since the default is a placeholder. |
+| `reddit_request_timeout_seconds` | No | `30` | HTTP timeout in seconds |
+| `reddit_oauth_base_url` | No | `https://oauth.reddit.com` | Reddit OAuth API base URL |
+| `reddit_token_url` | No | `https://www.reddit.com/api/v1/access_token` | Token endpoint used to refresh access |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| `401` / token errors | Refresh token revoked; re-run OAuth flow |
-| `403` on post | Account lacks karma, subreddit restrictions, or mod approval required |
-| Rate limiting | Reddit enforces per-account limits; add delays between automated posts |
-| Wrong parent on comment | Use fullname format: `t3_` for posts, `t1_` for comments |
+| `missing required reddit auth config` | One of the client ID, client secret, or refresh token is missing from the connection or not wired on **Instance config**. |
+| `token request failed` | Wrong client ID or secret, or the refresh token was revoked or never issued with `duration=permanent`. Repeat the authorization step and update the connection. |
+| `403` when posting or replying | The account lacks permission in that subreddit, a needed scope was not granted, or the subreddit blocks the account. Check the subreddit's rules and the scopes you authorized. |
+| `success` is `false` on a new post | Read `validation_message`. Reddit rejected the post, for example a title or flair rule. |
+| `429` or rate limiting | Reddit limits request rates. Space out automated requests; the connector retries a limited number of times. |
+| Reply lands on the wrong item | `thing_id` must be a fullname: `t3_` plus the ID for a post, `t1_` plus the ID for a comment. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [Human tasks](/workflows/human-tasks) — approval before posting
+- [Human tasks](/workflows/human-tasks): approval before posting
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

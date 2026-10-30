@@ -3,10 +3,12 @@ title: Inbound webhooks
 description: Trigger AgentRuntime workflow runs from external systems via signed webhook subscriptions.
 ---
 
-**Inbound webhooks** let external systems start workflow runs by POSTing to a signed URL. Each subscription is linked to one workflow in your project.
+An **inbound webhook** is a web address that starts a workflow run when an outside system sends it a request. This page is for developers who need to connect a system such as a payment provider, a CI job, or their own backend to a workflow. Each webhook (called a **subscription**) is linked to one workflow in your project.
+
+**What you need:** a saved workflow, the **project_contributor** role, and an API key under **Settings → API keys**. The Console steps are in the [Inbound webhook wizard](/integrations/inbound-webhook-wizard).
 
 <Note>
-  **Generally available** when `inbound_webhooks` is enabled on your BFF (default **on** in standard deployments). If **Inbound** tabs or Settings lists are missing, your operator may have disabled ingress — contact [support@agentruntime.io](mailto:support@agentruntime.io).
+  **Generally available.** If the **Inbound** tab or the Settings list is missing in your workspace, contact [support@agentruntime.io](mailto:support@agentruntime.io).
 </Note>
 
 ## How it works
@@ -15,37 +17,36 @@ description: Trigger AgentRuntime workflow runs from external systems via signed
 sequenceDiagram
   participant Ext as External system
   participant WH as Ingress URL
-  participant BFF as AgentRuntime BFF
-  participant RT as Workflow runtime
-  Ext->>WH: POST + HMAC + Bearer PAT
-  WH->>BFF: Verify signature
-  BFF->>RT: Start workflow run
+  participant AR as AgentRuntime
+  Ext->>WH: POST + signature + Idempotency-Key
+  WH->>AR: Verify signature
+  AR->>AR: Start workflow run
 ```
 
 1. You create a **subscription** linked to a workflow
 2. AgentRuntime returns an **ingress URL** and **signing secret** (shown once at creation)
-3. Senders POST JSON to the ingress URL with HMAC signature and a **Bearer PAT** for automation auth
-4. The BFF verifies the signature and starts a run with the POST body as workflow input (`webhook_payload` in start params)
+3. Senders POST to the ingress URL with a signature header and an `Idempotency-Key`
+4. AgentRuntime verifies the signature and starts a run with the POST body as workflow input. The run executes as the **automation API key** you chose when creating the subscription
 
-Saved **Run setup** defaults from Workflow Studio are **not** applied unless the subscription `extras` sets `use_run_setup_defaults: true`. See [Run setup](/workflows/run-setup).
+Saved **Run setup** defaults from Workflow Studio are **not** applied to webhook runs. The run gets only the request body and what you set in the subscription `extras`. See [Run setup](/workflows/run-setup).
 
 ## Create a subscription in the Console
 
 <Steps>
   <Step title="Open Workflow Studio">
-    Open the target workflow at `/workflow/{workflow_id}`.
+    Open the target workflow at `/workflow/{workflow_id}`. Save it first — unsaved drafts cannot subscribe.
   </Step>
   <Step title="Workflow config → Inbound tab">
-    In the workflow configuration panel, open the **Inbound** tab. (Same subscriptions also appear under **Settings → Inbound webhooks** for workspace-wide management.)
+    In the workflow configuration panel, open the **Inbound** tab. (The same subscriptions also appear under **Settings → Inbound webhooks** for workspace-wide management.)
   </Step>
-  <Step title="Name and automation PAT">
-    Enter a subscription label. Select an existing **API key** (PAT) for automation, or paste a `pat_…` token once if Vault does not hold the secret.
+  <Step title="Name and automation API key">
+    Enter a subscription name. Choose the **Automation API key** the runs should execute as, or paste the `pat_…` secret once if the Console cannot load it automatically.
   </Step>
   <Step title="Create and copy secrets">
-    Click create. Copy the **signing secret** and **ingress URL** immediately — the secret is not shown again.
+    Click **Create subscription**. Copy the **Signing secret** and **Ingress URL** immediately — the secret is not shown again.
   </Step>
   <Step title="Test">
-    Use the generated curl template (includes `X-Agentruntime-Signature` and `Authorization: Bearer pat_…`) or POST from your external system.
+    POST a signed test request from your external system (see [Verify signatures](#verify-signatures)).
   </Step>
 </Steps>
 
@@ -72,14 +73,14 @@ Request body:
 }
 ```
 
-Response includes `ingress_url`, `ingress_path`, `signing_secret`, and `subscription`. List and delete:
+Use `automation_pat_id` to reference an existing API key, or `automation_bearer` to pass the `pat_…` secret directly. The response includes `ingress_url`, `ingress_path`, `signing_secret`, and `subscription`. List and delete:
 
 ```
 GET /v1/inbound-webhooks
 DELETE /v1/inbound-webhooks/{id}
 ```
 
-Public ingress (no session cookie):
+Public ingress (no session cookie; authenticated by the signature):
 
 ```
 POST /v1/inbound-webhooks/{subscription_id}
@@ -91,47 +92,82 @@ Senders must include:
 
 | Header | Value |
 |--------|--------|
-| `Content-Type` | `application/json` |
-| `Authorization` | `Bearer pat_…` (automation PAT tied to the subscription) |
-| `X-Agentruntime-Signature` | `sha256=` + HMAC-SHA256 of the raw body using the signing secret |
+| `X-Agentruntime-Signature` | `t=<unix seconds>,v1=<hex HMAC-SHA256>` |
+| `Idempotency-Key` | A unique key per event, so retries do not start duplicate runs |
+| `Content-Type` | `application/json` for JSON bodies |
+
+Compute the HMAC-SHA256 of `"<t>." + raw body` with the signing secret, where `<t>` is the same Unix timestamp you put in the header. Requests whose timestamp is more than about five minutes from the current time are rejected.
 
 ```python
 import hmac
 import hashlib
+import time
 
 def sign_body(payload_body: bytes, secret: str) -> str:
-    digest = hmac.new(secret.encode(), payload_body, hashlib.sha256).hexdigest()
-    return f"sha256={digest}"
+    t = int(time.time())
+    msg = f"{t}.".encode() + payload_body
+    digest = hmac.new(secret.encode(), msg, hashlib.sha256).hexdigest()
+    return f"t={t},v1={digest}"
 ```
 
-AgentRuntime verifies on ingress before starting a run.
+You do not need to send the automation API key on ingress requests; it is stored with the subscription.
+
+### Responses
+
+| Status | Meaning |
+|--------|---------|
+| `202` | Run started; the body contains the run details |
+| `200` with `"duplicate": true` | An earlier request with the same `Idempotency-Key` already started a run; its `run_id` is returned |
+| `400` | Missing `Idempotency-Key` or signature header, invalid signature, or invalid JSON |
+| `404` | Unknown subscription |
+| `409` | A request with the same `Idempotency-Key` is still in progress |
+| `429` | Rate limit exceeded; honor the `Retry-After` header |
+
+Request bodies are limited in size (1 MB by default).
 
 ## Payload and workflow input
 
-The POST body is mapped to **`trigger_payload`** (for `{{input.*}}`). Reference fields in steps with `{{input.field_name}}`.
+For a JSON object body, the fields are mapped to **`trigger_payload`** (for `{{input.*}}`). Reference fields in steps with `{{input.field_name}}`.
 
-Saved **Run setup** defaults from Studio merge only when subscription `extras.use_run_setup_defaults` is `true`. See [Run setup](/workflows/run-setup) and [External triggers](/workflows/external-triggers).
+Saved **Run setup** defaults from Studio are never merged into a webhook run. To give every run a fixed value, put it in the subscription `extras` as shown below; the request body wins where both set the same key. See [Run setup](/workflows/run-setup) and [External triggers](/workflows/external-triggers).
 
 Set `extras` on create (`POST /v1/inbound-webhooks`) or update later (`PATCH /v1/inbound-webhooks/{id}`):
 
 ```json
 {
   "extras": {
-    "use_run_setup_defaults": true,
     "trigger_payload": { "source": "shopify" }
   }
 }
 ```
 
-Design workflows with a first step that validates required input (Lua script or `condition`) before calling external tools.
+Design workflows with a first step that validates required input (a `lua` step) before calling external tools.
+
+## Example request
+
+```bash
+BODY='{"order_id": "5678901234"}'
+T=$(date +%s)
+SIG=$(printf '%s.%s' "$T" "$BODY" | openssl dgst -sha256 -hmac "$SIGNING_SECRET" | sed 's/^.* //')
+
+curl -X POST 'https://api.agentruntime.io/v1/inbound-webhooks/{subscription_id}'   -H 'Content-Type: application/json'   -H "Idempotency-Key: order-5678901234"   -H "X-Agentruntime-Signature: t=$T,v1=$SIG"   -d "$BODY"
+```
+
+A `202` response means a run started.
 
 ## Console walkthrough
 
-For step-by-step UI flows (Workflow Studio **Inbound** tab, Settings list, Autopilot card, PAT paste fallback), see [Inbound webhook wizard](/integrations/inbound-webhook-wizard).
+For the Console screens (Workflow Studio **Inbound** tab, **Settings → Inbound webhooks**, and Autopilot chat), see the [Inbound webhook wizard](/integrations/inbound-webhook-wizard).
 
-## Autopilot wizard
+## Common problems
 
-**Autopilot** in Chat can walk you through inbound webhook setup when you ask to trigger workflows from external events.
+| Problem | What to do |
+|---------|------------|
+| `400` "invalid signature" | Sign the exact raw body bytes, with the timestamp from the header, using the signing secret. Check that your server clock is correct (the timestamp must be within about five minutes). |
+| `400` about `Idempotency-Key` | Add an `Idempotency-Key` header with a unique value per event. |
+| `200` with `"duplicate": true` | You sent the same `Idempotency-Key` twice. Use a new key for a new event. |
+| `429` | You are sending too fast. Wait for the `Retry-After` period. |
+| No run appears | Check that the workflow is saved and, if you chose **Last published**, that a version is published. |
 
 ## Related
 

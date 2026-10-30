@@ -1,6 +1,6 @@
 # Platform MCP — Surfaces apps
 
-There is **no** separate attach-workflow or attach-data-source tool. Wiring is **`surfaces_apps_put_view`** (workflows, binds, actions) + **`surfaces_apps_put_query`** (browse SQL) + **`surfaces_apps_put_gate_bindings`** (HITL). See skill [app-studio-wiring.md](../agentruntime-surfaces-authoring/references/app-studio-wiring.md).
+There is **no** separate attach-workflow or attach-data-source tool. Wiring is **`surfaces_apps_put_view`** (workflows, binds, actions) + **`surfaces_apps_put_query`** (browse SQL) + **`surfaces_apps_put_gate_bindings`** (HITL). See skill [app-studio-wiring.md](app-studio-wiring.md).
 
 | Tool | Method | Purpose |
 |------|--------|---------|
@@ -18,4 +18,4 @@ There is **no** separate attach-workflow or attach-data-source tool. Wiring is *
 | `surfaces_apps_list_gate_bindings` | GET | HITL gate map |
 | `surfaces_apps_put_gate_bindings` | PUT | HITL gate map |
 
-`app_id` is the surface app UUID from create/list.
+`app_id` is the app UUID from create/list.

@@ -1,61 +1,85 @@
 ---
 title: Autopilot and chat
-description: Use the Console copilot and chat threads alongside AgentRuntime workflows.
+description: Ask the Console assistant questions, or let it build and run workflows for you.
 ---
 
-AgentRuntime provides two chat surfaces:
+**Autopilot** is the AI assistant built into the Console. You type what you want in plain language, and it can answer questions about your workspace or do the work for you, such as creating a workflow or starting a run.
 
-- **Console Chat** (`/chat`) — Autopilot copilot with thread list and streaming responses
-- **Workspace chat** ([space.agentruntime.io](https://space.agentruntime.io)) — Team channels and agent rooms (separate app)
+This page is for anyone using the Console. You do not need any setup beyond signing in.
 
-This page covers Console Autopilot and how it relates to workflows.
+## Open the assistant
 
-## Autopilot modes
+<Steps>
+  <Step title="Open the chat panel">
+    In the [Console](https://console.agentruntime.io), click **Open chat** in the top bar. The chat panel opens beside the page you are on.
+  </Step>
+  <Step title="Pick a mode">
+    Below the message box, choose **Ask** or **Autopilot** (click the mode button to switch). See [Ask and Autopilot](#ask-and-autopilot).
+  </Step>
+  <Step title="Type a message">
+    For example: "Create a workflow that emails me a summary of yesterday's orders." Press send.
+  </Step>
+</Steps>
 
-Autopilot is the AI assistant built into the Console. It streams responses in the Chat panel and can take actions on your behalf:
+**What you should see:** the reply streams into the panel as it is written. In **Autopilot** mode, any action it takes (opening Workflow Studio, creating a workflow) appears in the conversation.
 
-| Mode | Behavior |
-|------|----------|
-| **Ask** | Answer questions about your workspace, workflows, and integrations |
-| **Autopilot** | Propose and execute actions — scaffold workflows, navigate to Studio, start runs |
+Autopilot knows which page, workspace, and project you are working in, so you can say "this workflow" when you have one open. It can only do what your role allows.
 
-Autopilot uses your project context (tenant, project, role) and calls BFF endpoints at `/v1/autopilot/*`.
+## Ask and Autopilot
+
+| Mode | What it does |
+|------|--------------|
+| **Ask** | Answers questions only. It does not change anything |
+| **Autopilot** | Can also act: open pages, edit workflows, and run setup actions |
+
+Start in **Ask** if you want to explore. Switch to **Autopilot** when you want it to make changes.
 
 ## What Autopilot can do with workflows
 
-Today Autopilot supports workflow-oriented actions including:
+In **Autopilot** mode you can ask it to:
 
-- **create_workflow** — Start a new workflow from a description
-- **scaffold_starter** — Generate a starter graph template
-- **run_workflow** — Start a run on an existing workflow
-- **Navigate** — Open Workflow Studio or Command Center
+- **Create a workflow** from a description, or start from a template
+- **Open** Workflow Studio, Command Center, or another page
+- **Edit** the workflow you have open
+- **Check** a workflow for errors before you run it
+- **Start, pause, resume, or stop** a run
+- **Publish** a version of a workflow
+- **Explain** why a run failed
 
-Ask Autopilot to "create a workflow that emails a summary" or "run the daily report workflow" to use these actions.
+Always look at what it changed before you rely on it. You can undo changes from the workflow's history.
 
-## Chat threads
+## Conversations
 
-The Chat page lists conversation threads persisted per user and project. Messages stream over `/v1/autopilot/stream` with token-by-token delivery.
+The panel keeps your past conversations.
 
-Threads are separate from workflow runs, but messages can reference runs, workflows, and pending human tasks as the integration matures.
+- Click **New chat** to start a fresh conversation.
+- Click **Chat history** to search your conversations, reopen one, or delete one.
 
-## Platform agents
+Conversations belong to you and to the project you were in. They are separate from workflow runs.
 
-**Agents** (sidebar, feature-flagged in some environments) are reusable agent definitions installed in your project. They participate in `dm` and `channel` rooms — distinct from Autopilot.
+## Pick a model and use voice
 
-Platform agents run multi-turn loops with MCP tools and memory, using AgentRuntime's chat runtime rather than the workflow DAG engine.
+The message box has a model picker, which lists the models your workspace can use. See [LLM providers](/ai/llm-providers). A microphone button starts a voice session, where you talk to the assistant instead of typing.
 
-Session workflows (one `run_id` across chat turns, pause between messages) use **autonomous episode** scheduling. See [Autonomous episodes](/workflows/autonomous-episodes) for `no_auto_start`, `done: true`, `terminal`, and handoffs.
+## Chat with your team
 
-## Workspace chat (space)
+The team workspace at [space.agentruntime.io](https://space.agentruntime.io) is a separate app for team channels, direct messages, and agent conversations. Use the Console panel for your own questions to Autopilot, and the team workspace to talk with colleagues and agents.
 
-The team workspace at [space.agentruntime.io](https://space.agentruntime.io) provides Slack-shaped channels, Autopilot DM, threads, and workflow system cards. It shares authentication with the Console via `.agentruntime.io` cookies, so signing in to one signs you in to the other.
+## Agents are different
 
-Use Console Chat for your own copilot tasks; use workspace chat for team coordination and agent room participation.
+**Agents** (in the sidebar) are reusable AI workers that you set up, give tools to, and use in workflows or team chat. Autopilot is the assistant that helps you operate the Console. For a chat that runs one workflow run across many messages, see [Conversation sessions](/workflows/conversation-sessions).
 
-## Memory (knowledge layer)
+## Common problems
 
-AgentRuntime includes a memory layer for long-term knowledge — search, extraction, and episodic memory scoped by tenant and project. Memory tools are available to agents and workflow prepare-step hooks. Console memory UI may be feature-flagged; the APIs are available at `/v1/memory/*` for contributors.
+| Problem | What to do |
+|---------|------------|
+| I do not see **Open chat** | The chat panel may not be available in your workspace. Ask [support](mailto:support@agentruntime.io) |
+| It answers but does not change anything | You are in **Ask** mode. Switch to **Autopilot** |
+| It cannot do something | It follows your role. A `project_viewer` cannot create or run workflows |
+| A reply is wrong or out of date | Tell it what is wrong, or check the page yourself. Assistants can make mistakes |
 
-<Note>
-  Chat and Autopilot are actively evolving toward ChatGPT-style persistence with deeper workflow and Command Center integration. Workflow execution remains authoritative through Workflow Studio and the `/v1/workflows` API.
-</Note>
+## Next steps
+
+- [Workflow Studio](/workflows/studio): edit what Autopilot built
+- [Command Center](/workflows/command-center): follow runs and approve tasks
+- [Memory](/ai/memory): long-term knowledge for agents

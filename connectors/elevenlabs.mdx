@@ -1,117 +1,120 @@
 ---
 title: ElevenLabs connector
-description: Text-to-speech, speech-to-text, voice design, music, and conversational AI agents via the ElevenLabs API in AgentRuntime workflows.
+description: Turn text into speech, transcribe audio, design voices, make music, and manage conversational AI agents with ElevenLabs.
 ---
 
-The **elevenlabs** MCP adapter connects to the [ElevenLabs API](https://elevenlabs.io/docs). Synthesize and transform audio, manage voices, compose music, and build conversational AI agents — suitable for briefings, IVR, accessibility, content repurposing, and voice-enabled agent workflows.
-
-<Note>
-  Full platform parity (27 tools) is rolling out across deployments. Some workspaces may still see a smaller tool set (`list_voices` and `text_to_speech` only) until their catalog is updated to the latest adapter version.
-</Note>
+The **elevenlabs** connector connects your workflows to the [ElevenLabs API](https://elevenlabs.io/docs). Use it to create spoken briefings and voice replies, transcribe recordings, work with voices, generate music, and manage ElevenLabs conversational agents and outbound calls.
 
 ## Prerequisites
 
-- An ElevenLabs account with an **API key**
-- Character / usage quota sufficient for your volume (TTS, STT, and agent tools consume credits)
-- **project_contributor** access in AgentRuntime
+- An ElevenLabs account and **API key**.
+- Enough character or credit quota for the audio you plan to generate.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Get an ElevenLabs API key">
-    Sign in to [ElevenLabs](https://elevenlabs.io/) and copy your API key from profile settings.
+    Sign in to [ElevenLabs](https://elevenlabs.io/) and create an API key in your account settings. Copy it.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **ElevenLabs** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add elevenlabs MCP instance">
-    Go to **MCP**, click **Add instance** for **elevenlabs**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_key` (your ElevenLabs key). The other fields are optional; see [Configuration](#configuration). Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Discover voices">
-    Run **mcp_call** → `list_voices` or `search_voices` and note a `voice_id` for TTS steps.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `list_voices` tool from your **ElevenLabs** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. Note a `voice_id` from the result to use with `text_to_speech`.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **Daily audio brief** — LLM summarizes news → `text_to_speech` → store or attach MP3.
-- **Multilingual outreach** — Translate → `text_to_speech` with `eleven_multilingual_v2`.
-- **Meeting notes** — `speech_to_text` on recorded audio with optional diarization.
-- **ConvAI agent ops** — `create_agent`, `simulate_conversation`, `make_outbound_call` for voice agent workflows.
-- **Music beds** — `compose_music` or `video_to_music` for short-form video scores.
+- **Daily audio brief.** An LLM step summarizes the news, `text_to_speech` turns the summary into audio, and the next step sends or stores it.
+- **Voice discovery.** `search_voices` or `search_voice_library` finds a voice, then `get_voice` confirms its details before you use it.
+- **Call and agent operations.** `create_agent`, `simulate_conversation`, and `make_outbound_call` let a workflow set up and test a voice agent.
+- **Music for content.** `compose_music` or `video_to_music` produces a short track for a video.
 
 ## Tools
 
+ElevenLabs tools are named without a prefix. Each tool takes the arguments described in the ElevenLabs documentation for the matching feature.
+
+Tools that take a file path (such as `speech_to_text`) read from the connector's own file system, not from files in your workflow. Use text-based tools such as `text_to_speech` for workflow data.
+
 ### Speech and audio
 
-| Tool | Description |
-|------|-------------|
-| `text_to_speech` | Synthesize speech from text |
-| `speech_to_text` | Transcribe audio files |
-| `speech_to_speech` | Transform audio to another voice |
-| `text_to_sound_effects` | Generate sound effects from text |
-| `isolate_audio` | Isolate voice from background noise |
+| Tool | What it does |
+|------|--------------|
+| `isolate_audio` | Separate voice from background noise in an audio file. |
+| `speech_to_speech` | Convert audio into another voice. |
+| `speech_to_text` | Transcribe an audio file. |
+| `text_to_sound_effects` | Generate a sound effect from a text description. |
+| `text_to_speech` | Turn text into spoken audio. |
 
 ### Voices
 
-| Tool | Description |
-|------|-------------|
-| `list_voices` | List voices for the API key |
-| `search_voices` | Search the user's voice library |
-| `get_voice` | Get details for one voice |
-| `voice_clone` | Instant voice clone from audio files |
-| `text_to_voice` | Voice design previews from a description |
-| `create_voice_from_preview` | Save a generated preview to the library |
-| `search_voice_library` | Search the shared ElevenLabs voice library |
+| Tool | What it does |
+|------|--------------|
+| `create_voice_from_preview` | Save a generated voice preview to your voice library. |
+| `get_voice` | Get details for one voice. |
+| `list_voices` | List the voices available to your key. |
+| `search_voice_library` | Search the shared ElevenLabs voice library. |
+| `search_voices` | Search the voices in your own library. |
+| `text_to_voice` | Design new voice previews from a text description. |
+| `voice_clone` | Clone a voice from audio samples. |
 
 ### Models and account
 
-| Tool | Description |
-|------|-------------|
-| `list_models` | List available TTS/STT models |
-| `check_subscription` | Subscription status and usage JSON |
+| Tool | What it does |
+|------|--------------|
+| `check_subscription` | Show your subscription status and usage. |
+| `list_models` | List the available models. |
 
-### Conversational AI (ConvAI)
+### Conversational AI agents
 
-| Tool | Description |
-|------|-------------|
-| `create_agent` | Create a conversational AI agent |
-| `add_knowledge_base_to_agent` | Add URL, file, or text knowledge to an agent |
-| `list_agents` | List agents |
-| `get_agent` | Agent details |
-| `get_conversation` | Conversation transcript and metadata |
-| `list_conversations` | Filtered conversation history |
-| `simulate_conversation` | Test an agent with a simulated user |
-| `make_outbound_call` | Outbound call via Twilio or SIP trunk |
-| `list_phone_numbers` | Phone numbers on the account |
+| Tool | What it does |
+|------|--------------|
+| `add_knowledge_base_to_agent` | Add a URL, file, or text as knowledge for a conversational agent. |
+| `create_agent` | Create a conversational AI agent. |
+| `get_agent` | Get details for one agent. |
+| `get_conversation` | Get the transcript and details of one conversation. |
+| `list_agents` | List your agents. |
+| `list_conversations` | List conversations, with filters. |
+| `list_phone_numbers` | List the phone numbers on your account. |
+| `make_outbound_call` | Start an outbound call from an agent. |
+| `simulate_conversation` | Test an agent with a simulated user. |
 
 ### Music
 
-| Tool | Description |
-|------|-------------|
-| `compose_music` | Generate music from prompt or composition plan |
-| `create_composition_plan` | Plan-only (no generation credits) |
-| `video_to_music` | Score from one or more video files |
-| `upload_music_for_inpainting` | Upload audio for music_v2 inpainting (`song_id`) |
+| Tool | What it does |
+|------|--------------|
+| `compose_music` | Generate music from a prompt or a composition plan. |
+| `create_composition_plan` | Plan a piece of music without generating audio. |
+| `upload_music_for_inpainting` | Upload music to edit parts of it. |
+| `video_to_music` | Generate music for one or more video files. |
 
 ## Example
 
-Convert an LLM summary to audio:
+Convert text to speech with a chosen voice. `text` is required. Give either `voice_id` or `voice_name`, not both. Without either, the default voice from your configuration is used. `model_id` defaults to `eleven_multilingual_v2`.
 
 ```json
 {
   "id": "elevenlabs-tts",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Synthesize briefing",
   "tool_name": "text_to_speech",
   "tool_args": {
-    "voice_id": "{{input.voice_id}}",
     "text": "{{steps.llm-summary.result.text}}",
+    "voice_id": "{{input.voice_id}}",
     "model_id": "eleven_multilingual_v2"
   },
-  "depends_on": ["llm-summary"],
+  "depends_on": [
+    "llm-summary"
+  ],
   "timeout_s": 60
 }
 ```
@@ -120,27 +123,26 @@ Convert an LLM summary to audio:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `api_key` | Yes | ElevenLabs API key |
-| `output_mode` | No | `files`, `resources` (default), or `both` for binary tool outputs |
-| `default_voice_id` | No | Default voice when TTS omits `voice_id` |
-| `api_residency` | No | `us`, `eu`, `in`, `sg`, or `global` |
-| `base_path` | No | Base directory when `output_mode=files` |
-
-Connections typically map `APIKey` → `api_key` on the MCP instance.
+| `api_key` | Yes | ElevenLabs API key. |
+| `output_mode` | No | `resources` (default) returns the audio inside the tool result. `files` saves it to a folder on the connector's file system. `both` does both. |
+| `default_voice_id` | No | Voice used when a text-to-speech call names no voice. |
+| `api_residency` | No | Data residency: `us`, `eu`, `in`, `sg`, or `global`. |
+| `base_path` | No | Base folder used when `output_mode` is `files`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| Voice not found | Run `list_voices` or `search_voices`; IDs differ from display names |
-| Quota exceeded | Check usage in ElevenLabs dashboard; shorten text or upgrade plan |
-| Garbled or clipped audio | Split long text; respect model limits |
-| Wrong language | Use `eleven_multilingual_v2` or a voice verified for the target language |
-| File path errors on STT/music | Tools that read local files need absolute paths accessible to the connector runtime |
+| Problem | What to do |
+|---------|------------|
+| "Voice not found" | Run `list_voices` or `search_voices` and use the `voice_id`. Voice names and IDs are different. Do not pass both `voice_id` and `voice_name`. |
+| Quota exceeded | Check your usage in ElevenLabs, shorten the text, or change your plan. |
+| "resolved config is missing api_key" | The active profile has no `api_key`. Add it on **Instance config** and use **Use this profile for workflows**. |
+| A tool cannot find my audio file | File-based tools read paths on the connector's file system. They cannot read files from your workflow. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Vapi connector](/connectors/vapi) — voice assistants and telephony
+- [Vapi connector](/connectors/vapi) for voice assistants and telephony
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

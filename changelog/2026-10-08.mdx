@@ -1,0 +1,14 @@
+---
+title: More reliable sub-workflow steps
+date: 2026-10-08
+version: "0.13.0"
+areas:
+  - workflows
+summary: Workflow steps that run another workflow wait more reliably for the child run and clean up after failures.
+fixed:
+  - "**Workflow steps** — a step that runs another workflow no longer gets stuck on duplicate start events, waits for the child run without blocking other steps, and clears stale failures **GA** · Workflow Studio"
+---
+
+## Related docs
+
+- [Step types](/workflows/step-types)

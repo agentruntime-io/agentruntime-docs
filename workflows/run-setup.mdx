@@ -1,50 +1,81 @@
 ---
 title: Run setup
-description: Saved defaults, Manual Run, Cron, and Inbound start params in Workflow Studio.
+description: Choose where a run starts and what input it gets, from Manual runs, schedules, webhooks, and the API.
 ---
 
-Run setup controls **how a workflow starts** from Studio. Saved defaults pre-fill forms; **runtime** uses canvas config plus explicit start params.
+**Run setup** controls how a workflow starts. You set the **starting input** (the values your steps read as `{{input.*}}`) and, optionally, which steps the run starts from.
 
-## Saved defaults (`run_setup_json`)
+**Who this is for:** anyone who runs a workflow by hand or sets up a schedule or webhook for it.
 
-- **Save defaults** in Workflow setup → Manual tab persists start steps and inputs to `run_setup_json`.
-- Used to **pre-fill** Manual, Cron, and Inbound forms.
-- **Not merged at fire time** — Manual Run and triggers send explicit params.
+**What you will do:** start a run with your own input, and save the values as defaults.
 
-## Manual Run
+## Open Workflow setup
 
-1. Open **Workflow setup → Manual**.
-2. Choose **Start steps** (unchecked auto roots → `excluded_step_ids` for that run).
-3. Set **Starting input** / per-step overrides.
-4. **Run** sends the current form — it does not update saved defaults.
-5. **Cancel** reverts the form to the last Save defaults snapshot.
+In [Workflow Studio](/workflows/studio), click **Setup** in the toolbar. The **Workflow setup** dialog has these tabs:
 
-## Cron schedules
+| Tab | What it is for |
+|---|---|
+| **Manual** (Defaults & run) | Set the starting input for runs you start by hand |
+| **Inbound** (Webhooks) | Start runs from outside systems with signed webhooks |
+| **Events** (Platform) | Start runs when a platform event happens (Embedded Connect) |
+| **Cron** (Schedules) | Start runs on a schedule |
+| **Sessions** (Per conversation) | One run per conversation. See [Conversation sessions](/workflows/conversation-sessions). |
+| **API** (PAT run) | A ready-made request to start the workflow with an API key |
+| **Apps** (Used by) | Lists the apps that use this workflow |
 
-**Workflow setup → Cron** (or Operate → Schedules):
+<Frame caption="The Manual tab of Workflow setup">
+  <img src="/images/workflows/run-setup-manual.png" alt="The Workflow setup dialog on the Manual tab, with the trigger tabs on the left and, on the right, a note about saved defaults, the Run as setting, the Entry step, the Starting input field, and the Preview JSON, Cancel and Save defaults buttons" />
+</Frame>
 
-- Same start step picker and per-step overrides as Manual.
-- Values are stored on `workflow_triggers.config` when you add the schedule.
-- Each fire uses that config + canvas — not `run_setup_json`.
+The **Manual** tab's footer has **Preview JSON**, **Cancel**, and **Save defaults**. The other tabs only have **Close**, and remind you that **Save defaults** and **Run** belong to the **Manual** tab. The dialog has no **Run** or **Dry-run** button of its own: use **Run** and **Dry-run** in the Studio toolbar.
 
-## Inbound webhooks
+## Start a run by hand
 
-**Workflow setup → Inbound**:
+<Steps>
+  <Step title="Open the Manual tab">
+    Click **Setup**, then **Manual**.
+  </Step>
+  <Step title="Choose where the run starts">
+    Under **Entry step**, you see the step or steps the run starts from. Unchecked entry steps are left out when the trigger fires. To leave a step out of every run, disable it on the canvas instead (**Step enabled**). **Run as** is **Workspace** by default: one run for the whole workspace. The other choices are for runs on behalf of Embedded Connect end users. See [Triggers and run identity](/workflows/trigger-run-identity).
+  </Step>
+  <Step title="Type the starting input">
+    Under **Starting input**, each field of the entry step has a checkbox and a box for its value. In the demo workflow there is one field, **payload**, which takes JSON or text. Fields you leave empty fall back to the step's own settings on the canvas at run time. A field you edit shows a **Changed** badge.
+  </Step>
+  <Step title="Run">
+    Close the dialog and click **Run** in the Studio toolbar.
 
-- Optional static start params saved on subscription `extras`.
-- POST body at fire time is merged with those extras (POST wins on conflicts).
+    You should see the new run appear under **Run logs and metrics**.
+  </Step>
+</Steps>
 
-## Field editor (canvas-first)
+**Run** does not change your saved defaults. If you click **Cancel** after typing, Studio asks **Unsaved setup changes** and offers **Keep editing**, **Discard changes**, or **Save defaults**.
 
-- **Node sidebar** is the primary place for step inputs (prompts, MCP `tool_args`, etc.).
-- **Setup** shows those values in editable fields, pre-filled from the canvas (and saved defaults).
-- Edit inline to override for this run or **Save defaults** (overrides-only snapshot).
-- **Include** checkbox: unchecked → omit key from start params (canvas used at runtime).
-- Cleared field (`""`) while included → sends explicit empty; **Use step value** reverts to canvas (shown only after you override).
-- While Setup is open, non-edited fields **track canvas changes**; edited fields stay until revert.
+## Save defaults
 
-## Related
+**Save defaults** stores the entry step choice and starting input so the forms open pre-filled next time. The tab says it plainly: "Saved defaults prefill this form only." Schedules, platform events and inbound webhooks use the values stored on their own settings when you create them, not the saved defaults.
 
-- [External triggers](/workflows/external-triggers) — cron + inbound fire paths
-- [Triggers and run identity](/workflows/trigger-run-identity) — workspace vs principal vs segment
-- [Workflow studio](/workflows/studio) — graph and publishing
+## Schedules, webhooks, and the API
+
+Each of these keeps its own start values:
+
+- **Cron**: the schedule has the same entry step and starting input as **Manual**, saved on the schedule when you click **Add schedule**. It also asks which version to run (**Runs**) and which **Automation API key** to run as.
+- **Inbound**: you can save fixed start values on a webhook. The data in each request is merged with them, and the request wins if both set the same value.
+- **API**: send the complete start input in `trigger_payload` (and `trigger_steps` for per-step values). See [External triggers](/workflows/external-triggers).
+
+## What the input becomes
+
+Whatever you type under **Starting input** is available to the steps as `{{input.<field>}}`. Per-step values are read by that step. Use [Dry-run](/workflows/dry-run) to check that every `{{input.*}}` your workflow reads has a value.
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| **Run** is greyed out in the toolbar | The canvas is empty, or your role cannot run workflows. See [Workflow Studio](/workflows/studio#common-problems). |
+| A schedule ignores the values you saved with **Save defaults** | Expected. A schedule uses the values saved on the schedule itself. |
+| A field is empty at run time | Check that it is included in the form, or set on the step in the canvas. |
+
+## Next steps
+
+- [External triggers](/workflows/external-triggers)
+- [Triggers and run identity](/workflows/trigger-run-identity)
+- [Dry-run validation](/workflows/dry-run)

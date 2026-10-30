@@ -1,78 +1,102 @@
 ---
 title: Roles and permissions
-description: Workspace and project roles, public vs private projects, and how access is assigned in the AgentRuntime Console.
+description: Workspace roles, project roles, public and private projects, and how access is assigned in the AgentRuntime Console.
 ---
 
-AgentRuntime separates **workspace** access from **project** access. Most day-to-day builder permissions come from your **project role**; workspace roles control billing, team invites, and workspace policy.
+This page explains who can do what in AgentRuntime. It is for admins who assign access and for anyone who sees a "permission denied" message.
+
+## The two layers
+
+Access has two layers:
+
+1. **Workspace role** — your role in the whole workspace. It controls team invites, billing and workspace policy.
+2. **Project role** — your role inside one project. It controls what you can build and run there. This is the role most people use every day.
 
 ## Workspace roles
 
 | Role | What you can do |
 |------|-----------------|
-| **Member** | Belong to the workspace. On **public** projects, you get the default **Contributor** project access automatically. |
-| **Admin** | Manage team invites, billing settings, domain verification, and workspace access policy. |
+| **Member** | Belong to the workspace. On **public** projects you get **Contributor** access automatically. |
+| **Admin** | Manage team invites, billing settings, domain verification and workspace access policy. |
 | **Owner** | Full workspace control, including billing ownership and promoting other admins or owners. |
 
-Workspace email invites set only the workspace role. They do **not** attach a specific project. After accepting, members can access **public** projects at the default contributor level.
+A workspace email invite sets only the workspace role. It does not attach a project. After accepting, the person can use **public** projects as a **Contributor**.
+
+In the API, the workspace admin role is called `tenant_admin`.
 
 ## Project roles
 
 <CardGroup cols={3}>
-  <Card title="Contributor" icon="wrench">
-    Create and edit workflows, run and control runs, manage connections and MCP instances, and view usage. Maps to the <code>project_contributor</code> role in the API.
-  </Card>
   <Card title="Project viewer" icon="eye">
-    Read workflows, runs, analytics, Autopilot chat, and work items. Cannot edit graphs, manage connections, or start runs.
+    See workflows, runs, analytics, Autopilot chat and work items. Cannot edit workflows, change connections or start runs. API name: `project_viewer`.
+  </Card>
+  <Card title="Contributor" icon="wrench">
+    Everything a viewer can do, plus create and edit workflows, start and control runs, and manage connections and MCP instances. API name: `project_contributor`.
   </Card>
   <Card title="Project admin" icon="shield">
-    Everything contributors can do, plus manage project members and toggle public vs private visibility.
+    Everything a contributor can do, plus manage project members and delete workflows, agents and connections. API name: `project_admin`.
   </Card>
 </CardGroup>
 
-### Capability matrix
+### What each project role can do
 
 | Capability | Viewer | Contributor | Project admin |
 |------------|:------:|:-----------:|:-------------:|
 | View workflows and runs | ✓ | ✓ | ✓ |
-| Edit and publish workflows | | ✓ | ✓ |
-| Start, pause, stop runs | | ✓ | ✓ |
-| Manage connections and MCP | | ✓ | ✓ |
+| View billing and usage | ✓ | ✓ | ✓ |
+| Create, edit and publish workflows | | ✓ | ✓ |
+| Start, pause and stop runs | | ✓ | ✓ |
+| Create and edit connections and MCP instances | | ✓ | ✓ |
+| Delete workflows, agents and connections | | | ✓ |
 | Manage project members | | | ✓ |
-| Toggle public / private project | | | ✓ |
-| Workspace billing and team | | | (workspace admin/owner) |
 
-<Info>
-  Some API endpoints also require PAT scopes (for example, `workflow:run` or `mcp:execute`) in addition to the project role. See [API authentication](/api/authentication).
-</Info>
+Changing a plan, adding credits and similar billing actions need a workspace **Admin** or **Owner**, not a project role. See [Billing and credits](/platform/billing-and-credits).
 
-## Public vs private projects
+## Public and private projects
 
-- **Public** — Visible to all workspace members. Default access is **Contributor** unless you assign an explicit project role.
-- **Private** — Hidden from the project picker unless you are a member. **Project admins** (and workspace **owners** as a backup) add members from **Project settings** (project menu ⋮).
+- **Public** — every workspace member can use it, as a **Contributor** unless you give them a different project role.
+- **Private** — only members you add can see it. It is hidden from the project switcher for everyone else.
 
-Workspace **owners** and **admins** can open private projects they are not members of, but by default they have **read-only** project access. Workspace admins can enable **Full access on private projects** under **Settings → Team → Workspace access policy** for IT-style workspaces that need elevated recovery access.
+To change this, open the **⋮** menu next to the project in the project switcher, click **Project settings**, and use the **Project visibility** switch. To add people to a private project, use the **Members** tab in the same dialog.
 
-## Managing access
+Workspace **Owners** and **Admins** can open private projects they are not members of, but they get **read-only** access by default. To let them edit, go to **Settings → Team & Members** and turn on **Full access on private projects**, then click **Save policy**.
+
+## Where to manage access
 
 | Task | Where |
-|------|--------|
-| Invite to workspace | **Settings → Team & Members** (workspace admin/owner) |
-| Change workspace role | **Settings → Team & Members** → member list |
-| Manage project members | **Project settings → Members** (project admin) or Team when a project is selected |
-| See your own roles | **Settings → My access** (all members) |
+|------|-------|
+| Invite someone to the workspace | **Settings → Team & Members** (Admin or Owner) |
+| Change someone's workspace role | **Settings → Team & Members → Current members** |
+| Change someone's project role | **Settings → Team & Members** with the project selected, or **Project settings → Members** |
+| See your own roles | **Settings → My access** |
 
-## API and PAT scopes
+<Frame caption="Settings → My access: your workspace role and your project roles">
+  <img src="/images/platform/settings-my-access.png" alt="The My access tab showing a read-only Workspace role of Owner, the current project context, and a Project roles list with Demo Project, a public project, and the role Project admin" />
+</Frame>
 
-When calling the API with a personal access token, both the user's project role and the token's scopes must allow the operation:
+## Access for API keys
+
+An API key (personal access token) can never do more than the person who created it. Both the person's project role and the key's **scopes** must allow an action.
 
 | Scope | Allows |
 |-------|--------|
-| `workflow:read` | List and get workflows, runs, and events |
-| `workflow:run` | Start, pause, resume, and stop runs |
-| `mcp:execute` | Invoke MCP tools during workflow execution |
+| `workflow:read` | List and read workflows, runs and events |
+| `workflow:run` | Start, pause, resume and stop runs, and validate workflows |
+| `mcp:execute` | Let workflow runs call MCP tools |
 
-Create PATs from **Settings → API keys**.
+Other scopes exist, for example for managing workflows, connections, agents and webhooks. See [API authentication](/api/authentication) for how to pick scopes. Create keys in **Settings → API keys**.
 
-## Sysadmin access
+## Common problems
 
-Internal AgentRuntime operators use a separate sysadmin login path. Sysadmin capabilities are not available to customer workspace members.
+| Problem | What to try |
+|---------|-------------|
+| A project is missing from the switcher | It is private and you are not a member. Ask a project admin to add you. |
+| A button is disabled or you see "permission denied" | Check your roles in **Settings → My access**, then ask an admin. |
+| An admin cannot edit a private project | Add them to the project, or turn on **Full access on private projects**. |
+| An API call returns `403` | Your project role or the key's scopes are too narrow. See [Troubleshooting](/platform/troubleshooting). |
+
+## Next steps
+
+- [User management](/platform/user-management)
+- [Workspace settings](/platform/settings)
+- [API authentication](/api/authentication)

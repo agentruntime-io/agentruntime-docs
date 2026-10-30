@@ -6,13 +6,13 @@ Dry-run answers whether the graph is structurally valid and whether declared Ten
 
 Responses include **`readiness`** (`ready` | `blocked`) and **`blockers[]`** in addition to **`valid`**. A graph can be `valid: true` but `readiness: blocked` when readiness-blocking warnings apply (for example missing MCP input schema). Use **`check_results`** for per-check `passed` | `failed` | `blocked` | `not_applicable`.
 
-**`validation_evidence`** in the validate response carries **`graph_hash`**, **`workflow_graph_schema_hash`**, **`validated_at`**, **`readiness`**, and **`checks_performed`**. After each validate call, the BFF stores the full validate payload in control-service **`workflow_graph_dry_runs`** keyed by `(workflow_id, graph_hash)` — independent of publish. Fetch the last result with `GET /v1/workflows/{id}/graph-dry-runs?graph_hash=…`.
+**`validation_evidence`** in the validate response carries **`graph_hash`**, **`workflow_graph_schema_hash`**, **`validated_at`**, **`readiness`**, and **`checks_performed`**. After each validate call, the platform stores the full validate payload keyed by `(workflow_id, graph_hash)` — independent of publish. Fetch the last result with `GET /v1/workflows/{id}/graph-dry-runs?graph_hash=…`.
 
 Neither saving nor **publish** runs dry-run, and neither blocks on `valid` or `readiness`. Saves go to Live, which runs at once; publishing freezes Live into a numbered version. Dry-run is advisory for authoring and ops.
 
 ## API
 
-`POST /v1/workflows/{workflow_id}/validate` on the deployment BFF (AgentRuntime).
+`POST /v1/workflows/{workflow_id}/validate` on the AgentRuntime API (the Platform MCP `workflows_validate` tool calls it).
 
 ```json
 {
@@ -36,13 +36,13 @@ Only `graph` is required. Prefer the **default** check set (omit `checks`) for w
 | Field | Purpose |
 |-------|---------|
 | `params` / `payload` | Start input for `input.*` template resolution and `input_schema` validation |
-| `tenantdata_schema` | Optional. Logical schema for `tenantdata_upsert` and `mapper_fixtures`. **Omit when authenticated** — BFF resolves from Tenant Data MCP bindings + `api-contract`. Pass explicitly for unsigned/external validate or to override. |
+| `tenantdata_schema` | Optional. Logical schema for `tenantdata_upsert` and `mapper_fixtures`. **Omit when authenticated** — the platform resolves it from Tenant Data MCP bindings + `api-contract`. Pass explicitly for unsigned/external validate or to override. |
 | `mapper_fixtures` | Inline fixture cases: mock `body`/`item`/`run`, step id, expected row fields |
 | `mock_lua_scopes` | Per-step `MapperFixtureScope` for composite/top-level `lua_fixture` execution |
 | `mock_step_outputs` | Synthetic completed step outputs (does not execute Lua by itself) |
 | `step_ids` | Limit step-scoped checks to specific steps |
 
-**Authenticated callers (Studio, PAT, API key):** when the graph uses `tenantdata_*` MCP tools, BFF auto-fetches published `api-contract` for bound Tenant Data databases and supplies `tenantdata_schema` (read-only). Unsigned validate without tenant context skips this and may warn `tenantdata_schema_unavailable`.
+**Authenticated callers (Studio, PAT, API key):** when the graph uses `tenantdata_*` MCP tools, the platform fetches the published `api-contract` for bound Tenant Data databases and supplies `tenantdata_schema` (read-only). Unsigned validate without tenant context skips this and may warn `tenantdata_schema_unavailable`.
 
 ## Default server checks
 

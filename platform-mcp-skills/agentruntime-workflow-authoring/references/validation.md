@@ -71,7 +71,7 @@ Inspect `checks_performed` and `issues` in the response. Errors fail validation;
 
 Pass inline `mapper_fixtures` with `tenantdata_schema` to execute mapper Lua against mock `body`/`item`/`run` and validate row keys/types. Each case needs a distinct `step_id` (runtime looks up by id, not parent path).
 
-Repository maintainers may also run the in-repo CI corpus via `.cursor/skills/.../validate-tenantdata-fixtures.mjs` — that path is not part of this portable bundle.
+Use the server-side dry-run (`workflows_validate`) for fixture checks; no local scripts are required.
 
 ## Platform MCP validate tool
 

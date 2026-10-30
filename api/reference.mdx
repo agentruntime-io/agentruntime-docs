@@ -1,63 +1,72 @@
 ---
 title: API reference
-description: REST endpoints, request shapes, and interactive API explorer for AgentRuntime.
+description: The AgentRuntime REST endpoints for workflows, runs, human tasks, webhooks, connections, MCP, billing, and API keys.
 ---
 
-The AgentRuntime public API is served by the BFF at **`https://api.agentruntime.io`**. All customer integrations should use this base URL.
+This page lists the public REST endpoints you can call from scripts, CI jobs, and your own apps. It is for developers who already know what they want to automate and need the exact path, method, and permission.
 
-For request/response samples, see [API examples](/api/examples).
+New to the API? Start with [API authentication](/api/authentication) to get a token, then copy a request from [API examples](/api/examples).
 
-## Interactive explorer
-
-Browse a subset of workflow and run endpoints in the marketing site's Scalar UI:
-
-**[agentruntime.io/api-reference](https://agentruntime.io/api-reference)**
+**Base URL:** `https://api.agentruntime.io`
 
 <Note>
-  The marketing OpenAPI spec covers core workflow surfaces. It may lag behind the full BFF route catalog. Cross-check with the tables below or test against `api.agentruntime.io`.
+  This page covers the stable, customer-facing endpoints. Other paths you may see in browser developer tools belong to the Console and can change without notice.
 </Note>
 
-## OpenAPI specifications
+## Before you call an endpoint
 
-Formal OpenAPI 3.1 specs exist for a subset of the API surface, including billing (`/v1/billing/*`) and onboarding (`/v1/onboarding/*`, `/v1/setup/*`) endpoints. There is no single full OpenAPI file covering every route today — use this page, [API examples](/api/examples), and the interactive explorer above for the rest of the surface.
+Every request needs one of:
 
-## Authentication
+- **A personal access token (PAT)**: send `Authorization: Bearer pat_...`. The token already belongs to one workspace, so you do not need to send a workspace header. See [API authentication](/api/authentication).
+- **A Console session cookie**: used by the Console in your browser.
 
-All authenticated requests use either:
+### Who can call what
 
-- **Session cookie** — Browser sessions from the Console
-- **Bearer PAT** — `Authorization: Bearer pat_...` for programmatic access
+The **Role** column shows the lowest [workspace or project role](/platform/roles-permissions) that can call the endpoint. If you use a PAT, the token's scopes must also allow the call.
 
-Scoped requests also require:
+| Shorthand | Meaning |
+|-----------|---------|
+| **viewer+** | `project_viewer` or higher |
+| **contributor+** | `project_contributor` or higher |
+| **project_admin** | `project_admin` or higher |
+| **tenant_admin** | Workspace admin (billing and workspace-level settings) |
 
-```
-X-Tenant-Id: your-workspace-slug
-X-Project-Id: your-project-id
-```
+### Responses and errors
 
-See [API authentication](/api/authentication).
+Successful calls return JSON. Errors return a JSON body like `{ "error": "..." }`.
 
-Role shorthand in tables: **viewer+** = `project_viewer` or higher, **contributor+** = `project_contributor` or higher, **tenant_admin** = workspace billing admin.
+| Status | Meaning |
+|--------|---------|
+| `400` | The request is malformed or a required field is missing |
+| `401` | Missing or invalid authentication |
+| `403` | Your role or the token's scopes do not allow this call |
+| `404` | The resource does not exist, or you cannot see it |
+| `409` | A conflict, for example `revision_conflict` when you save over a newer version of a workflow |
+| `422` | Validation error (workflow graph, bindings, billing) |
+| `429` | Rate limited. Wait for the `Retry-After` header, then retry |
+| `5xx` | Temporary server error. Retry with exponential backoff |
 
 ---
 
 ## Workflows
 
-Base path: `/v1/workflows`
+A workflow has one **Live** copy that you edit and run, plus optional frozen **published versions**. Saving changes the Live copy straight away; you only need to publish when you want a version that callers can pin to. See [Workflow Studio](/workflows/studio).
 
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
 | `GET` | `/v1/workflows` | viewer+ | List workflows |
-| `POST` | `/v1/workflows` | contributor+ | Create workflow |
-| `GET` | `/v1/workflows/{id}` | viewer+ | Get workflow |
-| `PATCH` | `/v1/workflows/{id}` | contributor+ | Update draft graph or **run_setup** (Save defaults) |
-| `DELETE` | `/v1/workflows/{id}` | contributor+ | Archive workflow |
-| `POST` | `/v1/workflows/{id}/versions` | contributor+ | Publish version |
-| `GET` | `/v1/workflows/{id}/versions` | viewer+ | List versions |
-| `POST` | `/v1/workflows/{id}/validate` | contributor+ | Dry-run graph validation |
-| `POST` | `/v1/workflows/{id}/command` | contributor+ | Run control (see below) |
-| `GET` | `/v1/workflows/{id}/runs` | viewer+ | List runs for workflow |
-| `GET` | `/v1/workflows/{id}/stream` | viewer+ | WebSocket event stream |
+| `POST` | `/v1/workflows` | contributor+ | Create a workflow |
+| `GET` | `/v1/workflows/{id}` | viewer+ | Get a workflow (the Live copy by default) |
+| `PATCH` | `/v1/workflows/{id}` | contributor+ | Update the Live copy (name, description, graph, or saved run defaults) |
+| `DELETE` | `/v1/workflows/{id}` | contributor+ | Archive the workflow |
+| `POST` | `/v1/workflows/{id}/versions` | contributor+ | Publish a version (freezes the Live copy) |
+| `GET` | `/v1/workflows/{id}/versions` | viewer+ | List published versions |
+| `POST` | `/v1/workflows/{id}/validate` | contributor+ | Check a graph without running it (a dry run) |
+| `POST` | `/v1/workflows/{id}/command` | contributor+ | Start, pause, resume, or stop a run |
+| `GET` | `/v1/workflows/{id}/runs` | viewer+ | List runs of this workflow |
+| `GET` | `/v1/workflows/{id}/stream` | viewer+ | WebSocket stream of live run events |
+
+When you `PATCH` a workflow you can send `base_revision` (the `revision` you last read). If someone else saved in between, the call fails with `409 revision_conflict` and saves nothing, so you never overwrite their work.
 
 ### Start, pause, resume, stop
 
@@ -66,303 +75,268 @@ Base path: `/v1/workflows`
 ```json
 {
   "command": "start",
+  "version": "live",
   "params": {
-    "trigger_type": "api",
     "trigger_payload": {
       "topic": "weekly digest",
       "message": "Hello"
-    },
-    "trigger_steps": {
-      "step-uuid-optional": { "prompt": "per-step override" }
-    },
-    "use_run_setup_defaults": false
+    }
   }
 }
 ```
 
-| Param | Description |
+| Field | Description |
 |-------|-------------|
-| `trigger_payload` | Global shared input → `{{input.*}}` |
-| `trigger_steps` | Per-step map (optional overrides / gated entry grants) |
-| `use_run_setup_defaults` | When `true`, merge saved Studio defaults from the workflow version; **request keys win** on conflicts. Default `false`. |
+| `command` | `start` (the default), `pause`, `resume`, or `stop` |
+| `version` | What to run: `live` (the default), `published` (the newest published version), or a version number such as `3` |
+| `params.trigger_payload` | The input for the run. Steps read it as `{{input.*}}` |
+| `params.trigger_steps` | Optional per-step input overrides, keyed by step id |
+| `params.run_id` | For `pause`, `resume`, and `stop`: the run to control |
+| `params.mode` | For `stop`: `immediate` (the default) or `graceful` |
 
-`params` become workflow **input** (`{{input.*}}` in steps). See [Run setup](/workflows/run-setup).
-
-| `command` | `params` | Effect |
-|-----------|----------|--------|
-| `start` | Trigger fields | Start a new run |
-| `pause` | `run_id` | Pause scheduling |
-| `resume` | `run_id` | Resume paused run |
-| `stop` | `run_id`, optional `mode` | Stop run (`immediate` default, or `graceful`) |
+`start` returns `202 Accepted` with the new `run_id`, a `status`, and `ran` (which copy of the workflow ran). Keep the `run_id` to check progress.
 
 ### Runs and human tasks
 
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
-| `GET` | `/v1/runs` | viewer+ | Tenant-wide run feed (Command Center data source) |
-| `GET` | `/v1/workflows/{id}/runs/{runID}/events` | viewer+ | Step event log |
-| `GET` | `/v1/workflows/{id}/runs/{runID}/context` | viewer+ | Run variables and step results |
-| `GET` | `/v1/tasks/pending` | viewer+ | Pending human tasks (tenant inbox) |
-| `GET` | `/v1/workflows/{id}/runs/{runID}/tasks/pending` | contributor+ | Pending tasks for one run |
-| `POST` | `/v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` | contributor+ | Approve or reject human task |
+| `GET` | `/v1/runs` | viewer+ | Runs across the workspace (the data behind Command Center) |
+| `GET` | `/v1/workflows/{id}/runs/{runID}/summary` | viewer+ | Current status of one run |
+| `GET` | `/v1/workflows/{id}/runs/{runID}/events` | viewer+ | Step-by-step event log |
+| `GET` | `/v1/workflows/{id}/runs/{runID}/context` | viewer+ | Run input and step results |
+| `GET` | `/v1/tasks/pending` | viewer+ | Human tasks waiting for a decision, across the workspace |
+| `GET` | `/v1/workflows/{id}/runs/{runID}/tasks/pending` | viewer+ | Waiting tasks for one run |
+| `POST` | `/v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` | contributor+ | Approve or reject a task |
 
-Complete task body:
+Complete-task body:
 
 ```json
 {
   "approved": true,
   "result": {
-    "comment_body": "Optional fields merged into step result"
+    "comment_body": "Optional fields merged into the step result"
   }
 }
 ```
 
-The human task step result always includes `approved`. The Console Approve/Reject buttons send only `{ "approved": true|false }`. See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
+The step result always includes `approved`. The Console **Approve** and **Reject** buttons send only `{ "approved": true }` or `{ "approved": false }`. See [Human tasks](/workflows/human-tasks#what-downstream-steps-receive).
 
 ### Run event types {#run-event-types}
 
-Persisted on `GET /v1/workflows/{id}/runs/{runID}/events`. See also [Runs and Command Center — Failure handling](/workflows/runs-and-command-center#failure-handling).
+`GET /v1/workflows/{id}/runs/{runID}/events` returns these `event_type` values. See also [Runs and Command Center](/workflows/runs-and-command-center#failure-handling).
 
 | `event_type` | Description |
 |--------------|-------------|
-| `step_started` | Step began |
-| `step_completed` | Step succeeded, or synthetic skip (`data.skipped: true`) |
-| `step_failed` | Step error; run may transition to `failed` |
-| `step_cancelled` | Step was in flight when another step failed the run |
-| `state_changed` | Run status transition |
+| `step_started` | A step began |
+| `step_completed` | A step succeeded, or was skipped (`data.skipped: true`) |
+| `step_failed` | A step failed; the run may move to `failed` |
+| `step_cancelled` | A step was still running when another step failed the run |
+| `state_changed` | The run changed status |
 | `run_started` / `run_rejected` | Run lifecycle |
-
-**Skip reasons** on `step_completed` when `skipped: true`:
-
-| `reason` | Meaning |
-|----------|---------|
-| `blocked` | Run failed before this step started |
-| `out_of_scope` | Episode mode — step outside scope |
-| `step_disabled` | Step disabled in graph |
-
-**Cancelled step** (`step_cancelled`): `data.cancelled: true`, `data.reason: "run_failed"`, optional `caused_by_step_id`.
-
-See [Runs and Command Center — Failure handling](/workflows/runs-and-command-center#failure-handling) for Console badges.
 
 ---
 
 ## Inbound webhooks
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/v1/inbound-webhooks` | contributor+ | Create subscription |
-| `GET` | `/v1/inbound-webhooks` | contributor+ | List subscriptions |
-| `DELETE` | `/v1/inbound-webhooks/{id}` | contributor+ | Delete subscription |
-| `POST` | `/v1/inbound-webhooks/{subscription_id}` | HMAC + Bearer PAT | **Public ingress** — starts run |
+Inbound webhooks let another system start a workflow run. See [Inbound webhooks](/integrations/inbound-webhooks) for setup and for how to sign requests.
 
-Create subscription:
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `POST` | `/v1/inbound-webhooks` | contributor+ | Create a subscription |
+| `GET` | `/v1/inbound-webhooks` | viewer+ | List subscriptions |
+| `PATCH` | `/v1/inbound-webhooks/{id}` | contributor+ | Change what a subscription runs (Live, published, or a version) |
+| `DELETE` | `/v1/inbound-webhooks/{id}` | contributor+ | Delete a subscription |
+| `POST` | `/v1/inbound-webhooks/{subscription_id}` | Signature | Public ingress: the sender calls this to start a run |
+
+Create a subscription:
 
 ```json
 {
   "workflow_id": "workflow-uuid",
   "name": "form-leads",
-  "automation_pat_id": "optional-stored-pat-id",
+  "automation_pat_id": "optional-existing-api-key-id",
   "automation_bearer": "pat_…"
 }
 ```
 
-Response includes `ingress_url`, `signing_secret` (once), and `subscription`.
+The response includes `ingress_url`, `signing_secret` (shown once), and the `subscription`.
 
-Ingress request headers:
+The sender does **not** use a token. Each ingress request needs:
 
-- `Authorization: Bearer pat_…`
-- `X-Agentruntime-Signature: sha256=<hmac-sha256 of raw body>`
+- `X-Agentruntime-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256>`, signed with the `signing_secret`
+- `Idempotency-Key: <unique id per event>`, so retries do not start duplicate runs
 - `Content-Type: application/json`
-
-See [Inbound webhooks](/integrations/inbound-webhooks).
 
 ---
 
 ## Connections
 
-Base path: `/v1/connections` — **project_contributor**
+A connection stores the credentials AgentRuntime uses to reach another service. See [Connections](/integrations/connections).
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/connections` | List workspace connections |
-| `POST` | `/v1/connections` | Create custom connection |
-| `PATCH` | `/v1/connections/{id}` | Update connection |
-| `DELETE` | `/v1/connections/{id}` | Delete connection |
-| `GET` | `/v1/connections/{id}/credentials` | Reveal credential metadata (not full secrets) |
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/connections` | viewer+ | List connections |
+| `POST` | `/v1/connections` | contributor+ | Create a custom connection |
+| `PATCH` | `/v1/connections/{id}` | contributor+ | Update a connection |
+| `DELETE` | `/v1/connections/{id}` | project_admin | Delete a connection |
+| `GET` | `/v1/connections/{id}/credentials` | viewer+ | Credential metadata (key names, not secret values) |
 
-### Google OAuth
+### Google
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/connections/google/config` | Whether Google connect is enabled |
-| `POST` | `/v1/connections/google/oauth-url` | Start OAuth |
-| `POST` | `/v1/connections/google/complete` | Complete OAuth callback |
-| `GET` | `/v1/connections/google/accounts/{connectionId}` | Account + enabled services |
-| `PATCH` | `/v1/connections/google/accounts/{connectionId}/services` | Enable/disable services |
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/connections/google/config` | viewer+ | Whether Google connect is available |
+| `POST` | `/v1/connections/google/oauth-url` | contributor+ | Start the Google sign-in |
+| `POST` | `/v1/connections/google/complete` | contributor+ | Finish the Google sign-in |
+| `GET` | `/v1/connections/google/accounts/{connectionId}` | viewer+ | The Google account and its enabled services |
+| `PATCH` | `/v1/connections/google/accounts/{connectionId}/services` | contributor+ | Turn Google services on or off |
 
 ### WhatsApp
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/connections/whatsapp/config` | Whether WhatsApp connect is enabled |
-| `POST` | `/v1/connections/whatsapp/complete` | Complete embedded signup |
-| `POST` | `/v1/connections/whatsapp/manual` | Manual WABA credentials |
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/connections/whatsapp/config` | viewer+ | Whether WhatsApp connect is available |
+| `POST` | `/v1/connections/whatsapp/complete` | contributor+ | Finish embedded signup |
+| `POST` | `/v1/connections/whatsapp/manual` | contributor+ | Connect with WhatsApp Business account credentials |
 
 ---
 
-## MCP
+## MCP servers and instances
 
-Base path: `/v1/mcp` — **project_contributor** unless noted.
+An **MCP instance** is a tool server (such as Postgres or GitHub) installed in your workspace. See [MCP instances](/integrations/mcp-instances) and [Custom MCP servers](/integrations/custom-mcp-servers).
 
-### Servers and catalog
+Read calls (`GET`) are **viewer+**. Create and update calls (`POST`, `PATCH`) are **contributor+**. Delete calls are **project_admin**.
+
+### Catalog and servers
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/v1/mcp/platform-catalog` | Platform adapter catalog |
+| `GET` | `/v1/mcp/platform-catalog` | The built-in connector catalog |
 | `GET` | `/v1/mcp/tools` | Tool catalog |
-| `GET` | `/v1/mcp/servers` | Tenant MCP servers |
-| `POST` | `/v1/mcp/servers` | Register tenant server |
+| `GET` | `/v1/mcp/servers` | Your workspace's MCP servers |
+| `POST` | `/v1/mcp/servers` | Register a custom server |
 | `GET` | `/v1/mcp/servers/{id}` | Server detail |
+| `GET` | `/v1/mcp/servers/{id}/discover` | Discover the server's tools |
+| `POST` | `/v1/mcp/servers/{id}/versions` | Publish a server version |
 | `POST` | `/v1/mcp/servers/{id}/validate` | Run validation checks |
-| `POST` | `/v1/mcp/servers/{id}/connections/{connection_id}/validate` | Validate connection binding |
+| `POST` | `/v1/mcp/servers/{id}/connections/{connection_id}/validate` | Check that a connection works with a server |
 
 ### Instances and config profiles
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/v1/mcp/instances` | List instances |
-| `POST` | `/v1/mcp/instances` | Create instance |
-| `POST` | `/v1/mcp/instances/resolve` | Resolve instances for workflow |
-| `GET` | `/v1/mcp/instances/{id}/config-profiles` | List profiles |
-| `POST` | `/v1/mcp/instances/{id}/config-profiles` | Create profile |
-| `PATCH` | `/v1/mcp/instances/{id}/config-profiles/{profile_id}` | Update profile wiring |
-| `POST` | `/v1/mcp/instances/{id}/config-profiles/{profile_id}/set-active` | Set active profile |
-
-Duplicate connection CRUD also exists under `/v1/mcp/connections` for legacy clients.
+| `POST` | `/v1/mcp/instances` | Create an instance |
+| `PATCH` | `/v1/mcp/instances/{id}` | Update an instance |
+| `GET` | `/v1/mcp/instances/{id}/config-profiles` | List config profiles |
+| `POST` | `/v1/mcp/instances/{id}/config-profiles` | Create a config profile |
+| `PATCH` | `/v1/mcp/instances/{id}/config-profiles/{profile_id}` | Update a profile, including which connection it uses |
+| `POST` | `/v1/mcp/instances/{id}/config-profiles/{profile_id}/set-active` | Make a profile the active one |
 
 ---
 
-## AI, chat, and memory
+## AI and chat
 
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
-| `POST` | `/v1/autopilot/chat` | viewer+ | Autopilot message |
-| `GET` | `/v1/autopilot/stream` | viewer+ | Streaming response |
-| `GET/POST` | `/v1/chat/*` | viewer+ | Chat service proxy |
-| `GET` | `/v1/llm-provider-keys/catalog` | viewer+ | LLM model catalog |
-| `POST` | `/v1/llm/resolve` | contributor+ | Resolve model ref |
+| `POST` | `/v1/autopilot/chat` | viewer+ | Send a message to Autopilot |
+| `GET` | `/v1/autopilot/stream` | viewer+ | Stream Autopilot's reply |
+| `GET` | `/v1/llm-provider-keys/catalog` | viewer+ | The LLM keys available to your workspace |
+| `GET` | `/v1/llm/models/catalog` | viewer+ | The models you can pick in workflows and agents |
 
-### Memory (preview)
+See [LLM providers](/ai/llm-providers) and [Autopilot and chat](/ai/autopilot-and-chat).
+
+### Memory
 
 <Note>
-  Memory routes require memory kernel configuration. Console Memory UI may be off in production — see [Feature availability](/platform/feature-availability).
+  Memory is a preview feature. The Console has no Memory screen yet. See [Memory](/ai/memory) for what it does and its limits.
 </Note>
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/v1/memory/search` | Semantic search |
-| `POST` | `/v1/memory/index-conversation` | Index chat episode |
-| `POST` | `/v1/memory/index-file` | Index work file |
-| `POST` | `/v1/memory/extract/batch` | Batch extract jobs |
-| `GET` | `/v1/memory/extract/{jobId}` | Extract job status |
-| `POST` | `/v1/memory/tools/call` | Agent memory tool call |
-
----
-
-## Billing endpoints
-
-Base path: `/v1/billing`
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| `GET` | `/v1/billing/summary` | contributor+ | Tenant/project summary |
-| `GET` | `/v1/billing/plans` | contributor+ | Plan catalog for this deployment's `product_code` (Stripe-synced) |
-| `GET` | `/v1/billing/status` | contributor+ | Subscription and trial status |
-| `GET` | `/v1/billing/usage` | contributor+ | Credit balances (microcredits) |
-| `GET` | `/v1/billing/usage-dimensions` | viewer+ | Usage breakdown dimensions |
-| `GET` | `/v1/billing/usage-history` | contributor+ | Metered usage ledger |
-| `GET` | `/v1/billing/payment-history` | contributor+ | Payments and top-ups |
-| `GET` | `/v1/billing/action-pricing` | contributor+ | Resolved per-action prices |
-| `POST` | `/v1/billing/topups/payg/intent` | contributor+ | PAYG top-up Stripe intent |
-| `POST` | `/v1/billing/trial` | tenant_admin | Start trial |
-| `POST` | `/v1/billing/subscription` | tenant_admin | Activate subscription |
-| `POST` | `/v1/billing/subscription/change-plan` | tenant_admin | Change plan |
-| `POST` | `/v1/billing/subscription/cancel` | tenant_admin | Cancel at period end (default) |
-| `POST` | `/v1/billing/subscription/convert-trial-now` | tenant_admin | End trial early |
-| `POST` | `/v1/billing/codes/apply` | tenant_admin | Apply billing code |
-| `POST` | `/v1/billing/discounts/validate` | tenant_admin | Validate discount |
-
-`GET /v1/config/stripe` — publishable Stripe config for Console checkout.
-
-`GET /v1/billing/plans` returns tiers scoped to your workspace's product (AgentRuntime Console → `agentruntime`). Catalog rows are keyed by `(product_code, plan_code)`; the public response surfaces `plan_code` and pricing fields. See [Multi-product billing](/platform/multi-product-billing).
-
-See [Billing and credits](/platform/billing-and-credits) and [API examples](/api/examples).
+| `POST` | `/v1/memory/search` | Search memory (needs memory read access) |
+| `POST` | `/v1/memory/index-conversation` | Add a chat conversation to memory |
+| `POST` | `/v1/memory/index-file` | Add a work file to memory |
+| `POST` | `/v1/memory/extract/batch` | Start a large batch import |
+| `GET` | `/v1/memory/extract/{jobId}` | Check an import job |
+| `GET` | `/v1/memory/episodes/{episodeId}` | Get one stored episode |
 
 ---
 
 ## Agents
 
-Base path: `/v1/agents` — **project_viewer** (read), **project_contributor** (write). Requires `enableAgents` in your deployment.
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| `GET` | `/v1/agents` | viewer+ | List agents |
+| `POST` | `/v1/agents` | contributor+ | Create an agent |
+| `GET` | `/v1/agents/{id}` | viewer+ | Get an agent |
+| `PATCH` | `/v1/agents/{id}` | contributor+ | Update an agent |
+| `DELETE` | `/v1/agents/{id}` | project_admin | Delete an agent |
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/agents` | List agents |
-| `POST` | `/v1/agents` | Create agent |
-| `GET` | `/v1/agents/{id}` | Get agent |
-| `PATCH` | `/v1/agents/{id}` | Update agent |
-| `DELETE` | `/v1/agents/{id}` | Delete agent |
 
 ---
 
 ## Analytics
 
-Base path: `/v1/analytics` — **project_contributor**
+All analytics endpoints are `GET` and **viewer+**. They accept `window=month|week|all`, or bounded `from` and `to`. Time-series endpoints also accept a granularity. See [Analytics](/platform/analytics).
 
 | Endpoint | Metric |
 |----------|--------|
-| `/v1/analytics/live-runs` | Currently running workflows |
+| `/v1/analytics/live-runs` | Runs in progress now |
 | `/v1/analytics/success-rate` | Run success percentage |
-| `/v1/analytics/execution-duration` | Wall-clock execution time |
-| `/v1/analytics/runs-count` | Runs in selected window |
+| `/v1/analytics/execution-duration` | Wall-clock run time |
+| `/v1/analytics/runs-count` | Runs in the window |
 | `/v1/analytics/steps-executed` | Metered workflow steps |
-| `/v1/analytics/credits-consumed` | Credits used in window |
+| `/v1/analytics/credits-consumed` | Credits used in the window |
 | `/v1/analytics/steps-summary` | Step-type breakdown and latency |
 | `/v1/analytics/runs-timeseries` | Run count over time |
 | `/v1/analytics/usage-timeseries` | Usage over time |
 
-Query `window=month|week|all` or bounded `from` / `to` with optional granularity on timeseries endpoints. See [Analytics](/platform/analytics).
+---
+
+## Billing
+
+Read endpoints need billing read access. Changes (trial, subscription, top-ups, codes) need **tenant_admin**. See [Billing and credits](/platform/billing-and-credits).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/billing/summary` | Billing summary |
+| `GET` | `/v1/billing/plans` | Plans available to your workspace (`plan_code`, price, trial details) |
+| `GET` | `/v1/billing/status` | Subscription and trial status |
+| `GET` | `/v1/billing/usage` | Credit balances, in microcredits |
+| `GET` | `/v1/billing/usage-dimensions` | Usage breakdown dimensions |
+| `GET` | `/v1/billing/usage-history` | Metered usage history |
+| `GET` | `/v1/billing/payment-history` | Payments and top-ups |
+| `GET` | `/v1/billing/action-pricing` | Prices for each billable action |
+| `POST` | `/v1/billing/topups/payg/intent` | Start a pay-as-you-go top-up |
+| `POST` | `/v1/billing/trial` | Start a trial |
+| `POST` | `/v1/billing/subscription` | Start a subscription |
+| `POST` | `/v1/billing/subscription/change-plan` | Change plan |
+| `POST` | `/v1/billing/subscription/cancel` | Cancel (at the end of the period by default) |
+| `POST` | `/v1/billing/subscription/convert-trial-now` | End a trial early |
+| `POST` | `/v1/billing/codes/apply` | Apply a billing code |
+| `POST` | `/v1/billing/discounts/validate` | Check a discount code |
 
 ---
 
 ## Personal access tokens
 
+Most people create tokens in the Console under **Settings → API keys**. These endpoints do the same from code.
+
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
-| `GET` | `/v1/pats` | contributor+ | List tokens |
-| `POST` | `/v1/pats` | contributor+ | Create token |
-| `GET` | `/v1/pats/{id}/reveal` | viewer+ | Reveal token (once) |
-| `DELETE` | `/v1/pats/{id}` | contributor+ | Revoke token |
+| `GET` | `/v1/pats` | viewer+ | List tokens (no secrets) |
+| `POST` | `/v1/pats` | contributor+ | Create a token |
+| `GET` | `/v1/pats/{id}/reveal` | project_admin | Show a stored token again |
+| `DELETE` | `/v1/pats/{id}` | contributor+ | Revoke a token |
 
-Console **Settings → API keys** manages the same keys for inbound webhook automation.
-
----
-
-## Error codes
-
-| Status | Meaning |
-|--------|---------|
-| `401` | Missing or invalid authentication |
-| `403` | Insufficient project role or PAT scope |
-| `404` | Resource not found |
-| `422` | Validation error (graph, bindings, billing) |
-| `429` | Rate limited |
-| `5xx` | Server error — retry with backoff |
+A token can never do more than the person who created it.
 
 ---
 
-## SDKs and collections
+## Next steps
 
-- **Request/response samples** — see [API examples](/api/examples) for copy-paste requests
-- **Platform MCP** — [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp); see [Platform MCP](/api/platform-mcp)
-
-Contact [support@agentruntime.io](mailto:support@agentruntime.io) for enterprise API SLAs.
+- [API examples](/api/examples): copy-paste requests for the most common calls
+- [API authentication](/api/authentication): tokens, scopes, and sign-in options
+- [Platform MCP](/api/platform-mcp): drive AgentRuntime from an AI assistant
+- Need higher rate limits or an SLA? Email [support@agentruntime.io](mailto:support@agentruntime.io).

@@ -1,57 +1,84 @@
 ---
 title: ActiveCampaign connector
-description: Manage contacts, lists, tags, and accounts in ActiveCampaign from AgentRuntime workflows.
+description: Create and update contacts, accounts, tags, and list subscriptions in ActiveCampaign from AgentRuntime workflows.
 ---
 
-The **activecampaign** MCP adapter wraps [ActiveCampaign API v3](https://developers.activecampaign.com/reference/overview). Use it to sync contacts, manage list subscriptions, and update CRM records from agent workflows.
+The **activecampaign** connector lets your workflows work with the [ActiveCampaign API](https://developers.activecampaign.com/reference/overview). Use it to push new leads into ActiveCampaign, tag and segment contacts, add them to lists, and link them to company accounts, without copying data by hand.
 
 ## Prerequisites
 
-- An ActiveCampaign account with API access
-- API URL and token from **Settings → Developer → API** in ActiveCampaign
-- **project_contributor** access
+- An ActiveCampaign account with API access.
+- Your ActiveCampaign **API URL** and **API key** (called a token in AgentRuntime).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Get API credentials">
-    In ActiveCampaign, go to **Settings → Developer → API**. Copy your API URL (e.g. `https://youraccount.api-us1.com`) and API token.
+  <Step title="Get your API URL and key from ActiveCampaign">
+    In ActiveCampaign, open **Settings**, then **Developer**, and find the API access details. Copy the **URL** (it looks like `https://youraccountname.api-us1.com`, with no trailing slash) and the **Key**.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections**, click **New custom connection**, and select ActiveCampaign (or generic API key), and paste your API URL and token.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **ActiveCampaign** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add activecampaign MCP instance">
-    Go to **MCP**, click **Add instance** for **activecampaign**, wire your connection on **Instance config**, and set the profile **active**.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `activecampaign_api_url` (the URL) and `activecampaign_api_token` (the key). Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Verify with get_users_me">
-    Run a test workflow with an **mcp_call** to `activecampaign_get_users_me` to confirm authentication.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `activecampaign_get_users_me` tool from your **ActiveCampaign** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. This tool has no arguments and only checks your credentials.
   </Step>
 </Steps>
 
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
+
 ## What you can build
 
-- **Lead capture** — Form webhook → `activecampaign_create_contact` → subscribe to nurture list.
-- **Tag-based routing** — `activecampaign_add_tag_to_contact` after LLM scores lead intent from chat transcript.
-- **Account sync** — `activecampaign_create_account` + `activecampaign_add_contact_to_account` when a deal closes in your CRM sheet.
-- **Health check** — Scheduled `activecampaign_get_users_me` + `activecampaign_list_contacts` count for monitoring dashboards.
+- **Lead capture.** A form or webhook starts the workflow, `activecampaign_create_contact` adds the person, and `activecampaign_subscribe_or_unsubscribe_contact_from_list` puts them on your nurture list.
+- **Tag by intent.** An LLM step scores a chat transcript, then `activecampaign_add_tag_to_contact` tags hot leads so your automations in ActiveCampaign can take over.
+- **Keep accounts in sync.** When a deal closes elsewhere, `activecampaign_create_account` and `activecampaign_add_contact_to_account` mirror it in ActiveCampaign.
+- **Credential check.** A scheduled run of `activecampaign_get_users_me` tells you if the key has stopped working.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `activecampaign_get_users_me` | Validate API credentials |
-| `activecampaign_create_contact` | Create a new contact |
-| `activecampaign_update_contact` | Update an existing contact |
-| `activecampaign_list_contacts` | List contacts with filters |
-| `activecampaign_subscribe_or_unsubscribe_contact_from_list` | Add or remove a contact from a list |
-| `activecampaign_add_tag_to_contact` | Tag a contact |
-| `activecampaign_add_contact_to_account` | Link a contact to an account |
-| `activecampaign_create_account` | Create an account |
-| `activecampaign_update_account` | Update an account |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `activecampaign_add_contact_to_account` | Write | Link an ActiveCampaign contact to an account. | `contact_id`, `account_id`, `job_title` |
+| `activecampaign_add_tag_to_contact` | Write | Add a tag to an ActiveCampaign contact. | `contact_id`, `tag_id` |
+| `activecampaign_create_account` | Write | Create an ActiveCampaign account. | `name`, `account_url`, `fields_json` |
+| `activecampaign_create_contact` | Write | Create an ActiveCampaign contact. | `email`, `first_name`, `last_name`, `phone`, `field_values_json` |
+| `activecampaign_get_users_me` | Read | Validate the configured ActiveCampaign credentials by calling GET /users/me. | — |
+| `activecampaign_list_contacts` | Read | List ActiveCampaign contacts. | `limit` |
+| `activecampaign_subscribe_or_unsubscribe_contact_from_list` | Write | Subscribe or unsubscribe a contact from an ActiveCampaign list. | `list_id`, `contact_id`, `status` |
+| `activecampaign_update_account` | Write | Update an ActiveCampaign account by account ID. | `account_id`, `name`, `account_url`, `fields_json` |
+| `activecampaign_update_contact` | Write | Update an existing ActiveCampaign contact by contact ID. | `contact_id`, `email`, `first_name`, `last_name`, `phone`, `field_values_json` |
+
+## Example
+
+Add a new lead from a form submission. Every required argument is included; use an empty string for the ones you have no value for.
+
+```json
+{
+  "id": "create-lead",
+  "type": "mcp",
+  "name": "Create ActiveCampaign contact",
+  "tool_name": "activecampaign_create_contact",
+  "tool_args": {
+    "email": "{{input.email}}",
+    "first_name": "{{input.first_name}}",
+    "last_name": "{{input.last_name}}",
+    "phone": "",
+    "field_values_json": "[]"
+  },
+  "timeout_s": 30
+}
+```
 
 ## Custom fields
 
-Pass custom contact fields as a JSON array in `field_values_json`:
+Contact custom fields go in `field_values_json`, a JSON string holding an array:
 
 ```json
 [
@@ -68,47 +95,28 @@ Account custom fields use `fields_json`:
 ]
 ```
 
-## Example
-
-Sync a new lead from a form submission:
-
-```json
-{
-  "id": "create-lead",
-  "type": "mcp_call",
-  "name": "Create ActiveCampaign contact",
-  "tool_name": "activecampaign_create_contact",
-  "tool_args": {
-    "email": "{{input.email}}",
-    "first_name": "{{input.first_name}}",
-    "last_name": "{{input.last_name}}",
-    "field_values_json": "[{\"field\":\"1\",\"value\":\"{{input.source}}\"}]"
-  },
-  "timeout_s": 30
-}
-```
-
-Follow with `activecampaign_subscribe_or_unsubscribe_contact_from_list` to add the contact to a marketing list.
-
 ## Configuration
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `activecampaign_api_url` | Yes | Base URL without trailing slash |
-| `activecampaign_api_token` | Yes | API token from Developer settings |
-| `activecampaign_http_timeout_second` | No | HTTP timeout (default 45s) |
+| `activecampaign_api_url` | Yes | Your ActiveCampaign API URL, without a trailing slash. |
+| `activecampaign_api_token` | Yes | The API key from **Settings → Developer**. |
+| `activecampaign_http_timeout_second` | No | HTTP timeout in seconds. Default `45`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `401 Unauthorized` | Regenerate API token; update connection |
-| Wrong API region | Use the exact URL from your ActiveCampaign account (`api-us1`, `api-eu1`, etc.) |
-| Custom field errors | Confirm field IDs match your account's custom field definitions |
+| Problem | What to do |
+|---------|------------|
+| `401` or "unauthorized" | The key is wrong or was regenerated. Copy it again from **Settings → Developer** and update the profile. |
+| Requests go to the wrong place | `activecampaign_api_url` must be the exact URL shown in your account (for example `api-us1` or another region), with no trailing slash. |
+| Custom field values are ignored or rejected | Pass `field_values_json` as a JSON string array of `{"field":"<field id>","value":...}`. Check the field IDs in your account. Accounts use `fields_json` with `customFieldId` and `fieldValue`. |
+| Subscribe does nothing | `status` must be the string `"1"` to subscribe or `"2"` to unsubscribe. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Shopify connector](/connectors/shopify) — sync customers after purchase
+- [Shopify connector](/connectors/shopify) for syncing customers after a purchase
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

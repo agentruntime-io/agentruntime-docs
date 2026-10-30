@@ -1,69 +1,68 @@
 ---
 title: Browserless connector
-description: Capture screenshots, generate PDFs, scrape pages, and run Lighthouse audits via Browserless headless Chrome.
+description: Take screenshots, make PDFs, scrape pages, and run Lighthouse audits with headless Chrome from Browserless.
 ---
 
-The **browserless** MCP adapter connects to [Browserless](https://www.browserless.io/) for headless browser automation. Render pages to images or PDFs, extract structured data with CSS selectors, run BrowserQL queries, and audit site performance — without hosting your own Chrome fleet.
+The **browserless** connector uses [Browserless](https://www.browserless.io/) to load web pages in a real headless browser. Use it when a plain HTTP request is not enough: pages that need JavaScript, visual snapshots, PDFs of a page or your own HTML, structured scraping with CSS selectors, and website performance audits.
 
 ## Prerequisites
 
-- A Browserless account with an API token (cloud or self-hosted)
-- For self-hosted Browserless: the REST base URL for your deployment
-- **project_contributor** access in AgentRuntime
+- A Browserless account and **API token** (cloud or your own Browserless deployment).
+- If you run your own Browserless, its REST base URL.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Get a Browserless API token">
-    Sign in to the [Browserless dashboard](https://www.browserless.io/) and copy your API token. Note your region or self-hosted base URL if applicable.
+  <Step title="Get your Browserless API token">
+    Sign in to your [Browserless](https://www.browserless.io/) account and copy your API token. If you use a self-hosted Browserless, note its REST base URL (without a path).
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIToken`. Set `APIBase` if you use a custom or self-hosted endpoint.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Browserless** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add browserless MCP instance">
-    Go to **MCP**, click **Add instance** for **browserless**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_token` (your token) and, only for a self-hosted Browserless, `api_base`. Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Smoke test">
-    Run **mcp_call** → `capture_screenshot` with a public URL to confirm rendering works.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `browserless_capture_screenshot` tool from your **Browserless** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. Use a public page such as `https://example.com`.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **Competitive snapshots** — `capture_screenshot` of competitor pricing pages → store in S3 or attach to a Wrike task.
-- **Report PDFs** — LLM generates HTML summary → `generate_pdf` → email or upload via another connector.
-- **Price monitoring** — `scrape_url` with CSS selectors on product pages → compare to Postgres baseline → alert on change.
-- **Performance gates** — `get_website_performance` after deploy → fail workflow if Lighthouse score drops below threshold.
-- **Dynamic scraping** — `run_bql_query` for multi-step navigation before extraction.
+- **Visual snapshots.** Capture a competitor or status page on a schedule with `browserless_capture_screenshot` and store the image.
+- **Report PDFs.** An LLM step writes HTML, then `browserless_generate_pdf` turns it into a PDF you send or file away.
+- **Price or content monitoring.** `browserless_scrape_url` reads the elements you pick with CSS selectors; compare with the last run and alert on change.
+- **Performance checks.** `browserless_get_website_performance` runs a Lighthouse audit after a deploy so the workflow can flag regressions.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `capture_screenshot` | Render a URL or inline HTML to PNG, JPEG, or WebP (base64) |
-| `generate_pdf` | Render a URL or inline HTML to a PDF document |
-| `scrape_url` | Load a page and extract fields via CSS selectors |
-| `run_bql_query` | Execute a BrowserQL GraphQL query or mutation |
-| `get_website_performance` | Lighthouse-backed performance audit for a URL |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `browserless_capture_screenshot` | Read | Render a URL or inline HTML to a PNG, JPEG, or WebP screenshot through Browserless. | — |
+| `browserless_generate_pdf` | Write | Render a URL or inline HTML to a PDF through Browserless. | — |
+| `browserless_get_website_performance` | Read | Run a Lighthouse-backed website performance audit and return JSON metrics. | `url`, `config` |
+| `browserless_run_bql_query` | Write | Execute a BrowserQL GraphQL query against Browserless. | `query`, `operation_name`, `variables`, `bql_path` |
+| `browserless_scrape_url` | Read | Extract structured fields from a rendered page using CSS selectors through Browserless. | `url`, `elements` |
 
 ## Example
 
-Capture a screenshot after a deploy verification step:
+Take a screenshot of a public page. The result includes `image_base64`, `content_type`, and `size_bytes`.
 
 ```json
 {
   "id": "screenshot-home",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Screenshot homepage",
-  "tool_name": "capture_screenshot",
+  "tool_name": "browserless_capture_screenshot",
   "tool_args": {
-    "url": "https://example.com",
-    "options": {
-      "fullPage": true,
-      "type": "png"
-    }
+    "url": "https://example.com"
   },
   "timeout_s": 60
 }
@@ -73,20 +72,22 @@ Capture a screenshot after a deploy verification step:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIToken` | Yes | Browserless API token (sent as query param) |
-| `APIBase` | No | REST base URL without path (default Browserless cloud) |
+| `api_token` | Yes | Browserless API token. It is sent to Browserless as a query parameter. |
+| `api_base` | No | Browserless REST base URL, without a path. Default `https://chrome.browserless.io`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| Timeout on render | Increase workflow `timeout_s`; complex SPAs may need longer Browserless session limits |
-| Empty scrape results | Page may require JS; verify selectors against rendered DOM, not static HTML |
-| `401` / quota errors | Check token, plan limits, and concurrent session caps in Browserless dashboard |
-| PDF layout broken | Pass print-specific CSS in `html` or tune `options` for page size and margins |
+| Problem | What to do |
+|---------|------------|
+| Step times out | Raise the step's `timeout_s`. Heavy pages can take longer than the default. |
+| Scrape returns nothing | Check that each `selector` in `elements` matches the page after it has rendered. |
+| `401` or quota errors | Check the token and your plan limits in your Browserless account. |
+| Need page options (size, margins, full page) | `options` on `browserless_capture_screenshot` and `browserless_generate_pdf` is passed straight to Browserless. See the Browserless documentation for the available options. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

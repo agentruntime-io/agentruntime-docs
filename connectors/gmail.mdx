@@ -1,97 +1,115 @@
 ---
 title: Gmail connector
-description: Send, search, and reply to email from AgentRuntime workflows via the Gmail MCP adapter.
+description: Send, search, read, and reply to Gmail messages, and send approval emails, from AgentRuntime workflows.
 ---
 
-The **gmail** MCP adapter wraps the [Gmail REST API v1](https://developers.google.com/gmail/api/reference/rest). Use it in workflow **mcp_call** steps to send notifications, search inboxes, and reply to threads.
+The **gmail** connector lets workflows use a Google account's Gmail through the [Gmail API](https://developers.google.com/gmail/api/reference/rest). Send notifications and reports, search the inbox, read messages and threads, draft or send replies, and email people an Approve or Disapprove button.
 
 ## Prerequisites
 
-- A Google account with Gmail enabled
-- **project_contributor** access in your workspace
-- Gmail API enabled in your Google Cloud project (handled automatically when connecting through the Console)
+- A Google account that can use Gmail.
+- A Google account connection in AgentRuntime with the **Gmail** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. Enable the **Gmail** service for your account. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Gmail** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Add gmail MCP instance">
-    Go to **MCP**, click **Add instance** for **gmail**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Gmail** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add a workflow step">
-    In Workflow Studio, add an **mcp_call** step targeting your `gmail` instance. Pick a tool and configure `tool_args`.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
+  </Step>
+  <Step title="Test it">
+    In **Workflow Studio**, add the `gmail_get_profile` tool from your **Gmail** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. It returns the signed-in Gmail address.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **Run notifications** — On workflow success or failure, `send_email` to operators with run ID and a Command Center link.
-- **Inbox triage** — `search_emails` for `is:unread label:support` → LLM draft → **human_task** → `reply_to_email`.
-- **Lead alert** — Webhook from a form → `send_email` to sales with submission details and CRM link.
-- **Digest reports** — Postgres or Sheets data → LLM summary → `send_email` on a schedule.
+- **Run notifications.** After a workflow finishes or fails, `gmail_send_email` tells the team with the run details.
+- **Inbox triage.** `gmail_search_emails` finds unread support mail, an LLM step drafts a reply, a **Human** step approves it, and `gmail_reply_to_email` sends it.
+- **Approvals by email.** `gmail_request_approval_in_email` sends a message with Approve and Disapprove buttons that open the URLs you provide.
+- **Digest reports.** Data from a database or a sheet is summarized by an LLM and sent on a schedule.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `send_email` | Send an email through the connected Gmail account |
-| `get_email` | Retrieve a message by ID (from, to, subject, date, snippet) |
-| `search_emails` | Search with Gmail query syntax (e.g. `from:user@example.com is:unread`) |
-| `reply_to_email` | Reply to an existing message; supports reply-all |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+These are the Gmail tools published to workspaces today. Other Gmail actions, such as managing labels, are not available yet.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `gmail_create_draft_reply` | Write | Create a draft reply to an existing Gmail message without sending it. | `message_id` |
+| `gmail_get_attachment` | Read | Download a Gmail message attachment by ID. | `message_id`, `attachment_id`, `file_name` |
+| `gmail_get_email` | Read | Get a Gmail message by message ID and return its metadata. | `message_id` |
+| `gmail_get_email_full` | Read | Get a Gmail message with full body text or HTML and attachment metadata. | `message_id` |
+| `gmail_get_profile` | Read | Get Gmail profile information for the authenticated user. | — |
+| `gmail_get_thread` | Read | Get a Gmail thread by thread ID and return metadata for its messages. | `thread_id` |
+| `gmail_list_history` | Read | List Gmail mailbox change history since a start history ID for polling-based sync. | `start_history_id` |
+| `gmail_list_threads` | Read | List Gmail threads with optional search query. | — |
+| `gmail_reply_to_email` | Write | Reply to an existing Gmail message, optionally replying to all recipients. | `message_id`, `body` |
+| `gmail_request_approval_in_email` | Write | Send an HTML approval-request email with Approve and Disapprove buttons. | `to`, `subject`, `body`, `approve_url`, `disapprove_url` |
+| `gmail_search_emails` | Read | Search Gmail messages using Gmail search syntax. | `query` |
+| `gmail_send_email` | Write | Send an email through a Gmail account. | `to`, `subject`, `body` |
 
 ## Example
 
-Send a notification after a workflow completes:
+Send a notification after a workflow completes. `to` is a list of addresses. `body_type` is `plain` (default) or `html`.
 
 ```json
 {
   "id": "notify-team",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Send summary email",
-  "tool_name": "send_email",
+  "tool_name": "gmail_send_email",
   "tool_args": {
-    "to": "team@example.com",
+    "to": [
+      "team@example.com"
+    ],
     "subject": "Workflow complete: {{input.workflow_name}}",
     "body": "Run {{input.run_id}} finished successfully."
   },
-  "depends_on": ["generate-summary"],
+  "depends_on": [
+    "generate-summary"
+  ],
   "timeout_s": 30
 }
 ```
 
 ## Configuration
 
-The instance inherits OAuth tokens from your Google connection. Optional config profile fields:
+Google connectors take no keys from you: the permissions come from your Google account connection.
 
-| Key | Required | Default | Description |
-|-----|----------|---------|-------------|
-| `user_id` | No | `me` | Gmail user ID (`me` = authenticated account) |
-| `sender_email` | No | — | Default `From` address |
+**Google permissions (scopes) requested when you tick this service:**
 
-## Gmail search syntax
+- `https://www.googleapis.com/auth/gmail.modify`
 
-`search_emails` accepts standard Gmail operators:
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
 
-- `from:sender@example.com`
-- `is:unread`
-- `subject:invoice`
-- `after:2026/01/01`
+**Optional settings** on the profile:
 
-Combine operators: `from:alerts@example.com is:unread newer_than:7d`
+| Key | Description |
+|-----|-------------|
+| `gmail_user_id` | Gmail user ID for API paths. `me` means the signed-in account. |
+| `gmail_sender_email` | Verified sender address used in the `From` header on send and reply tools. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on connection | Re-authorize Google OAuth; Gmail scopes may have been revoked |
-| `403` from Gmail API | Confirm Gmail API is enabled and the account has send/read permissions |
-| Empty search results | Verify query syntax; test the same query in Gmail's web UI |
+| Problem | What to do |
+|---------|------------|
+| Empty search results | Test the same query in Gmail. `query` uses Gmail search syntax, for example `from:user@example.com is:unread subject:hello`. `max_results` defaults to 10 and is at most 100. |
+| The From address is not what you expect | The `From` address comes from the optional `gmail_sender_email` setting, not from tool arguments. Set it to a verified sender address if you need a specific one. |
+| `403` from Gmail | The account connection may not include Gmail. Open the account, click **Update permissions**, and tick **Gmail**. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
-- [Google Workspace setup](/integrations/google-workspace)
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

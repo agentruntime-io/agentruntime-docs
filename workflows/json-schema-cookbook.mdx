@@ -1,168 +1,163 @@
 ---
 title: Workflow JSON cookbook
-description: Copy-paste workflow graph examples — MCP chains, Lua transforms, LLM steps, and for-each loops.
+description: "Copy-and-paste workflow graphs: tool chains, Lua and LLM steps, loops, approvals, and child workflows."
 ---
 
-Workflow graphs are JSON documents describing a directed acyclic graph of steps. Author them in **Workflow Studio** or submit them via `POST /v1/workflows`.
+A workflow graph is a JSON document: a list of **steps** and the order they depend on. You normally build it on the canvas in [Workflow Studio](/workflows/studio), but you can paste a graph into the [JSON editor](/workflows/json-editor), use **Import**, or send it through the API.
 
-For editing graphs in the Console, see [JSON editor](/workflows/json-editor) (Canvas \| JSON mode, IntelliSense, **Apply to canvas**).
+**Who this is for:** people who want a working starting point.
 
-**JSON Schema:** [agentruntime.io/schemas/workflow-graph.schema.json](https://agentruntime.io/schemas/workflow-graph.schema.json)
+**What you will do:** copy an example, replace the placeholders, and check it with **Dry-run**.
+
+## How to use these examples
+
+1. Open a workflow, switch to **JSON** (see [JSON editor](/workflows/json-editor)), paste the example, and click **Apply to canvas**. Or use **Import** in the toolbar's **JSON** menu (or under **More** in a narrow window).
+2. Replace every `REPLACE_…` value: MCP instance ids, agent ids, workflow ids. Import lets you map tool servers to your own instances.
+3. Click **Dry-run**, fix any messages, then **Run**.
+
+You should see the steps on the canvas, connected in the order of their `depends_on`.
 
 ## Graph structure
 
-Every workflow graph requires:
-
 | Field | Description |
-|-------|-------------|
-| `tenant_id` | Workspace identifier |
-| `workflow_id` | Workflow UUID |
-| `params` | Optional string key-value trigger parameters |
-| `steps` | Array of step objects (min 1) |
+|---|---|
+| `steps` | The list of steps. Required, at least one. |
+| `input_schema` | Optional. Describes the start input (`type`, `properties`, defaults). |
+| `workflow_id`, `name`, `description` | Optional labels. Importing does not use them to pick a workflow. |
 
-Every step requires `id`, `type`, and `name`.
+Every step needs an `id`, a `type`, and a `name`. The types are `mcp`, `lua`, `llm`, `agent`, `human`, `workflow`, `for_each`, `while`, and `external_agent`. See [Step types](/workflows/step-types) for every field.
 
-## Example 1 — MCP chain with parallel branches
+## Example 1: a tool chain with parallel branches
 
-Fetch data, fan out into parallel processing, merge, and validate:
-
-```json
-{
-  "tenant_id": "acme",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
-  "params": { "user_id": "user-1" },
-  "steps": [
-    {
-      "id": "step-a",
-      "type": "mcp_call",
-      "name": "Fetch base value",
-      "tool_name": "add",
-      "tool_args": { "a": 5, "b": 7 },
-      "timeout_s": 10
-    },
-    {
-      "id": "step-b1",
-      "type": "mcp_call",
-      "name": "Double",
-      "tool_name": "multiply",
-      "tool_args": { "a": "{{steps.step-a.result.result}}", "b": 2 },
-      "depends_on": ["step-a"],
-      "timeout_s": 10
-    },
-    {
-      "id": "step-b2",
-      "type": "mcp_call",
-      "name": "Triple",
-      "tool_args": { "a": "{{steps.step-b1.result.result}}", "b": 3 },
-      "depends_on": ["step-b1"],
-      "timeout_s": 10
-    },
-    {
-      "id": "step-c",
-      "type": "mcp_call",
-      "name": "Format text",
-      "tool_name": "text_processor",
-      "tool_args": {
-        "text": "Intermediate: {{steps.step-b1.result.result}}",
-        "operation": "uppercase"
-      },
-      "depends_on": ["step-b1"],
-      "timeout_s": 10
-    },
-    {
-      "id": "step-d",
-      "type": "mcp_call",
-      "name": "Validate merged output",
-      "tool_name": "data_validator",
-      "tool_args": {
-        "data": {
-          "math_result": "{{steps.step-b2.result.result}}",
-          "text_result": "{{steps.step-c.result.processed_text}}"
-        }
-      },
-      "depends_on": ["step-b2", "step-c"],
-      "timeout_s": 10
-    }
-  ]
-}
-```
-
-`step-b2` and `step-c` run in **parallel** after `step-b1` completes because they share a dependency but not each other.
-
-## Example 2 — MCP + Lua + LLM pipeline
-
-Fetch product and customer data, calculate pricing in Lua, generate invoice text with an LLM:
+Two steps depend on the same step, so they run at the same time. A last step waits for both.
 
 ```json
 {
-  "tenant_id": "acme",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440001",
-  "params": { "sku": "WIDGET-01", "email": "buyer@example.com" },
   "steps": [
     {
-      "id": "fetch-product",
-      "type": "mcp_call",
-      "name": "Fetch product",
-      "tool_name": "get_product",
-      "tool_args": { "sku": "{{input.sku}}" },
-      "timeout_s": 10
+      "id": "fetch-order",
+      "type": "mcp",
+      "name": "Fetch order",
+      "instance_id": "REPLACE_MCP_INSTANCE",
+      "tool_name": "get_order",
+      "tool_args": { "order_id": "{{input.order_id}}" },
+      "timeout_s": 30
     },
     {
       "id": "fetch-customer",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Fetch customer",
+      "instance_id": "REPLACE_MCP_INSTANCE",
       "tool_name": "get_customer",
-      "tool_args": { "email": "{{input.email}}" },
-      "timeout_s": 10
+      "tool_args": { "customer_id": "{{steps.fetch-order.result.customer_id}}" },
+      "depends_on": ["fetch-order"],
+      "timeout_s": 30
     },
     {
-      "id": "calculate-pricing",
-      "type": "lua_script",
-      "name": "Calculate discount",
-      "depends_on": ["fetch-product", "fetch-customer"],
-      "timeout_s": 5,
-      "script": "local product = steps.fetch_product.result\nlocal customer = steps.fetch_customer.result\nlocal discount = 0\nif customer.tier == 'gold' then discount = 0.15\nelseif customer.tier == 'silver' then discount = 0.10 end\nlocal total = product.price * (1 - discount)\nreturn { total = math.floor(total * 100) / 100, summary = string.format('%s: $%.2f', product.name, total) }"
+      "id": "fetch-shipping",
+      "type": "mcp",
+      "name": "Fetch shipping status",
+      "instance_id": "REPLACE_MCP_INSTANCE",
+      "tool_name": "get_shipment",
+      "tool_args": { "order_id": "{{input.order_id}}" },
+      "depends_on": ["fetch-order"],
+      "timeout_s": 30
     },
     {
-      "id": "generate-invoice",
-      "type": "llm_call",
-      "name": "Generate invoice line",
-      "model": "gpt-4o-mini",
-      "prompt": "Write a one-line invoice for: {{steps.calculate-pricing.result.summary}}",
-      "depends_on": ["calculate-pricing"]
+      "id": "summarise",
+      "type": "lua",
+      "name": "Combine results",
+      "depends_on": ["fetch-customer", "fetch-shipping"],
+      "script": "return { summary = steps['fetch-customer'].result.name .. ': ' .. steps['fetch-shipping'].result.status }",
+      "timeout_s": 5
     }
   ]
 }
 ```
 
-## Example 3 — for_each over a list
+`fetch-customer` and `fetch-shipping` both depend only on `fetch-order`, so they run in parallel. Tool names and fields depend on your connector. Browse them in the [connector catalog](/integrations/connector-catalog).
 
-Generate items with an LLM, then process each in parallel with Lua:
+## Example 2: tool, Lua, and LLM
+
+Fetch data, calculate a price in Lua, and have a model write one line.
 
 ```json
 {
-  "tenant_id": "acme",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440002",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sku": { "type": "string" },
+      "email": { "type": "string" }
+    },
+    "required": ["sku", "email"]
+  },
   "steps": [
     {
-      "id": "generate-items",
-      "type": "llm_call",
-      "name": "Generate item list",
-      "model": "gpt-4o-mini",
-      "prompt": "Return JSON only: {\"items\": [\"alpha\", \"beta\", \"gamma\"]}",
+      "id": "fetch-product",
+      "type": "mcp",
+      "name": "Fetch product",
+      "instance_id": "REPLACE_MCP_INSTANCE",
+      "tool_name": "get_product",
+      "tool_args": { "sku": "{{input.sku}}" },
+      "timeout_s": 30
+    },
+    {
+      "id": "fetch-customer",
+      "type": "mcp",
+      "name": "Fetch customer",
+      "instance_id": "REPLACE_MCP_INSTANCE",
+      "tool_name": "get_customer",
+      "tool_args": { "email": "{{input.email}}" },
+      "timeout_s": 30
+    },
+    {
+      "id": "calculate-pricing",
+      "type": "lua",
+      "name": "Calculate discount",
+      "depends_on": ["fetch-product", "fetch-customer"],
+      "timeout_s": 5,
+      "script": "local product = steps['fetch-product'].result\nlocal customer = steps['fetch-customer'].result\nlocal discount = 0\nif customer.tier == 'gold' then discount = 0.15 elseif customer.tier == 'silver' then discount = 0.10 end\nlocal total = product.price * (1 - discount)\nreturn { total = math.floor(total * 100) / 100, summary = string.format('%s: %.2f', product.name, total) }"
+    },
+    {
+      "id": "generate-invoice",
+      "type": "llm",
+      "name": "Write invoice line",
+      "model_ref": "REPLACE_MODEL_REF",
+      "prompt": "Write a one-line invoice for: {{steps.calculate-pricing.result.summary}}",
+      "depends_on": ["calculate-pricing"],
       "timeout_s": 60
+    }
+  ]
+}
+```
+
+Replace `REPLACE_MODEL_REF` with a model from your [Providers](/ai/llm-providers) catalog. The reply is at `{{steps.generate-invoice.result.text}}`.
+
+## Example 3: for_each over a list
+
+A Lua step builds the list, then each item is processed.
+
+```json
+{
+  "steps": [
+    {
+      "id": "list-items",
+      "type": "lua",
+      "name": "Build item list",
+      "script": "return { items = { 'alpha', 'beta', 'gamma' } }",
+      "timeout_s": 5
     },
     {
       "id": "process-each",
       "type": "for_each",
       "name": "Process each item",
-      "depends_on": ["generate-items"],
-      "for_each_items": "{{steps.generate-items.result.items}}",
+      "depends_on": ["list-items"],
+      "for_each_items": "{{steps.list-items.result.items}}",
       "for_each_max_parallel": 10,
       "for_each_body_steps": [
         {
           "id": "process",
-          "type": "lua_script",
+          "type": "lua",
           "name": "Process one",
           "script": "return { index = index, label = tostring(item) }",
           "timeout_s": 5
@@ -174,11 +169,13 @@ Generate items with an LLM, then process each in parallel with Lua:
 }
 ```
 
-`for_each` output includes `result.count`, `result.max_parallel`, and `result.results[]` with per-item `index` and `result` or `error`.
+A `for_each` step's result has `count`, `max_parallel`, `succeeded_count`, `failed_count`, and `results[]`: one entry per item with its `index` and either its `result` or an `error`.
 
-## Example 3b — for_each multi-step body
+A loop reads its list from a **list**, so return the list from the step before it, even when it is empty (`return { items = items }`). An LLM step returns text, not a list, so decode JSON text in a Lua step first (`json.decode`).
 
-Run a pipeline per list item (agent → lua tag):
+### A loop body with several steps
+
+Run a small pipeline for each item: an agent, then a Lua step.
 
 ```json
 {
@@ -191,13 +188,15 @@ Run a pipeline per list item (agent → lua tag):
   "for_each_body_steps": [
     {
       "id": "triage",
-      "type": "agent_call",
-      "agent_id": "YOUR_AGENT_ID",
-      "prompt": "Triage: {{foreach.item}}"
+      "type": "agent",
+      "name": "Triage one ticket",
+      "agent_id": "REPLACE_AGENT_ID",
+      "prompt": "Triage this ticket: {{foreach.item}}"
     },
     {
       "id": "tag",
-      "type": "lua_script",
+      "type": "lua",
+      "name": "Tag it",
       "depends_on": ["triage"],
       "script": "return { ticket = tostring(item), ok = true }"
     }
@@ -205,27 +204,31 @@ Run a pipeline per list item (agent → lua tag):
 }
 ```
 
-`for_each_body_steps` is required (use a one-element array for a single inner step). Legacy `for_each_body` is rejected at validation.
+`for_each_body_steps` is required. Use a list with one step for a single inner step. Loops cannot be nested inside loops.
 
-## Example 3c — while (refine until good)
+## Example 4: while (refine until good)
+
+Repeat until a check passes, with a hard limit.
 
 ```json
 {
   "id": "refine",
   "type": "while",
-  "name": "Refine until score passes",
+  "name": "Refine until the score passes",
   "while_mode": "until",
   "while_max_iterations": 5,
   "while_condition": "{{body.score.pass}}",
   "while_body_steps": [
     {
       "id": "draft",
-      "type": "lua_script",
-      "script": "local n = loop.iteration or 0\nreturn { text = string.rep('x', (n+1)*40) }"
+      "type": "lua",
+      "name": "Draft",
+      "script": "local n = loop.iteration or 0\nreturn { text = string.rep('x', (n + 1) * 40) }"
     },
     {
       "id": "score",
-      "type": "lua_script",
+      "type": "lua",
+      "name": "Score",
       "depends_on": ["draft"],
       "script": "local n = #tostring(body.draft.text or '')\nreturn { pass = n >= 90 }"
     }
@@ -233,76 +236,100 @@ Run a pipeline per list item (agent → lua tag):
 }
 ```
 
-While output includes `iteration_count`, `stopped_reason` (`condition_met` or `max_iterations`), `last` (final body map), and `iterations[]`.
+The result has `iteration_count`, `max_iterations`, `stopped_reason` (`condition` when the check passed, `max_iterations` when the limit was reached), `last` (the final round's outputs), and `iterations[]`. A run that hits the limit does not necessarily fail, so check `stopped_reason`.
 
-## Example 4 — Human approval gate
+## Example 5: a human approval gate
 
-Pause before sending an email:
+Pause before sending an email.
 
 ```json
 {
   "id": "approve-send",
-  "type": "human_task",
+  "type": "human",
   "name": "Approve outbound email",
   "task_type": "approval",
+  "depends_on": ["draft-email"],
   "task_payload": {
     "title": "Review email draft",
-    "description": "Confirm before sending to {{input.recipient}}",
-    "draft": "{{steps.draft-email.result.body}}"
-  },
-  "depends_on": ["draft-email"]
+    "message": "Confirm before sending to {{input.recipient}}",
+    "draft": "{{steps.draft-email.result.text}}"
+  }
 }
 ```
 
-Complete the task from [Command Center](/workflows/runs-and-command-center) or the API. Downstream steps reference the completion result.
+Answer it from [Command Center](/workflows/command-center) or the API. Later steps can read `{{steps.approve-send.result.approved}}`. See [Human tasks](/workflows/human-tasks).
 
-## Template variables
-
-| Syntax | Resolves to |
-|--------|-------------|
-| `{{input.field}}` | Workflow trigger payload |
-| `{{steps.step-id.result.field}}` | Upstream step output (after the step completes) |
-| `{{steps.step-id.input.field}}` | Resolved parameters the step was called with (after template expansion) |
-| `{{foreach.item}}` | Current item in `for_each` body |
-| `{{foreach.index}}` | Zero-based index in `for_each` body |
-| `{{body.inner-id.field}}` | Inner step output in `while` / `for_each_body_steps` (current iteration) |
-| `{{while.iteration}}` | Current while iteration (0-based) |
-| `{{while.prev.inner-id.field}}` | Previous while iteration inner output |
-
-**Composite loops:** Inner body steps also expose `{{steps.<inner-id>.input.<field>}}` using the inner step `id` from `for_each_body_steps` or `while_body_steps`. Parent loop nodes expose their own resolved inputs, e.g. `{{steps.process-each.input.for_each_items}}` or `{{steps.refine.input.while_condition}}`.
-
-**Legacy shapes:** Do not use `for_each_body`, slug step ids, or catalog-agent-only canvas nodes.
-
-Hyphenated step IDs work in templates; in Lua use `steps.fetch_product` (underscore alias) or `steps["fetch-product"]`.
-
-## Execution controls
-
-Apply to any step type:
+## Example 6: run another workflow
 
 ```json
 {
-  "depends_on": ["upstream-step"],
-  "condition": "{{steps.check.result.should_run}}",
-  "enabled": true,
-  "retry_count": 2,
-  "timeout_s": 30
+  "id": "call-child",
+  "type": "workflow",
+  "name": "Run the enrichment workflow",
+  "depends_on": ["prep"],
+  "workflow_id": "REPLACE_CHILD_WORKFLOW_ID",
+  "input": {
+    "email": "{{steps.prep.result.email}}",
+    "backfill_after": "{{input.backfill_after | \"2026/01/01\"}}"
+  },
+  "wait": true,
+  "timeout_s": 600
 }
 ```
 
-Set `"enabled": false` to skip a step with a synthetic completion (dependencies still resolve).
+Leave `child_target` out while you build, so the child's **Live** copy runs. The step's result comes from the child's terminal step by default (`output_from`).
 
-## Validate before publish
+## Example 7: skip a step on some runs
 
-Always dry-run before publishing:
+```json
+{
+  "id": "transcribe",
+  "type": "mcp",
+  "name": "Transcribe audio",
+  "instance_id": "REPLACE_MCP_INSTANCE",
+  "tool_name": "transcribe",
+  "depends_on": ["parse"],
+  "skip_when": "{{steps.parse.result.kind == \"text\"}}",
+  "tool_args": { "url": "{{steps.parse.result.audio_url}}" }
+}
+```
+
+`skip_when` takes one true/false value or one `==` / `!=` comparison. A skipped step counts as finished, so steps after it still run.
+
+## Template quick reference
+
+| Syntax | Resolves to |
+|---|---|
+| `{{input.field}}` | The run's start input |
+| `{{steps.step-id.result.field}}` | An earlier step's output |
+| `{{steps.step-id.input.field}}` | The values that step was called with |
+| `{{foreach.item}}`, `{{foreach.index}}` | The current item and its position (from 0) in a `for_each` body |
+| `{{body.inner-id.field}}` | A step in the current round of a loop body |
+| `{{while.iteration}}`, `{{while.prev.inner-id.field}}` | The round number (from 0) and the previous round's output |
+
+In Lua, top-level steps are `steps["step-id"].result`. Inside a loop body use `body.inner_id`, `item`, `index`, and `loop.iteration` / `loop.prev`. See [Step types](/workflows/step-types) and [Template intellisense](/workflows/template-intellisense).
+
+## Check before you run
+
+Click **Dry-run** in Studio, or call:
 
 ```
 POST /v1/workflows/{id}/validate
 ```
 
-Validation checks graph structure, dependency cycles, Lua syntax, and MCP bindings — without executing tools.
+See [Dry-run validation](/workflows/dry-run).
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| Dry-run says a field is unknown | Compare the field name with [Step types](/workflows/step-types). |
+| A Lua step says it must return a table | End the script with `return { ... }`. |
+| A loop has no items | The step before it must return the list, even an empty one. |
+| A tool step has no instance | Replace `REPLACE_MCP_INSTANCE` with an instance from **Integrations**. |
 
 ## Next steps
 
-- [Step types](/workflows/step-types) — field reference per type
-- [Workflow Studio](/workflows/studio) — visual authoring guide
-- [Human tasks](/workflows/human-tasks) — approval patterns
+- [Step types](/workflows/step-types)
+- [Workflow Studio](/workflows/studio)
+- [Human tasks](/workflows/human-tasks)

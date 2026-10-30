@@ -1,37 +1,36 @@
 ---
-title: Billing foundations and platform bootstrap
+title: Billing in Console and Stripe checkout
 date: 2026-04-30
 version: "0.1.0"
 areas:
   - platform
   - billing
-summary: First coordinated platform tags — Console billing UI, Stripe wallet and plan checkout, and production-ready API gateway configuration.
+summary: First platform release — Console billing UI, Stripe wallet and plan checkout, and production-ready hardening of the public API.
 added:
   - "**Billing in Console** — view subscription status, plan details, and billing actions from workspace settings **GA**"
-  - "**Stripe checkout** — wallet top-up and plan checkout on the billing service with pre-release tenant provisioning fixes"
+  - "**Stripe checkout** — wallet top-up and plan checkout"
   - "**Usage and plans API** — foundations for recording billable actions and resolving workspace entitlements **API only**"
 changed:
-  - "Console **metadata and configuration** refresh across environments"
-  - "Public API **logging, rate limiting, and context enforcement** hardening for production traffic"
-  - "MCP **credential path handling** — connector instances resolve secrets from the correct vault path"
-  - "Workflow runtime **structured logging** baseline supporting Command Center"
+  - "Public API **logging and rate limiting** hardened for production traffic"
+  - "Connector credentials — connector instances now pick up the correct secrets when workflows call tools"
+  - "Improved **run and step logging** for workflows, supporting Command Center"
 ---
 
-Platform **v0.1.0** — the first coordinated release across AgentRuntime's services, shipped in late April / early May 2026.
+Platform **v0.1.0** — the first release of the AgentRuntime platform, shipped in late April / early May 2026.
 
 ## Console
 
-Tenants could manage **subscriptions and billing status** from Console for the first time. The UI connects to Stripe-backed checkout — the starting point for later multi-product billing and usage dimensions in v0.1.1+.
+Workspaces could manage **subscriptions and billing status** from Console for the first time. The UI connects to Stripe-backed checkout — the starting point for later multi-product billing and usage dimensions in v0.1.1+.
 
 ## API and platform
 
-The public API received production-oriented **logging, rate limiting, and server configuration** so Console and early API consumers could run reliably.
+The public API received production-oriented **logging and rate limiting** so Console and early API consumers could run reliably.
 
-AgentRuntime tightened **MCP connection credential** resolution so tenant connector instances pick up the right secret paths when workflows call tools.
+AgentRuntime also fixed how **connector credentials** are resolved so workspace connector instances use the right secrets when workflows call tools.
 
 ## Workflows
 
-The runtime engine tagged alongside this wave with improved **run and step logging** — groundwork for Operate and Command Center views that ship in later releases.
+Run and step logging improved — groundwork for Operate and Command Center views that ship in later releases.
 
 ## Related docs
 
