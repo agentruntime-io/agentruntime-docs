@@ -1,0 +1,16 @@
+# Portico renderer settings. Mintlify ignores this file; docs.json stays the
+# shared source for navigation, branding, redirects and footer.
+
+# Canonical site URL (sitemap, canonical links, Open Graph). SITE_URL in the
+# hosting environment overrides it.
+url: https://docs.agentruntime.io
+
+# "Edit this page" links.
+githubEditBase: https://github.com/agentruntime-io/agentruntime-docs/blob/main
+
+# API reference rendered by Portico at /reference/agentruntime.
+openapi:
+  specs:
+    - id: agentruntime
+      title: AgentRuntime API
+      file: openapi/agentruntime.yaml

@@ -4,9 +4,9 @@
   "name": "AgentRuntime",
   "description": "User guides for designing, running, and observing production AI agent workflows.",
   "colors": {
-    "primary": "#5BA8FC",
-    "light": "#93C5FD",
-    "dark": "#3B82F6"
+    "primary": "#ff5a36",
+    "light": "#ff7a5c",
+    "dark": "#c8391d"
   },
   "favicon": "/favicon.ico",
   "icons": {
@@ -233,5 +233,32 @@
       "x": "https://x.com/agentruntime",
       "github": "https://github.com/agentruntime-io"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/docs",
+      "destination": "/introduction/what-is-agentruntime",
+      "permanent": true
+    },
+    {
+      "source": "/docs/getting-started",
+      "destination": "/platform/quickstart",
+      "permanent": true
+    },
+    {
+      "source": "/docs/architecture",
+      "destination": "/introduction/what-is-agentruntime",
+      "permanent": true
+    },
+    {
+      "source": "/guides",
+      "destination": "/guides/overview",
+      "permanent": true
+    },
+    {
+      "source": "/guides/writing-docs",
+      "destination": "/platform/quickstart",
+      "permanent": true
+    }
+  ]
 }
