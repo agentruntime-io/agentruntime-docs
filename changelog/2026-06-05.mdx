@@ -1,5 +1,5 @@
 ---
-title: Google connections, password reset, HITL realtime, and Workspace Chat alpha
+title: Google connections, password reset, approval realtime, and Workspace Chat alpha
 date: 2026-06-05
 version: "0.1.3"
 areas:
@@ -7,32 +7,31 @@ areas:
   - workflows
   - integrations
   - ai
-summary: Google account linking in Console, forgot-password flows, human-in-the-loop realtime events, Workspace Chat channel UI, and connector catalog polish.
+summary: Google account linking in Console, forgot-password flows, live human-in-the-loop events, Workspace Chat channel UI, and connector catalog polish.
 added:
-  - "**Google account connections** — OAuth service catalog, tenant acquisition settings, and Console UI to link Gmail and other Google Workspace scopes **GA**"
+  - "**Google account connections** — OAuth service catalog, workspace acquisition settings, and Console UI to link Gmail and other Google Workspace scopes **GA**"
   - "**Password reset** — forgot-password email flow and reset form in Console auth **GA**"
-  - "**Human-in-the-loop realtime** — pending approval tasks push live events to Command Center and observe streams **GA**"
-  - "**Workspace Chat (alpha)** — channels, threaded messages, reactions, presence indicators, and Radix dialog primitives in Space **Preview**"
-  - "**Execution panel** — structured failure payloads, formatted step outputs, and inline credential wire hints when debugging runs"
-  - "**Connectors refresh** — Gmail adapter auth cleanup and clearer Go MCP error messages in the catalog"
-  - "**Subscription cancellation** — self-serve cancel and trial-management refinements on the billing service"
+  - "**Human-in-the-loop realtime** — pending approval tasks push live events to Command Center **GA**"
+  - "**Workspace Chat (alpha)** — channels, threaded messages, reactions, and presence indicators in Space **Preview**"
+  - "**Execution panel** — structured failure payloads, formatted step outputs, and inline credential hints when debugging runs"
+  - "**Connectors refresh** — Gmail authentication cleanup and clearer connector error messages in the catalog"
+  - "**Subscription cancellation** — self-serve cancel and trial-management refinements"
 changed:
   - "**Inline credential wiring** — source-spec editor when connecting MCP tools to workflow steps in Console"
   - "**Chat routing** — workspace-scoped URLs and deep links between Console project pages and Space channels"
   - "**Google services update** — change linked account scopes without re-running full OAuth **API only**"
-  - "Billing **webhook consolidation** — Stripe event processing with clearer mutation defaults"
 fixed:
-  - "Billing status responses include consistent mutation defaults when checkout or plan changes are in flight"
-  - "Affiliate attribution and payment handling aligned with the new billing types"
+  - "Billing status responses are consistent when checkout or plan changes are in flight"
+  - "Affiliate attribution and payment handling updated alongside the billing changes"
 ---
 
 Platform **v0.1.3** — an integrations and chat increment shipped June 3–7.
 
 ## Console
 
-**Google connections** landed end-to-end: browse the service catalog, link a Google account from settings, and adjust scopes with the PUT endpoint — no full re-auth round trip for small scope changes.
+**Google connections** landed end-to-end: browse the service catalog, link a Google account from settings, and adjust scopes through the API — no full re-auth round trip for small scope changes.
 
-**Password reset** completed the auth story alongside invite and password login. The **execution panel** surfaced structured failure JSON and formatted outputs when triaging workflow runs from Studio or Autopilot.
+**Password reset** completed the auth story alongside invite and password login. The **execution panel** surfaced structured failure details and formatted outputs when triaging workflow runs from Studio or Autopilot.
 
 ## Workflows
 
@@ -40,11 +39,11 @@ Platform **v0.1.3** — an integrations and chat increment shipped June 3–7.
 
 ## Workspace Chat
 
-Space shipped its **first channel UI**: send messages, react, see who's online, and open modals for channel settings. Mock-data mode in README lets developers run Space locally before live-mode prerequisites ship in v0.1.5.
+Space shipped its **first channel UI**: send messages, react, see who is online, and open modals for channel settings.
 
 ## Connectors
 
-The **Gmail** adapter and Go MCP connectors received configuration and documentation fixes — clearer errors when OAuth or tool config is misconfigured at install time.
+The **Gmail** connector and other connectors received configuration and documentation fixes — clearer errors when OAuth or tool config is misconfigured at install time.
 
 ## Related docs
 

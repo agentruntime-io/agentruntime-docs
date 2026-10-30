@@ -3,6 +3,8 @@ title: WhatsApp customer chat with staff hand-off
 description: Build a WhatsApp assistant that answers customers in one ongoing conversation, hands the chat to your team when needed, and takes it back if nobody replies.
 ---
 
+This guide is for small businesses and developers who want customers to message a WhatsApp number and get an instant answer, with a person stepping in when needed. It takes about an hour, plus any time Meta needs to approve your WhatsApp account.
+
 Build a WhatsApp line for a small business, here a pizza shop called **Slice & Co.** An agent answers customers on WhatsApp. When a customer asks for a person, or the agent can't help, the chat goes to your staff. Staff reply from AgentRuntime and their reply reaches the customer on WhatsApp. If nobody answers in time, the assistant takes the conversation back.
 
 Each customer's chat is one [conversation session](/workflows/conversation-sessions): all their messages go to one run, which stays open while they are talking and closes after 30 quiet minutes.
@@ -168,9 +170,9 @@ There is no webhook URL to register with Meta. AgentRuntime receives your number
 
 **Remember each contact** keeps one conversation per WhatsApp contact, so the assistant sees what the customer said in earlier sessions too.
 
-## 5. Publish and test
+## 5. Test it
 
-**Publish** the workflow, then message your business number from a phone.
+Save the workflow. Inbound messages run its **Live** copy, so you do not need to publish. Then message your business number from a phone.
 
 1. Ask *Hi, what pizzas do you have?* The assistant replies. In Workflow Studio's **Run logs and metrics** you see one run, waiting for the next message.
 2. Send *Can I talk to a person please?* The assistant replies and the **Staff reply** task appears in [Command Center](/workflows/command-center).
@@ -355,8 +357,8 @@ Replace the instance id, agent id, and step ids with your own:
 
 | Symptom | Check |
 |---|---|
-| No run appears when a customer writes | The workflow is **published**, and **Workflow setup → Inbound** has an active WhatsApp subscription for the right connection. A connection made before inbound routing was available needs reconnecting so it has your phone number ID. |
-| Every message starts a new run | **One run per conversation** is on in the published version. |
+| No run appears when a customer writes | **Workflow setup → Inbound** has an active WhatsApp subscription for the right connection, and its **Runs** setting points at the copy you are editing (**Live**) or a published version that has your changes. A connection made before inbound routing was available needs reconnecting so it has your phone number ID. |
+| Every message starts a new run | **One run per conversation** is on in the copy the subscription runs (**Live**, or the published version it is pinned to). |
 | The customer gets no reply | **Reply channel** has a connection and send tool, and the WhatsApp MCP instance is active. Staff replies more than 24 hours after the customer's last message are rejected by Meta. |
 | The customer receives the agent's internal summary | Set **Reply field** to `reply` on the assistant step. |
 | A back-office agent messages the customer | Turn on **Talks in the conversation** only on customer-facing agents. With none turned on, every agent answers. |

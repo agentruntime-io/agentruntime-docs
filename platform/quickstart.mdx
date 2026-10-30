@@ -1,59 +1,87 @@
 ---
 title: Quickstart
 sidebarTitle: Quickstart
-description: Create a workspace, connect a tool, and run your first workflow in under 30 minutes.
+description: Create a workspace, connect a tool, and run your first workflow in the AgentRuntime Console.
 ---
 
-This guide walks you through the essential setup in the [AgentRuntime Console](https://console.agentruntime.io): create a workspace, invite a teammate, connect an integration, and run your first workflow.
+This guide is for people who are new to AgentRuntime. By the end you will have a workspace, an AI model key, one connected tool, and a first workflow run.
+
+It takes about 30 minutes. You do not need to write code.
 
 ## Before you begin
 
-- An AgentRuntime account ([sign up](https://console.agentruntime.io/auth) with email or Google)
-- **Project contributor** access (or tenant admin) in your workspace
-- An API key or OAuth account for at least one connector you want to use (for example, a Google account or a Resend API key)
+You need:
+
+- An email address or Google account to sign in.
+- An API key from an AI model company (for example OpenAI or Anthropic). Workflow **LLM** steps use it.
+- An account for one tool you want to automate (for example a Google account, or a Resend API key for sending email).
+
+<Note>
+  New to the words used here? **Workspace** is your organization's space in AgentRuntime. A **project** groups workflows inside it. A **connection** is a saved login or API key for a tool. A **workflow** is a series of steps, and a **run** is one execution of it. [Key concepts](/platform/key-concepts) explains all of them.
+</Note>
 
 ## Steps
 
 <Steps>
-  <Step title="Sign in and complete onboarding">
-    Open the [Console](https://console.agentruntime.io) and sign in. New users are guided through onboarding to create a **workspace** (tenant) and your first **project**. Choose a workspace name your team will recognize in notifications and URLs.
+  <Step title="Sign in and create a workspace">
+    Open the [Console](https://console.agentruntime.io/auth) and sign in with email or Google. New users go through a short onboarding with two steps, **Join** and **Workspace**. If you were invited, accept the invite. Otherwise choose a name and a URL slug for your new workspace.
+
+    **You should see:** the Console with a left sidebar that includes **Overview**, **Command Center**, **Workflow Studio**, **MCP**, **Connections**, **Providers** and **Settings**.
   </Step>
-  <Step title="Review workspace settings">
-    Go to **Settings** and confirm your workspace name and slug. The slug appears in API calls and shared links. Set billing preferences if you are on a paid plan.
+  <Step title="Check your workspace name">
+    Go to **Settings → General**. Confirm the **Name** and **Handle** of your workspace. The handle is the short identifier used in links and API calls.
+
+    <Frame caption="Settings → General">
+      <img src="/images/platform/settings-general.png" alt="The General tab of Settings with the workspace Name, Handle and Workspace ID" />
+    </Frame>
   </Step>
   <Step title="Invite a teammate (optional)">
-    From **Settings → Team & Members**, invite teammates by email. Assign a project role — **project contributor** for builders who will edit workflows, **project viewer** for read-only observers. See [Roles and permissions](/platform/roles-permissions).
-  </Step>
-  <Step title="Add an LLM provider key">
-    Go to **Providers** and add an API key for your preferred LLM vendor (OpenAI, Anthropic, Google, and others). Workflow **LLM call** steps resolve models through this catalog. See [LLM providers](/ai/llm-providers).
-  </Step>
-  <Step title="Connect an integration">
-    Go to **Connections** and connect a tool:
+    Go to **Settings → Team & Members**. This tab is visible only to workspace admins. Type your teammate's email under **Teammate email**, leave **Workspace role** as **Member**, and click **Invite to workspace**.
 
-    - **Google** — OAuth for Gmail, Drive, Sheets, Calendar, and other Workspace MCP adapters
-    - **WhatsApp** — Embedded signup or manual credentials
-    - **API key connectors** — Create a generic connection and paste the key (for example, Resend, Exa, or GitHub)
-
-    See [Connections](/integrations/connections) for step-by-step flows.
+    **You should see:** the invite in the invites list. Once they accept, they can use public projects as a **Contributor**. See [Roles and permissions](/platform/roles-permissions).
   </Step>
-  <Step title="Install an MCP instance">
-    Go to **MCP**, browse the platform catalog, and install a server (for example, `gmail` or `resend`). Bind your saved **connection** to the instance so workflow steps can call tools with the right credentials. See [MCP instances](/integrations/mcp-instances).
-  </Step>
-  <Step title="Create and run a workflow">
-    Open **Workflow Studio** and create a workflow. Add at least one step — an **MCP call** to a tool on your installed instance, or an **LLM call** step. Click **Validate** to dry-run the graph, then **Run** to start your first execution.
+  <Step title="Add an AI model key">
+    Go to **Providers** and click **Add workspace key**. Choose your AI provider and paste the API key. See [LLM providers](/ai/llm-providers).
 
-    Watch live step events in the run panel. If the workflow includes a human approval step, complete it from **Command Center**.
+    <Frame caption="The Add workspace key form">
+      <img src="/images/ai/providers-add-workspace-key.png" alt="The Add OpenAI key dialog with Provider, Display name and API key fields and a Save key button" />
+    </Frame>
+  </Step>
+  <Step title="Connect a tool">
+    Go to **Connections** and connect the tool you want to automate. For example, connect a Google account with OAuth, connect WhatsApp, or save an API key for a service such as Resend. See [Connections](/integrations/connections) for the exact flow for each tool.
+
+    **You should see:** the new connection listed on the **Connections** page.
+
+    <Frame caption="The Connections page">
+      <img src="/images/integrations/connections-page.png" alt="The Connections page with the New custom connection and Add from template buttons, and the Accounts and Saved connections sections" />
+    </Frame>
+  </Step>
+  <Step title="Add the tool to your workspace">
+    Go to **MCP** and click **Add connectors**. In the **App catalog**, click the connector for your tool, for example `gmail` or `resend`, then click **Add to workspace**. Then open the instance and link it to the connection you just saved. This gives your workflows permission to use that tool. See [MCP instances](/integrations/mcp-instances).
+  </Step>
+  <Step title="Build and run a workflow">
+    Open **Workflow Studio** and click **Create workflow**, then choose **Blank canvas** in the **Find a workflow recipe** dialog. The full walk-through, with screenshots, is [Build your first workflow](/workflows/build-your-first-workflow). Add one step, either an **MCP** step that calls a tool on the connector you added or an **LLM** step. Click **Dry-run** to check the workflow, then start a run. [Workflow Studio](/workflows/studio) shows each button.
+
+    **You should see:** the run's steps update live as they start and finish. If your workflow has a human approval step, approve it in **Command Center**.
+
+    <Frame caption="A finished run in the Events tab">
+      <img src="/images/workflows/build-first-run-success-events.png" alt="The run panel of a successful run, with the Events tab listing each step with a green check" />
+    </Frame>
   </Step>
 </Steps>
 
-<Note>
-  You can also create and run workflows through the REST API with a [personal access token](/api/authentication). External automation should always go through the BFF at `https://api.agentruntime.io`, not internal service URLs.
-</Note>
+## Common problems
+
+| Problem | What to try |
+|---------|-------------|
+| You do not see **Team & Members** in Settings | Only workspace admins see it. Ask an admin to invite people. |
+| The first tool step fails | Check that the connector in **MCP** is linked to a working connection. See [Troubleshooting](/platform/troubleshooting). |
+| The run does not start | Your workspace may be out of credits. See [Billing and credits](/platform/billing-and-credits). |
 
 ## Next steps
 
-- Read [Key concepts](/platform/key-concepts) for workspaces, projects, roles, and runs
-- Learn [Workflow Studio](/workflows/studio) authoring patterns
-- Follow an end-to-end [guide](/guides/overview) (GitHub PR review, form webhook digest, and more)
-- Track usage in [Analytics](/platform/analytics) when enabled for your workspace
-- Browse the full [connector catalog](/integrations/connector-catalog)
+- Read [Key concepts](/platform/key-concepts) to understand workspaces, projects, roles and runs.
+- Learn [Workflow Studio](/workflows/studio).
+- Follow an end-to-end [guide](/guides/overview).
+- Automate from code with a [personal access token](/api/authentication).
+- Browse the [connector catalog](/integrations/connector-catalog).

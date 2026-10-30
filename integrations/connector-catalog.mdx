@@ -1,17 +1,29 @@
 ---
 title: Connector catalog
-description: Index of all MCP connectors — each adapter has its own setup and tools page.
+description: Find a connector, see which ones have their own guide, and learn how to add one.
 ---
 
-AgentRuntime ships **40 Go MCP adapters**. Each connector has a dedicated page in the **Connectors** section (`/connectors/{slug}`) with authentication, tools, and configuration.
+A **connector** is a set of tools for one outside service, such as Gmail or Postgres. This page helps you find connectors and shows common ways to combine them. It is for anyone planning which services a workflow will use.
+
+The platform catalog includes more than 400 connectors. This page lists the ones that have their own guide in the **Connectors** section (`/connectors/{slug}`), with setup, tools, and configuration for that connector. To see everything available to you, open **MCP** in the [Console](https://console.agentruntime.io), click **Add connectors**, and browse or search the **App catalog**.
+
+<Frame caption="The App catalog, opened from Add connectors on the MCP page">
+  <img src="/images/integrations/mcp-add-connectors-catalog.png" alt="The App catalog dialog with categories on the left and connector cards, each with a name, a slug and a tool count" />
+</Frame>
+
+Click a connector to see its version, its tools, and the **Add to workspace** button.
+
+<Frame caption="A connector's page in the catalog">
+  <img src="/images/integrations/mcp-catalog-connector-detail.png" alt="The catalog page of the Activecampaign connector with its version, an Add to workspace button, and a list of its tools each with an Add to canvas button" />
+</Frame>
 
 <Note>
-  **Integration setup** (connections, MCP instances, webhooks) lives in the pages above this catalog — not on individual connector pages. Connector pages cover only that adapter.
+  Setup that is the same for every connector (connections, instances, webhooks) is explained in the **Integration setup** pages: [Quickstart](/integrations/quickstart), [Connections](/integrations/connections), and [MCP instances](/integrations/mcp-instances). Connector pages cover only that connector.
 </Note>
 
 ## Common patterns
 
-Most production workflows combine a few connectors with LLM and human steps. Start from a pattern, then open the adapter pages for tool names and auth.
+Most production workflows combine a few connectors with LLM and human steps. Start from a pattern, then open the connector pages for tool names and sign-in details.
 
 | Pattern | Flow | Example guide |
 |---------|------|---------------|
@@ -21,7 +33,7 @@ Most production workflows combine a few connectors with LLM and human steps. Sta
 | **Fetch → LLM → human → action** | Read source data → draft with LLM → Command Center approval → MCP write | [GitHub PR review](/guides/github-pr-review) |
 | **Schedule → query → summarize → email** | External cron → SQL report → LLM narrative → Gmail/Resend | [Postgres weekly report](/guides/scheduled-postgres-gmail-report) |
 | **Webhook → CRM + log** | Lead form → CRM contact + parallel audit row (Notion/Sheets) | [Lead sync](/guides/lead-sync-activecampaign-notion) |
-| **Approve then send** | Draft → **human_task** → outbound MCP (any channel) | [Workflow patterns](/workflows/patterns#approve-then-send) |
+| **Approve then send** | Draft → a **Human** step → outbound MCP (any channel) | [Workflow patterns](/workflows/patterns#approve-then-send) |
 
 ```mermaid
 flowchart TB
@@ -35,7 +47,7 @@ flowchart TB
   subgraph act [Act]
     V --> CRM[CRM / Shopify / GitHub]
     DB --> LLM[LLM summary]
-    LLM --> H[human_task]
+    LLM --> H[Human approval]
     H --> OUT[Email / WhatsApp / Comment]
   end
 ```
@@ -51,7 +63,7 @@ flowchart TB
 
 ## Google Workspace
 
-One [Google OAuth connection](/integrations/google-workspace) powers these adapters:
+One [Google sign-in](/integrations/google-workspace) powers most of these connectors (Google Search uses Vertex AI Search; see its page):
 
 | Connector | Best for | Docs |
 |-----------|----------|------|
@@ -60,7 +72,7 @@ One [Google OAuth connection](/integrations/google-workspace) powers these adapt
 | Google Docs | Template docs, mail-merge style content | [google-docs](/connectors/google-docs) |
 | Google Drive | File upload, sharing, folder automation | [google-drive](/connectors/google-drive) |
 | Google Forms | Form creation, response export | [google-form](/connectors/google-form) |
-| Google Search | Vertex AI Search / enterprise RAG | [google-search](/connectors/google-search) |
+| Google Search | Vertex AI Search (grounded retrieval) | [google-search](/connectors/google-search) |
 | Google Search Console | SEO analytics, sitemap and URL inspection | [google-search-console](/connectors/google-search-console) |
 | Google Sheets | Ops dashboards, CSV sync, reporting tabs | [google-sheets](/connectors/google-sheets) |
 | Google Slides | Deck generation from workflow data | [google-slides](/connectors/google-slides) |
@@ -72,9 +84,9 @@ One [Google OAuth connection](/integrations/google-workspace) powers these adapt
 |-----------|----------|------|
 | WhatsApp | Customer notifications, templates, session messaging | [whatsapp](/connectors/whatsapp) |
 | Resend | Transactional email from a verified domain | [resend](/connectors/resend) |
-| Vapi | Voice agents and phone call orchestration | [vapi](/connectors/vapi) |
+| Vapi | Listing and inspecting voice assistants | [vapi](/connectors/vapi) |
 | ElevenLabs | Text-to-speech and voice synthesis | [elevenlabs](/connectors/elevenlabs) |
-| Slack | Team messaging *(catalog placeholder — tools coming)* | [slack](/connectors/slack) |
+| Slack | Post messages, read channel history and threads, add reactions | [slack](/connectors/slack) |
 
 ## CRM and marketing
 
@@ -83,8 +95,8 @@ One [Google OAuth connection](/integrations/google-workspace) powers these adapt
 | ActiveCampaign | Contacts, lists, tags, account sync | [activecampaign](/connectors/activecampaign) |
 | LinkedIn | Personal and company posts, org admin | [linkedin](/connectors/linkedin) |
 | Shopify | Products, orders, customers, inventory | [shopify](/connectors/shopify) |
-| Reddit | Community posts and subreddit automation | [reddit](/connectors/reddit) |
-| YouTube | Channel and video metadata | [youtube](/connectors/youtube) |
+| Reddit | Reading and creating posts and comments | [reddit](/connectors/reddit) |
+| YouTube | Searching videos; channels, playlists, comments | [youtube](/connectors/youtube) |
 
 ## Productivity
 
@@ -93,7 +105,7 @@ One [Google OAuth connection](/integrations/google-workspace) powers these adapt
 | ClickUp | Tasks, lists, and project management | [clickup](/connectors/clickup) |
 | Notion | Databases, pages, comments, run logs | [notion](/connectors/notion) |
 | Wrike | Enterprise PM tasks and folders | [wrike](/connectors/wrike) |
-| Cursor | IDE agent integration via MCP | [cursor](/connectors/cursor) |
+| Cursor | Launching and managing Cursor cloud agents | [cursor](/connectors/cursor) |
 
 ## Developer tools
 
@@ -131,7 +143,7 @@ One [Google OAuth connection](/integrations/google-workspace) powers these adapt
 | RSS | Feed aggregation and news monitoring | [rss](/connectors/rss) |
 | Healthcare | Mock clinical APIs for demos *(not production PHI)* | [healthcare](/connectors/healthcare) |
 
-## All connectors (A–Z)
+## Connectors with a guide (A–Z)
 
 <CardGroup cols={2}>
   <Card title="activecampaign" href="/connectors/activecampaign" />
@@ -176,10 +188,13 @@ One [Google OAuth connection](/integrations/google-workspace) powers these adapt
   <Card title="youtube" href="/connectors/youtube" />
 </CardGroup>
 
-## Before you open a connector page
+## How to add a connector
 
-1. Read [Integrations quickstart](/integrations/quickstart) — connections → instances → workflow steps
-2. Skim [End-to-end guides](/guides/overview) if you need a multi-connector recipe
-3. Create a [connection](/integrations/connections) with the right auth type
-4. Install an [MCP instance](/integrations/mcp-instances) for the adapter slug
-5. Open the connector page for tool names and config keys
+1. Read the [Integrations quickstart](/integrations/quickstart).
+2. Create a [connection](/integrations/connections) if the connector needs credentials.
+3. In **MCP**, click **Add connectors**, select the connector, and click **Add to workspace**.
+4. Attach the connection on the instance's **Instance config** page. See [MCP instances](/integrations/mcp-instances).
+5. Open the connector's guide above for tool names and settings.
+6. For multi-connector recipes, see the [end-to-end guides](/guides/overview).
+
+If a connector you need is not in the catalog, you can [register your own MCP server](/integrations/custom-mcp-servers).

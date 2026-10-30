@@ -1,68 +1,102 @@
 ---
 title: Workspace settings
-description: Configure your workspace name, billing, auth policy, and member defaults in the Console.
+description: A tour of the Settings page in the Console — workspace details, API keys, team, billing, and sign-in policy.
 ---
 
-Workspace settings control how your organization is identified, how members authenticate, and how billing is managed. Navigate to **Settings** in the [Console](https://console.agentruntime.io) to access these options.
+This page is for workspace admins and anyone who wants to know where things live in **Settings**. It explains each tab and what you can do there.
+
+## Open Settings
+
+In the [Console](https://console.agentruntime.io) sidebar, click **Settings**. The tabs are listed down the left side. You see only the tabs your role allows. For example, **Team & Members** and **Audit log** are for admins.
+
+<Frame caption="Settings, General tab: the tab list is on the left">
+  <img src="/images/platform/settings-general.png" alt="The Settings page with the tab list on the left (General, API keys, Inbound webhooks, Principals, My access, Delegation, Team and Members, Audit log, Billing Overview, Plans, Usage and History, MCP and Integrations) and the General tab open, showing Name, Handle, Workspace ID and a Danger zone" />
+</Frame>
+
+| Tab | What it is for |
+|-----|----------------|
+| **General** | Workspace name, handle and ID, plus the danger zone |
+| **API keys** | Keys for scripts, CI and integrations |
+| **Inbound webhooks** | Webhook subscriptions that start workflows |
+| **Principals** | End users who connected through Embedded Connect |
+| **My access** | Your own roles in this workspace |
+| **Delegation** | Let someone else approve on your behalf |
+| **Team & Members** | Invites, members, sign-in policy and domain verification (admins) |
+| **Audit log** | Admin actions in this workspace (admins) |
+| **Billing Overview** | Subscription, payment card and **Add credits** |
+| **Plans** | Compare plans and change your plan |
+| **Usage & History** | Credits remaining and usage history |
+| **MCP & Integrations** | Connector diagnostics |
 
 ## General
 
-| Setting | Description |
-|---------|-------------|
-| **Workspace name** | Display name in the UI, emails, and shared links. |
-| **Workspace slug** | URL-safe identifier for API calls. Changing it updates tenant-scoped URLs — notify your team first. |
-| **Default project** | The project selected when you open the Console. |
+Open **Settings → General** to see:
 
-## Members and access
+- **Name** — the display name of your workspace
+- **Handle** — the short identifier used in links and API calls. The Console tells you if a handle is already taken.
+- **Workspace ID** — read-only, handy when you contact support
 
-Workspace admins manage the member directory from **Settings → Team & Members**:
+Only users with permission to edit the workspace can change these fields.
 
-- Invite users by email
-- Assign tenant-level roles
-- Deactivate accounts without deleting their content
+<Warning>
+  The **Danger zone** at the bottom of **General** holds irreversible actions for the workspace. Today it has **Delete workspace**. Self-service deletion is not available yet: the **Request deletion** button lets you submit a verified request to the AgentRuntime team.
+</Warning>
 
-See [User management](/platform/user-management) and [Roles and permissions](/platform/roles-permissions).
+To choose which project opens by default, use the project switcher. Open the **⋮** menu next to a project and click **Set as default project**.
 
 ## API keys
 
-Create and revoke **personal access tokens** from **Settings → API keys**. Use PATs for scripts, CI, and [Platform MCP](/api/platform-mcp). See [API authentication](/api/authentication).
+Open **Settings → API keys** and click **Create API key**. Copy the secret straight away, because it is shown only once. Revoke a key at any time from the same list. API keys are personal access tokens and work with the [API](/api/authentication) and [Platform MCP](/api/platform-mcp). Treat them like passwords.
 
 ## Inbound webhooks
 
-Manage webhook subscriptions from **Settings → Inbound webhooks** (also available per workflow in Workflow Studio). See [Inbound webhooks](/integrations/inbound-webhooks).
+**Settings → Inbound webhooks** lists the webhook subscriptions in your workspace. You create a subscription from a workflow in Workflow Studio. See [Inbound webhooks](/integrations/inbound-webhooks).
 
-## Billing
+## Principals
 
-Billing is split across three Settings tabs. Project contributors can view usage; tenant admins can change plans, manage subscriptions, and initiate pay-as-you-go top-ups.
+**Settings → Principals** lists the end users of your own product who connected their accounts through Embedded Connect. Only workspace admins can see it. See [Embedded Connect](/integrations/embedded-connect).
 
-| Tab | What you can do |
-|------|-----------------|
-| **Billing Overview** | Subscription status, payment method, top-up entry points |
-| **Plans** | View available plans, start a trial, upgrade, or cancel |
-| **Usage & History** | Credit balances, metered usage, payment history |
+## My access and Delegation
 
-Promoters use **Referrals** in the sidebar (`/referrals`). **Settings → Affiliates** is maintainer-only ops when `enableSettingsAffiliates` is on. See [Referrals and affiliates](/platform/referrals-and-affiliates).
+- **My access** is a read-only view of your workspace role and your project roles. See [Roles and permissions](/platform/roles-permissions).
+- **Delegation** lets another user or an agent approve or reject approval steps on your behalf when you are a required approver. Create a delegation here and revoke it when you no longer need it.
 
-Pricing details are on [agentruntime.io/pricing](https://agentruntime.io/pricing). See [Billing and credits](/platform/billing-and-credits) for plans, trials, and PAYG top-ups.
+## Team & Members
 
-## Authentication policy
+Admins use **Settings → Team & Members** to:
 
-Tenant admins can configure how members sign in:
+- invite people by email and set their workspace role (**Member**, **Admin** or **Owner**)
+- group members into **Teams**, and create child workspaces under **Workspace hierarchy**
+- see current members, change roles and remove people
+- choose how people may join: **Allow self-serve signups**, **Require invites**, **Auto-join matching domains**
+- turn on **Full access on private projects** for workspace owners and admins
+- review **Access requests** from people with a matching email domain
+- verify your email domain with a DNS TXT record
 
-- **Email and password** with email verification
-- **Google OAuth** — Sign in with Google or Google One Tap
-- **Domain verification** — Restrict workspace access to verified email domains
+[User management](/platform/user-management) walks through these tasks step by step.
 
-Password reset and change-password flows are available from the auth pages.
+## Billing, Plans and Usage
 
-## Vault (workspace secrets)
+These three tabs manage credits and subscriptions. See [Billing and credits](/platform/billing-and-credits).
 
-Workspace admins with vault access can store secret paths for sensitive configuration. Vault-backed values are referenced by MCP instances and integrations without exposing plaintext in workflow definitions.
+## Sign-in methods
 
-<Warning>
-  Vault access is limited to workspace administrators. Store connector API keys in **Connections** unless your deployment requires vault-backed secret paths.
-</Warning>
+People sign in to the Console with email and password (with email verification) or with Google. The policy options above control who may join your workspace.
 
-## Notification and display preferences
+## Vault
 
-Individual members can adjust personal preferences from their profile. Workspace-level defaults apply to new members where configured.
+Workspace admins also see **Vault** in the sidebar under **Administration**. It manages secret paths for workspace admins. Save everyday tool credentials in **Connections** instead, as described in [Connections](/integrations/connections).
+
+## Common problems
+
+| Problem | What to try |
+|---------|-------------|
+| A tab is missing | Your role does not include it. Ask a workspace admin. |
+| You cannot edit the workspace name or handle | You need permission to edit the workspace. Ask an admin or owner. |
+| **Handle** shows "That handle is already in use" | Choose a different handle. |
+
+## Next steps
+
+- [User management](/platform/user-management)
+- [Roles and permissions](/platform/roles-permissions)
+- [Billing and credits](/platform/billing-and-credits)

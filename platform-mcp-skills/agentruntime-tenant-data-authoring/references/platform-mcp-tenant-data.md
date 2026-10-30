@@ -4,7 +4,7 @@ Call **`ar_get_started`** first. Use **`tenant_id`** from response when tool inp
 
 ## Tools
 
-| Tool | BFF route | Purpose |
+| Tool | API route | Purpose |
 |------|-----------|---------|
 | `tenantdata_logical_schema` | (embedded) | JSON Schema for `{ "tables": [] }` |
 | `tenantdata_databases_list` | GET `…/databases` | List tenant databases |
@@ -42,4 +42,4 @@ After provision, set workflow MCP steps:
 - `tool_name`: `tenantdata_insert` etc.
 - `tool_args.table`: logical table **name** (not display name)
 
-Validate with **`workflows_validate`** (BFF auto-resolves `tenantdata_schema` when instance is bound).
+Validate with **`workflows_validate`** (the platform resolves `tenantdata_schema` automatically when the instance is bound).

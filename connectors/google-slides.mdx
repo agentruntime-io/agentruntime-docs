@@ -1,90 +1,102 @@
 ---
 title: Google Slides connector
-description: Generate and update presentations from AgentRuntime workflows.
+description: Create decks, fill templates, add slides, and replace text in Google Slides from AgentRuntime workflows.
 ---
 
-The **google-slides** MCP adapter wraps the [Google Slides API](https://developers.google.com/slides/api/reference/rest) and Drive search. Use it in workflow **mcp_call** steps to create decks, fill template placeholders, add slides with standard layouts, and refresh embedded Sheets charts — ideal for sales proposals, QBR decks, and automated reporting slides.
+The **google-slides** connector uses the [Google Slides API](https://developers.google.com/slides/api/reference/rest) with Drive search. Workflows can create a presentation, generate one from a template by replacing placeholders, add slides, replace text across a deck, and refresh embedded Sheets charts.
 
 ## Prerequisites
 
-- A Google account with Google Slides and Drive access
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
-- **project_contributor** access in your workspace
+- A Google account that can use Google Slides and Drive.
+- A Google account connection in AgentRuntime with the **Google Slides** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Google Slides** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Enable Slides">
-    On your Google connection, enable the **Slides** service so the account exposes Slides and Drive API scopes.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Slides** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-slides MCP instance">
-    Go to **MCP**, click **Add instance** for **google-slides**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with `find_presentations` or `get_presentation` on a known deck before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_slides_find_presentations` tool from your **Google Slides** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. Pass a `name`, `page_size` `10`, and `include_trashed` `false`.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **QBR deck from metrics** — **google-sheets** export → LLM bullet points → `generate_from_template` with `{{Quarter}}` placeholders → `refresh_sheets_charts` for live charts.
-- **Sales proposal pack** — CRM webhook → `generate_from_template` from master deck → **google-drive** `add_permission` for AE → **gmail** send `presentation_url`.
-- **Training slide append** — New module content from CMS → `get_presentation` → `add_slide` with `TITLE_AND_BODY` → `replace_text` for section title.
-- **Brand refresh sweep** — `find_presentations` by folder query → `replace_text` old product name → log updated IDs in **google-sheets**.
+- **Quarterly review deck.** Metrics go to an LLM, and `google_slides_generate_from_template` fills a master deck.
+- **Proposal pack.** A CRM event creates a deck from a template, which you then share or email.
+- **Training updates.** `google_slides_get_presentation` reads a deck, `google_slides_add_slide` adds a section, and `google_slides_replace_text` updates a title.
+- **Brand refresh.** `google_slides_find_presentations` finds decks, and `google_slides_replace_text` swaps an old name for a new one.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `create_presentation` | Create a Google Slides presentation with a title. |
-| `get_presentation` | Get a Google Slides presentation by ID, including title and per-slide plain text. |
-| `add_slide` | Add a slide to a presentation using a predefined Slides layout. |
-| `replace_text` | Replace text across all slides in a presentation. |
-| `find_presentations` | Find Google Slides presentations in Drive by title or raw Drive query. |
-| `generate_from_template` | Generate a presentation from a template by replacing placeholder tokens. |
-| `refresh_sheets_charts` | Refresh embedded Google Sheets charts in a presentation. |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_slides_add_slide` | Write | Add a slide to a presentation using a predefined Slides layout. | `presentation_id`, `layout_predefined` |
+| `google_slides_create_presentation` | Write | Create a Google Slides presentation with a title. | `title` |
+| `google_slides_find_presentations` | Read | Find Google Slides presentations in Drive by title or raw Drive query. | `name`, `page_size`, `include_trashed` |
+| `google_slides_generate_from_template` | Write | Generate a presentation from a template by replacing placeholder tokens. | `template_presentation_id`, `new_title`, `placeholder_format`, `replacements` |
+| `google_slides_get_presentation` | Read | Get a Google Slides presentation by ID, including title and per-slide plain text. | `presentation_id`, `include_raw` |
+| `google_slides_refresh_sheets_charts` | Write | Refresh embedded Google Sheets charts in a presentation. | `presentation_id` |
+| `google_slides_replace_text` | Write | Replace text across all slides in a presentation. | `presentation_id`, `search_text`, `replace_text`, `match_case` |
 
 ## Example
 
-Generate a client QBR deck from a template after metrics are ready:
+Generate a deck from a template. `placeholder_format` is `curly_braces`, `square_brackets`, `single_curly`, or `single_square`.
 
 ```json
 {
   "id": "build-qbr",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Generate QBR presentation",
-  "tool_name": "generate_from_template",
+  "tool_name": "google_slides_generate_from_template",
   "tool_args": {
     "template_presentation_id": "{{input.qbr_template_id}}",
-    "new_title": "QBR — {{input.client_name}} — {{input.quarter}}",
+    "new_title": "QBR — {{input.client_name}}",
     "placeholder_format": "curly_braces",
     "replacements": {
       "ClientName": "{{input.client_name}}",
-      "Quarter": "{{input.quarter}}",
-      "RevenueSummary": "{{steps.llm-metrics.result.summary}}"
+      "Quarter": "{{input.quarter}}"
     },
     "match_case": false
   },
-  "depends_on": ["llm-metrics"],
   "timeout_s": 90
 }
 ```
 
+## Configuration
+
+Google connectors take no keys from you: the permissions come from your Google account connection.
+
+**Google permissions (scopes) requested when you tick this service:**
+
+- `https://www.googleapis.com/auth/presentations`
+- `https://www.googleapis.com/auth/drive`
+
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
+
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on Google connection | Re-authorize OAuth; Slides and Drive scopes may have been revoked |
-| Placeholders not replaced | Match `placeholder_format` to tokens in the template (`curly_braces`, `square_brackets`, etc.) |
-| Charts show stale data | Call `refresh_sheets_charts` after updating source **google-sheets** ranges |
-| `find_presentations` misses files | Set `include_trashed: false` and scope with a raw Drive `query` if needed |
+| Problem | What to do |
+|---------|------------|
+| Placeholders are not replaced | Match `placeholder_format` to the tokens in your template, and check the keys in `replacements`. |
+| Charts show old numbers | Run `google_slides_refresh_sheets_charts` after the source sheet changes. |
+| `google_slides_find_presentations` misses a deck | Use a more exact `name`, or a raw Drive `query`, and set `include_trashed` as needed. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

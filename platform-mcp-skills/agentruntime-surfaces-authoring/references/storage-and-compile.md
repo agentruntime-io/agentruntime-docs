@@ -1,38 +1,38 @@
-# Surfaces storage and compile
+# Surfaces: what is saved, and compile
 
-See monorepo **`docs/surfaces/SURFACES_STORAGE.md`** (canonical).
+## What each artifact is
 
-## Persisted artifacts
+| JSON | Saved by | Notes |
+|------|----------|-------|
+| Thin app manifest (`app.json`) | `surfaces_apps_create` / `surfaces_apps_update` | Metadata + `navigation` only |
+| View document (`*-view.json`) | `surfaces_apps_put_view` | One per `view_id`; the view body is the source of truth |
+| Query document (`*.query.json`) | `surfaces_apps_put_query` | Read-only parameterised SQL for `database.query` |
+| Marketplace package | `surfaces_apps_publish_package` | Catalog copy of the app |
 
-| JSON file | Storage |
-|-----------|---------|
-| Thin `app.json` | `surface_apps.manifest` |
-| `*-view.json` | `surface_app_views.document` |
-| `*.query.json` | `surface_app_queries.document` |
-| `marketplace-package.json` | `app_packages.manifest` |
+Workflow graphs are not part of an app. A view only holds **workflow UUID refs** and bindings to them.
 
-Workflow graphs stay in **workflow_definitions** — Surfaces only holds **UUID refs** and bindings.
+## Where data comes from at runtime
 
-## Runtime data flow
-
-| Binding `source` | Backing store |
-|------------------|---------------|
-| `workflow.node.output` | agentruntime run/step state |
-| `database.query` | tenant-data-service SELECT |
-| `connection.read` | BFF → MCP read tools |
-| `tenant.config` | tenant settings |
+| Binding `source` | Backing data |
+|------------------|--------------|
+| `workflow.node.output` / `workflow.node.state` / `workflow.run` | The workflow run's step results and state |
+| `database.query` | Read-only `SELECT` against the workspace's Tenant Data databases |
+| `connection.read` | A read tool on a connected service |
+| `tenant.config` | Workspace settings |
 
 ## Compile / import pending
 
-App Studio may report **`import_pending`** until workflow UUIDs in the view doc resolve to existing workflows (their Live copy; no publishing needed). Agents should:
+Every `surfaces_apps_put_view` checks the view's workflow refs against the workflow's Live copy (no publishing needed) and stores the result as `bind_compile` on the view. `import_pending` means a `workflow_ref` is not yet a UUID of an existing workflow. To resolve it:
 
-1. Create or update the workflow (Console, `workflows_create` or `workflows_update`).
-2. Replace placeholder refs with real UUIDs (`replaceWorkflowRefs` pattern in webapp).
-3. Re-save view document via **`surfaces_apps_put_view`**.
-4. Read **`bind_compile`** on **`surfaces_apps_get_view`** — do not skip step 4.
+1. Create or update the workflow (`workflows_create` or `workflows_update`).
+2. Replace placeholder refs in the view document with the real workflow UUIDs.
+3. Re-save the view with **`surfaces_apps_put_view`**.
+4. Read **`bind_compile`** from **`surfaces_apps_get_view`**. Do not skip this step.
+
+A view with broken bindings still saves; its actions are blocked at render/action time until the bindings compile.
 
 **Saved views ≠ working apps.** See [app-studio-wiring.md](app-studio-wiring.md) for attached workflows, query data sources, run/approve actions, and **`surfaces_render`** verification.
 
-## Files vs Tenant Data in UI
+## Files vs Tenant Data in the UI
 
 Use **Work files** for large uploads; Surfaces can link file pickers through workflow inputs. Structured extraction output belongs in **Tenant Data** (tenant-data skill).

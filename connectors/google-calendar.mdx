@@ -1,90 +1,122 @@
 ---
 title: Google Calendar connector
-description: Schedule meetings, check availability, and manage events from AgentRuntime workflows.
+description: Read, create, and update Google Calendar events, find free time, and manage calendars from AgentRuntime workflows.
 ---
 
-The **google-calendar** MCP adapter wraps the [Google Calendar API](https://developers.google.com/calendar/api/v3/reference). Use it in workflow **mcp_call** steps to read upcoming events, find free time across calendars, create meetings with Google Meet links, and update or cancel bookings after human approval. Events can be created from structured fields or natural-language quick-add text.
+The **google-calendar** connector uses the [Google Calendar API](https://developers.google.com/calendar/api/v3/reference). Workflows can list upcoming events, find when people are free, create meetings with a Google Meet link, update or cancel events, and manage calendars and sharing.
 
 ## Prerequisites
 
-- A Google account with Calendar access (personal Gmail or Google Workspace)
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
-- **project_contributor** access in your workspace
+- A Google account that can use Google Calendar.
+- A Google account connection in AgentRuntime with the **Google Calendar** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Google Calendar** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Enable Calendar">
-    On your Google connection, enable the **Calendar** service so the account exposes Calendar API scopes.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Calendar** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-calendar MCP instance">
-    Go to **MCP**, click **Add instance** for **google-calendar**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with `get_events` on `calendar_id: primary` before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_calendar_get_events` tool from your **Google Calendar** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. Use `calendar_id` `primary` for your main calendar.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **Meeting scheduler** — Inbound booking request → `find_busy_free_periods` across team calendars → LLM picks a slot → `create_event` with Meet link and attendees.
-- **Daily standup digest** — Schedule trigger → `get_events` for today on `primary` → LLM summary → **gmail** send to the team channel alias.
-- **Post-approval booking** — **human_task** approves time and attendees → `create_event` with `send_notifications: all` → **google-sheets** log confirmation row.
-- **Conflict resolver** — Webhook with proposed time → `find_busy_free_periods` → if busy, `create_quick_event` alternative via LLM-suggested text → notify requester.
+- **Meeting scheduler.** `google_calendar_find_busy_free_periods` checks several calendars, an LLM picks a slot, and `google_calendar_create_event` books it with attendees and a Meet link.
+- **Daily agenda.** A schedule runs `google_calendar_get_events` for today and an LLM step summarizes it for a message or email.
+- **Quick booking.** `google_calendar_create_quick_event` turns text such as "Lunch with Sam tomorrow 1pm" into an event.
+- **Approval first.** A **Human** step confirms details, then `google_calendar_create_event` or `google_calendar_update_event` makes the change.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `get_events` | List Google Calendar events with optional search, date range, and event-type filters. |
-| `get_event_by_id` | Get a single Google Calendar event by event ID. |
-| `find_busy_free_periods` | Find busy and free periods across one or more Google Calendars in a time range. |
-| `create_event` | Create a Google Calendar event, with optional attendees, location, color, and Meet link. |
-| `create_quick_event` | Create a Google Calendar event from natural-language text using quickAdd. |
-| `update_event` | Update an existing Google Calendar event. |
-| `delete_event` | Delete a Google Calendar event. |
-| `add_attendees_to_event` | Add attendees to an existing Google Calendar event. |
-| `add_calendar_to_list` | Add an existing calendar to the authenticated user's calendar list. |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+Tools marked **Delete** remove events or whole calendars permanently, including `google_calendar_clear_calendar`.
+
+### Events
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_calendar_add_attendees_to_event` | Write | Add attendees to an existing Google Calendar event. | `calendar_id`, `event_id`, `attendees` |
+| `google_calendar_create_event` | Write | Create a Google Calendar event, with optional attendees, location, color, and Meet link. | `calendar_id`, `title`, `start_date_time` |
+| `google_calendar_create_quick_event` | Write | Create a Google Calendar event from natural-language text using quickAdd. | `calendar_id`, `text` |
+| `google_calendar_delete_event` | Delete | Delete a Google Calendar event. | `calendar_id`, `event_id` |
+| `google_calendar_duplicate_event` | Write | Duplicate an existing Google Calendar event into a new event. | `calendar_id`, `event_id` |
+| `google_calendar_find_busy_free_periods` | Read | Find busy and free periods across one or more Google Calendars in a time range. | `calendar_ids`, `start_date`, `end_date` |
+| `google_calendar_get_event_by_id` | Read | Get a single Google Calendar event by event ID. | `calendar_id`, `event_id` |
+| `google_calendar_get_events` | Read | List Google Calendar events with optional search, date range, and event-type filters. | `calendar_id` |
+| `google_calendar_update_event` | Write | Update an existing Google Calendar event. | `calendar_id`, `event_id` |
+
+### Calendars and sharing
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_calendar_add_calendar_to_list` | Write | Add an existing calendar to the authenticated user's calendar list. | `id` |
+| `google_calendar_clear_calendar` | Delete | Delete all events from a Google Calendar. | `calendar_id` |
+| `google_calendar_create_acl_rule` | Write | Create a calendar access control rule. | `calendar_id`, `scope_type`, `role` |
+| `google_calendar_create_calendar` | Write | Create a new Google Calendar. | `summary` |
+| `google_calendar_delete_acl_rule` | Delete | Delete a calendar access control rule. | `calendar_id`, `rule_id` |
+| `google_calendar_delete_calendar` | Delete | Delete a Google Calendar. | `calendar_id` |
 
 ## Example
 
-Create a client meeting after a human approves the time slot:
+Create a meeting after a person approves the time. Times are RFC 3339 date-times. `send_notifications` is `all`, `externalOnly`, or `none`.
 
 ```json
 {
   "id": "book-meeting",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Create calendar event",
-  "tool_name": "create_event",
+  "tool_name": "google_calendar_create_event",
   "tool_args": {
     "calendar_id": "primary",
     "title": "{{steps.human-approve.result.meeting_title}}",
     "start_date_time": "{{steps.human-approve.result.start_time}}",
     "end_date_time": "{{steps.human-approve.result.end_time}}",
-    "attendees": ["{{input.client_email}}", "{{input.owner_email}}"],
+    "attendees": [
+      "{{input.client_email}}"
+    ],
     "create_meet_link": true,
     "send_notifications": "all"
   },
-  "depends_on": ["human-approve"],
+  "depends_on": [
+    "human-approve"
+  ],
   "timeout_s": 45
 }
 ```
 
+## Configuration
+
+Google connectors take no keys from you: the permissions come from your Google account connection.
+
+**Google permissions (scopes) requested when you tick this service:**
+
+- `https://www.googleapis.com/auth/calendar`
+
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
+
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on Google connection | Re-authorize OAuth; Calendar scopes may have been revoked |
-| `403` or calendar not found | Confirm `calendar_id` — use `primary` for the signed-in user's main calendar |
-| Attendees not receiving invites | Set `send_notifications` to `all` on create or update |
-| `find_busy_free_periods` shows unexpected busy blocks | Include all relevant `calendar_ids`; check shared calendars the account can read |
+| Problem | What to do |
+|---------|------------|
+| Calendar not found | Use `primary` for the signed-in user's main calendar, or the calendar's ID for others. |
+| Attendees do not get invites | Set `send_notifications` to `all` when you create the event. |
+| Busy periods look wrong | Include every relevant ID in `calendar_ids` and check that the account can see those calendars. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

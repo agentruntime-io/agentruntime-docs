@@ -3,38 +3,38 @@ title: WhatsApp connector
 description: Connect WhatsApp Business and send messages from AgentRuntime workflows.
 ---
 
-The **whatsapp** MCP adapter sends messages through Meta's WhatsApp Cloud API — text, media, and pre-approved templates.
+The **whatsapp** MCP adapter works with Meta's WhatsApp Cloud API. Send text, photos, voice notes and files, interactive buttons and lists, reactions, and pre-approved templates. Receive customer messages to start workflows or hold a conversation with an agent.
 
 ## Prerequisites
 
-- A Meta developer account and Business app with the **WhatsApp** product enabled
-- A **WhatsApp Business Account (WABA)** linked to the app
-- **project_contributor** access in AgentRuntime
+- A business phone number you can use with WhatsApp Business. For **Connect with Meta** you do not need your own Meta app, because AgentRuntime is an approved Meta Tech Provider.
+- Only for **Paste API keys**: a Meta developer account and Business app with the **WhatsApp** product enabled, and a **WhatsApp Business Account (WABA)** linked to it
+- The `project_contributor` role (or higher) in AgentRuntime
 
 ## Connect in AgentRuntime
 
-AgentRuntime supports two connection paths:
+AgentRuntime supports two connection paths. Use **Connect with Meta** unless you run your own Meta app.
 
 ### Embedded signup (recommended)
 
 <Steps>
   <Step title="Open Connections">
-    On **Connections**, click **Connect WhatsApp** in the [Console](https://console.agentruntime.io).
+    In the [Console](https://console.agentruntime.io), go to **Connections** and click **Add from template**.
   </Step>
   <Step title="Start embedded signup">
-    Click **Connect** and complete Meta's embedded signup flow. You authorize the app and select your business phone number.
+    On the **WhatsApp** row, click **Connect**, open **Connect with Meta**, and click **Connect WhatsApp Business**. Complete Meta's signup in the popup: you authorize the app and select your business phone number.
   </Step>
   <Step title="Complete registration">
-    The Console exchanges the OAuth code server-side and stores `access_token`, `business_account_id`, and `phone_number_id`. Tokens never appear in the browser.
+    AgentRuntime stores the access token, WhatsApp Business Account ID, and phone number ID for you. The token is never shown in the browser.
   </Step>
   <Step title="Install the MCP instance">
-    Go to **MCP**, click **Add instance** for **whatsapp**, wire your WhatsApp connection on **Instance config**, and set the profile **active**.
+    Go to **MCP**, click **Add connectors**, click the **whatsapp** connector, then **Add to workspace**. Then wire your WhatsApp connection on **Instance config** and set the profile **active**.
   </Step>
 </Steps>
 
-### Manual credentials
+### Manual credentials (Paste API keys)
 
-If you already have a System User token and IDs from Meta Business Manager:
+If you use your own Meta app and already have a System User token and IDs from Meta Business Manager:
 
 <Steps>
   <Step title="Gather credentials">
@@ -45,29 +45,29 @@ If you already have a System User token and IDs from Meta Business Manager:
     - **Phone number ID**
   </Step>
   <Step title="Enter manually">
-    In the **Connect WhatsApp** flow, choose manual entry and paste the three values.
+    In **Connections**, click **Add from template**, then **Connect** on the **WhatsApp** row. Open **Paste API keys**, fill **Access token**, **WhatsApp Business Account ID**, and optionally **Phone number ID**, then click **Save WhatsApp connection**.
   </Step>
   <Step title="Wire MCP instance">
-    Go to **MCP**, click **Add instance** for **whatsapp**, and wire the connection on **Instance config**.
+    Go to **MCP**, click **Add connectors**, click the **whatsapp** connector, then **Add to workspace**. Then wire the connection on **Instance config** and set the profile **active**.
   </Step>
 </Steps>
 
 <Note>
-  Embedded signup for onboarding customers outside your Business Manager requires Meta's **Tech Provider** programme. Until approved, embedded signup works for accounts you administer in dev mode. Manual tokens work for production messaging on your own WABA.
+  AgentRuntime is an approved Meta **Tech Provider**, so customers can connect their own WhatsApp Business number with **Connect with Meta**. Use **Paste API keys** if you want messaging to run through your own Meta app and WABA.
 </Note>
 
 ## What you can build
 
-- **Order updates** — Shopify `get_shopify_order` → `send_message` or `send_template_message` when status changes.
+- **Order updates** — Shopify `get_shopify_order` → `whatsapp_send_message` or `whatsapp_send_template_message` when status changes.
 - **Appointment reminders** — Schedule workflow → template message with date/time parameters (24h+ outbound requires approved templates).
 - **Customer chat** — Incoming WhatsApp messages go to an agent in one ongoing [conversation session](/workflows/conversation-sessions) per customer, with hand-off to staff. See [WhatsApp customer chat](/guides/whatsapp-customer-chat).
-- **Ops alerts** — Workflow failure → `send_message` to on-call number with run summary.
+- **Ops alerts** — Workflow failure → `whatsapp_send_message` to on-call number with run summary.
 
 ### Receive messages
 
 To start workflows from incoming WhatsApp messages, open **Workflow setup → Inbound** on the workflow and create a subscription with **Vendor adapter: WhatsApp** and your WhatsApp connection. No webhook URL needs registering with Meta: AgentRuntime routes each message by your business phone number to every workflow subscribed to that connection.
 
-Each message becomes the run's input: `{{input.text}}`, `{{input.from}}` (the customer's number), `{{input.contact_name}}`, `{{input.type}}`, and the raw `{{input.message}}`. Photos, videos, voice notes, documents, and stickers are downloaded when they arrive and stored in your workspace, and the message carries them as `{{input.attachments}}`; a shared location arrives as `{{input.location}}`. See [Files, voice notes, and locations](/workflows/conversation-sessions#files-voice-notes-and-locations). Turn on **Remember each contact** so agent steps see each customer's earlier messages.
+Each message becomes the run's input: `{{input.text}}`, `{{input.from}}` (the customer's number), `{{input.contact_name}}`, `{{input.message_id}}`, `{{input.type}}`, and the raw `{{input.message}}`. Photos, videos, voice notes, documents, and stickers are downloaded when they arrive and stored in your workspace, and the message carries them as `{{input.attachments}}`; a shared location arrives as `{{input.location}}`. See [Files, voice notes, and locations](/workflows/conversation-sessions#files-voice-notes-and-locations). Turn on **Remember each contact** so agent steps see each customer's earlier messages.
 
 For a back-and-forth chat, turn on [conversation sessions](/workflows/conversation-sessions) so a customer's messages share one run instead of starting a run each.
 
@@ -75,15 +75,30 @@ For a back-and-forth chat, turn on [conversation sessions](/workflows/conversati
 
 | Tool | Description |
 |------|-------------|
-| `send_message` | Send a text message |
-| `send_media` | Send image, audio, document, sticker, or video, by public link (`media_url`) or uploaded `media_id` |
-| `send_reaction` | React to a message with an emoji (an empty emoji removes the reaction) |
-| `mark_as_read` | Mark an incoming message as read, optionally with a typing indicator |
-| `send_template_message` | Send a pre-approved template with parameters |
-| `list_phone_numbers` | List phone numbers on the WABA |
-| `list_message_templates` | List message templates (optionally filter by status) |
+| `whatsapp_send_message` | Send a text message (`to`, `text`; optional `preview_url` for link previews) |
+| `whatsapp_send_media` | Send an image, audio, document, sticker, or video, by public link (`media_url`) or uploaded `media_id`, with optional `caption` and `filename` |
+| `whatsapp_send_reaction` | React to a message with an emoji. Takes `to`, `message_id`, and `emoji`; an empty emoji removes the reaction |
+| `whatsapp_mark_as_read` | Mark an incoming message as read (blue ticks), optionally showing a typing indicator with `typing_indicator`. Also marks earlier messages in the conversation as read |
+| `whatsapp_send_template_message` | Send a pre-approved template with header, body, and button parameters |
+| `whatsapp_send_interactive_buttons` | Send a message with 1 to 3 reply buttons |
+| `whatsapp_send_interactive_list` | Send a message with a list the customer opens to choose from |
+| `whatsapp_send_location` | Send a location with name and address |
+| `whatsapp_send_contacts` | Send contact cards |
+| `whatsapp_upload_media` | Upload media from a public URL for use in messages |
+| `whatsapp_get_media_info` | Get details and a download link for uploaded media |
+| `whatsapp_delete_media` | Delete uploaded media |
+| `whatsapp_list_phone_numbers` | List phone numbers on the WhatsApp Business Account |
+| `whatsapp_get_phone_number` | Get details for one phone number |
+| `whatsapp_list_message_templates` | List message templates (optionally filter by status) |
+| `whatsapp_get_template_status` | Get the approval status of a template |
+| `whatsapp_create_message_template`, `whatsapp_upsert_message_template`, `whatsapp_delete_message_template` | Create, update, or delete templates |
+| `whatsapp_get_business_profile`, `whatsapp_update_business_profile` | Read or update the business profile |
 
-All send tools accept an optional per-call `phone_number_id` override. Otherwise the connector uses the ID from your connection.
+The connector has more administrative tools too, for Flows, QR codes, groups, blocking users, commerce settings, and phone registration. Open the instance on the **MCP** page to see the full list.
+
+`whatsapp_send_message`, `whatsapp_send_media`, `whatsapp_send_reaction`, `whatsapp_mark_as_read`, and `whatsapp_send_template_message` accept an optional per-call `phone_number_id`. Otherwise the connector uses the ID from your connection. The interactive, location, and contact tools take the recipient as `to_number` and require `phone_number_id`.
+
+WhatsApp only allows free-form messages, media, and interactive messages within 24 hours of the customer's last message to you. Outside that window, use a template.
 
 ## Example
 
@@ -92,26 +107,27 @@ Send a notification after a workflow step completes:
 ```json
 {
   "id": "notify-customer",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "WhatsApp notification",
-  "tool_name": "send_message",
+  "instance_id": "YOUR_WHATSAPP_INSTANCE_ID",
+  "tool_name": "whatsapp_send_message",
   "tool_args": {
     "to": "{{input.customer_phone}}",
-    "body": "Your order {{input.order_id}} is ready for pickup."
+    "text": "Your order {{input.order_id}} is ready for pickup."
   },
   "depends_on": ["validate-order"],
   "timeout_s": 30
 }
 ```
 
-For marketing or outbound messages to users who have not messaged you in 24 hours, use `send_template_message` with an approved template.
+For marketing or outbound messages to users who have not messaged you in 24 hours, use `whatsapp_send_template_message` with an approved template.
 
 ## Templates
 
 WhatsApp requires pre-approved templates for most outbound business messaging:
 
-1. Call `list_message_templates` to find an approved template name and language
-2. Use `send_template_message` with header, body, and button parameters
+1. Call `whatsapp_list_message_templates` to find an approved template name and language
+2. Use `whatsapp_send_template_message` with header, body, and button parameters
 
 While your Meta app is in **development mode**, add recipient test numbers under WhatsApp → API setup.
 
@@ -124,8 +140,8 @@ Stored in your connection / MCP instance profile:
 | `access_token` | Yes | System User or exchanged OAuth token |
 | `business_account_id` | Yes | WABA ID |
 | `phone_number_id` | Recommended | Default sender phone number |
-| `api_base` | No | Default `https://graph.facebook.com` |
-| `api_version` | No | Default `v20.0` |
+| `api_base` | No | Meta Graph API base URL (leave empty for the default) |
+| `api_version` | No | Meta Graph API version, for example `v20.0` (leave empty for the default) |
 
 ## Troubleshooting
 
@@ -133,7 +149,8 @@ Stored in your connection / MCP instance profile:
 |-------|-----|
 | `401` / token errors | Regenerate System User token; update connection |
 | Message not delivered (dev mode) | Add recipient as a test number in Meta API setup |
-| Template rejected | Use only `APPROVED` templates from `list_message_templates` |
+| Template rejected | Use only `APPROVED` templates from `whatsapp_list_message_templates` |
+| Free-form message not delivered | The customer has not messaged you in the last 24 hours. Send an approved template with `whatsapp_send_template_message` instead |
 | Wrong sender | Pass `phone_number_id` explicitly or update connection default |
 
 See [Troubleshooting](/platform/troubleshooting) for MCP binding and OAuth issues.

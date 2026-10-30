@@ -1,28 +1,48 @@
 ---
 title: Platform MCP
-description: Connect Cursor, Claude, and other MCP clients to AgentRuntime workflows, runs, and analytics.
+description: Let Claude, ChatGPT, Cursor, or another AI assistant build and run AgentRuntime workflows for you.
 ---
 
-**Platform MCP** exposes the AgentRuntime BFF as MCP tools so IDEs and AI assistants can list workflows, start runs, check analytics, and manage integrations — without crafting raw HTTP requests.
+**Platform MCP** is a connection that lets an AI assistant work with your AgentRuntime workspace. Once it is connected, you can ask things like "list my workflows", "build a workflow that emails me a daily summary", or "start the weekly report and tell me when it finishes". The assistant uses AgentRuntime tools instead of you writing API requests.
+
+This page is for people who use an AI assistant (Claude, ChatGPT, Cursor, Claude Code, and similar) and want it to manage AgentRuntime. **MCP** (Model Context Protocol) is the standard way assistants plug into tools.
 
 | | |
 |---|---|
-| **Endpoint** | `https://mcp.agentruntime.io/mcp` |
-| **Auth** | Personal access token (Bearer) |
-| **Transport** | Streamable HTTP (MCP) |
+| **Server URL** | `https://mcp.agentruntime.io/mcp` |
+| **Sign-in** | Your AgentRuntime account (Claude, ChatGPT), or a personal access token |
+| **Transport** | Streamable HTTP |
 
 <Warning>
-  Platform MCP is different from **connector MCP instances** used inside workflow runs — those tools execute as part of the workflow runtime, not through Platform MCP. Platform MCP drives the **Console API** from your IDE.
+  Platform MCP is not the same as the **MCP instances** you add under **MCP** in the Console. Those are connector tools (Gmail, Postgres, and so on) that workflow steps call while a run is executing. Platform MCP controls AgentRuntime itself from your assistant.
 </Warning>
 
-## Quick setup (Cursor)
+## Connect Claude or ChatGPT
 
 <Steps>
-  <Step title="Create a PAT">
-    In the [Console](https://console.agentruntime.io), go to access token settings and create a PAT with scopes `workflow:read`, `workflow:run`, and `mcp:execute` as needed. Copy the token — it is shown once.
+  <Step title="Add a custom connector">
+    In Claude or ChatGPT, open the connectors settings and add a custom connector. Use the server URL `https://mcp.agentruntime.io/mcp`.
   </Step>
-  <Step title="Add the MCP server">
-    In Cursor, open MCP settings and add a remote server:
+  <Step title="Sign in">
+    The assistant sends you to an AgentRuntime sign-in page. Sign in with your usual account. If you belong to more than one workspace, choose the one to use.
+  </Step>
+  <Step title="Check it works">
+    Ask the assistant to run `ar_get_started`. **What you should see:** your workspace name and projects, plus suggestions for what to do next.
+  </Step>
+</Steps>
+
+You do not create or paste a token with this method.
+
+## Connect with a token
+
+Use a token for tools that cannot sign in, and for scripts.
+
+<Steps>
+  <Step title="Create a token">
+    In the [Console](https://console.agentruntime.io), open **Settings → API keys** and click **Create API key**. Pick the **Run workflows** template, or choose scopes yourself (see [Scopes](#scopes-for-a-token)). Copy the token. It is shown once.
+  </Step>
+  <Step title="Add the server to your assistant">
+    For Cursor, add a remote server in the MCP settings:
 
     ```json
     {
@@ -32,121 +52,139 @@ description: Connect Cursor, Claude, and other MCP clients to AgentRuntime workf
       }
     }
     ```
+
+    Claude Code, Codex, and other clients that support remote HTTP servers use the same URL and header.
   </Step>
-  <Step title="Verify connection">
-    Ask the assistant to call `ar_health_summary` or `workflows_list` to confirm the PAT resolves to your workspace.
+  <Step title="Check it works">
+    Ask the assistant to call `ar_get_started` or `workflows_list`.
   </Step>
 </Steps>
 
-The same URL and Bearer header work in Claude Code, OpenAI Codex CLI, and other MCP clients that support remote HTTP servers.
+A token already belongs to one workspace, so you do not set a workspace header.
 
-## Authentication model
+## Scopes for a token
 
-- Send your PAT as `Authorization: Bearer pat_...` on every MCP request
-- The BFF infers **tenant**, **project**, and **user** from PAT introspection — do not set `X-Tenant-Id` manually
-- Your PAT must map to a user with the required project role (**project_contributor** for writes)
+A token only lets the assistant do what its scopes and your role allow.
 
-## Tool groups
+| You want the assistant to… | Scopes |
+|----------------------------|--------|
+| Look around: list workflows and runs | `workflow:read` |
+| Run workflows | `workflow:read`, `workflow:run`, `mcp:execute` |
+| Build and edit workflows | add `workflow:edit` |
+| Browse and set up connectors and connections | `mcp:read`, `mcp:write` |
+| Manage agents | `agent:read`, `agent:write` |
+| Read analytics | `analytics:read` |
+| Complete approval tasks | `task:complete:agent_review` or `task:complete:on_behalf` |
 
-Tools are organized into groups. Production deployments may disable sensitive groups.
+If a tool fails with `403`, the token is missing a scope or your role is too low. See [API authentication](/api/authentication).
 
-| Group | Tools | Risk level |
-|-------|-------|------------|
-| **core** | Workflows, runs, human tasks, analytics, health | Standard |
-| **catalog** | `catalog_bff_request` — generic `/v1/mcp/*` passthrough | Standard |
-| **memory** | Search, episodes, propose/confirm items | Standard |
-| **chat** | List conversations, send messages | Standard |
-| **files** | Work file list and metadata | Standard |
-| **websocket** | `workflows_stream_websocket` — bounded WS read | Standard |
-| **vault** | List secrets; read/write with **risk** | Sensitive |
-| **pat** | List/revoke; create/reveal with **risk** | Sensitive |
-| **inbound** | List/delete webhooks; create with **risk** | Sensitive |
-| **llm_keys** | Catalog; mutate/reveal with **risk** | Sensitive |
+## Work in more than one workspace
 
-Tools marked **risk** return secrets (vault values, PAT plaintext, webhook signing secrets, LLM API keys). These are hidden in production when the `risk` group is disabled.
+When you connect by signing in, the connection works in one workspace at a time. Ask the assistant to list your workspaces (`ar_workspaces_list`) and switch (`ar_workspace_switch`). The switch applies to your next request. A connection made with a token cannot switch, because the token belongs to one workspace.
 
-## Core tools (workflows and runs)
+## What the assistant can do
 
-| Tool | BFF endpoint | Purpose |
-|------|--------------|---------|
-| `workflows_list` | `GET /v1/workflows` | List workflows |
-| `workflows_get` | `GET /v1/workflows/{id}` | Get workflow graph |
-| `workflows_create` | `POST /v1/workflows` | Create draft |
-| `workflows_patch` | `PATCH /v1/workflows/{id}` | Update draft |
-| `workflows_publish_version` | `POST /v1/workflows/{id}/versions` | Publish |
-| `workflows_validate` | `POST /v1/workflows/{id}/validate` | Dry-run |
-| `workflows_execute_command` | `POST /v1/workflows/{id}/command` | Start/pause/resume/stop; response includes `run_id` (optional client `run_id` on start) |
-| `workflows_list_runs` | `GET /v1/workflows/{id}/runs` | List runs (use when `run_id` is unknown) |
-| `runs_get_summary` | `GET /v1/workflows/{id}/runs/{run_id}/summary` | Preferred run status read (`orchestration_phase`, `session_id`, `run_complete`) |
-| `runs_list_tenant` | `GET /v1/runs` | Tenant run feed |
-| `runs_list_events` | `GET /v1/workflows/{id}/runs/{run_id}/events` | Event log |
-| `runs_get_context` | `GET /v1/workflows/{id}/runs/{run_id}/context` | Run variables |
+The assistant sees these tools. You do not need to remember the names. Describe what you want in plain words.
 
-## Human task tools (approvals)
+### Get started and find your way
 
-Runs blocked on a `human_task` step stay **`running`** until a task is completed. Use these tools instead of inferring state from run events alone.
+| Tool | What it does |
+|------|--------------|
+| `ar_get_started` | Run this first. It returns your workspace, projects, what you may do, and a recommended plan for common jobs |
+| `ar_workspaces_list`, `ar_workspace_switch` | List your workspaces and switch (sign-in connections only) |
+| `projects_list` | List your projects |
+| `ar_builtin_tools_list` | List the built-in tools workflows can use |
 
-| Tool | BFF endpoint | Purpose |
-|------|--------------|---------|
-| `tasks_list_pending` | `GET /v1/tasks/pending` | Tenant-wide approval inbox |
-| `tasks_list_pending_run` | `GET /v1/workflows/{id}/runs/{run_id}/tasks/pending` | Pending tasks for one run |
-| `tasks_complete` | `POST /v1/workflows/{id}/runs/{run_id}/tasks/{task_id}/complete` | Approve or reject (`approved: true\|false`) |
+### Workflows
 
-After `workflows_execute_command`, save `run_id` from the response and poll `runs_get_summary` until the run completes, fails, or blocks. Call `tasks_list_pending_run` (or `tasks_list_pending`) to detect approval gates before reporting success.
+| Tool | What it does |
+|------|--------------|
+| `workflows_list`, `workflows_get` | List workflows and read one |
+| `workflows_create`, `workflows_update` | Create a workflow and edit its Live copy. Saves take effect at once |
+| `workflows_archive` | Archive a workflow |
+| `workflows_validate` | Check a workflow without running it |
+| `workflows_graph_schema`, `workflows_authoring_contract`, `workflows_llm_step_contract` | Give the assistant the rules for writing valid steps |
+| `workflows_publish_version`, `workflows_list_versions` | Freeze the Live copy as a numbered version, and list versions |
+| `workflows_list_revisions`, `workflows_restore_revision` | See the save history and put an earlier save back |
+| `workflows_package_update_preview`, `workflows_package_update`, `workflows_package_install_update` | Update a workflow you installed from the marketplace |
 
-## Analytics tools
+### Run, wait, and approve
 
-| Tool | Metric |
-|------|--------|
-| `analytics_live_runs` | Currently active runs |
-| `analytics_success_rate` | Success percentage |
-| `analytics_credits_consumed` | Credits used |
-| `analytics_runs_timeseries` | Runs over time |
-| `analytics_usage_timeseries` | Usage over time |
+| Tool | What it does |
+|------|--------------|
+| `workflow_run` | Start a run, and optionally wait for it |
+| `workflow_await` | Wait for a run that is already going |
+| `workflow_inspect` | Read what a run did and what it is waiting for |
+| `workflow_approve` | Approve or reject a waiting human task, after you have seen it |
+| `workflows_execute_command` | Lower-level start, pause, resume, and stop |
+| `workflows_list_runs`, `runs_list_tenant`, `runs_get_summary`, `runs_list_events`, `runs_get_context` | Read run lists, status, events, and results |
+| `tasks_list_pending`, `tasks_list_pending_run`, `tasks_complete` | List and complete human tasks |
+| `workflows_stream_websocket` | Read a short window of live events from a run |
 
-## Catalog passthrough
+A run that reaches a human step stays **running** until someone completes the task. After starting a run, ask the assistant to check for waiting tasks before it reports success.
 
-`catalog_bff_request` is a generic tool for any `/v1/mcp/*` BFF route — list servers, create instances, validate bindings, list tools, and more. Pass `method`, `path`, optional `query`, and `body`.
+### Connectors, connections, and MCP servers
 
-Example paths:
+| Tool | What it does |
+|------|--------------|
+| `catalog_connectors_browse`, `catalog_tools_search`, `catalog_tools_schema` | Browse connectors and find the right tool |
+| `catalog_instances_*` | List, create, update, and archive MCP instances, and connect them to a connection |
+| `catalog_connections_*`, `connections_google_*`, `connections_whatsapp_*` | Create and manage connections, including Google and WhatsApp |
+| `catalog_servers_*` | Register and validate your own MCP servers |
+| `catalog_config_profiles_*` | Manage instance config profiles |
 
-- `GET /v1/mcp/instances`
-- `POST /v1/mcp/instances/{id}/validate`
-- `GET /v1/mcp/platform-catalog`
+### Databases, apps, files, and packages
 
-Paths containing `/credentials` require the **risk** group to be enabled.
+| Tool | What it does |
+|------|--------------|
+| `tenantdata_*` | List and create workspace databases, and migrate their schema |
+| `surfaces_*` | Build and publish apps |
+| `files_*` | List, upload, and download work files |
+| `marketplace_*` | Plan and apply installs of marketplace packages, and publish your own |
 
-## Memory tools
+### Webhooks, analytics, and keys
 
-| Tool | Purpose |
-|------|---------|
-| `memory_search` | Semantic search over long-term memory |
-| `memory_get_episode` | Fetch an episode bundle |
-| `memory_get_continuation` | Latest open episode state |
-| `memory_propose_items` | Propose memory items |
-| `memory_confirm_item` | Confirm an item |
+| Tool | What it does |
+|------|--------------|
+| `inbound_webhooks_list`, `inbound_webhooks_create`, `inbound_webhooks_update`, `inbound_webhooks_delete` | Manage inbound webhooks |
+| `analytics_live_runs`, `analytics_success_rate`, `analytics_execution_duration`, `analytics_runs_count`, `analytics_steps_executed`, `analytics_credits_consumed`, `analytics_runs_timeseries`, `analytics_usage_timeseries` | Read analytics |
+| `pats_*`, `llm_provider_keys_*` | Manage API keys and LLM provider keys |
 
-## Live run streaming
+<Note>
+  Tools that create or reveal secrets (new API keys, webhook signing secrets, LLM provider keys, connection credentials) are sensitive. They may be turned off in your workspace's Platform MCP. If the assistant says a tool is not available, use the Console for that task.
+</Note>
 
-`workflows_stream_websocket` opens a bounded WebSocket read on `/v1/workflows/{workflow_id}/stream` and returns collected frames. Defaults cap duration, message count, and total bytes to prevent runaway reads.
+## Which copy of a workflow runs
 
-## Example assistant prompts
+Each workflow has one editable **Live** copy, plus optional numbered **published versions**. By default, assistant-started runs use Live, so a change the assistant saves is used on the next run, with no publishing step. The assistant reports what ran. Publish and pin a version only when something (a webhook, another workflow) must keep running a stable copy.
 
-- "List my workflows and show the three most recent runs"
-- "Validate workflow `{id}` and start a run with params `{\"env\": \"staging\"}`"
-- "How many credits did my project consume this week?"
-- "Search memory for decisions about the Q2 pricing workflow"
+## Example requests
 
-## Security practices
+- "List my workflows and show the three most recent runs."
+- "Check the daily report workflow for errors, then start a run with `{ "env": "staging" }`."
+- "How many credits did my project use this week?"
+- "Build a workflow that checks my Postgres database every morning and emails me a summary. Validate it before running."
 
-- Use the minimum PAT scopes needed for your workflow
-- Prefer a dedicated PAT for IDE use — revoke it without affecting production automation
-- Do not enable **risk** tools unless you need vault, PAT, or credential management from the IDE
-- Rotate PATs if they appear in logs or shared configs
+## Common problems
 
-## Related docs
+| Problem | What to do |
+|---------|------------|
+| The assistant cannot sign in | Try again from the connector settings, or connect with a token instead |
+| `403` or "insufficient scopes" | Add the missing scope to the token (see [Scopes](#scopes-for-a-token)) |
+| It shows the wrong workspace | Ask it to list workspaces and switch (sign-in connections only) |
+| A run never finishes | It is probably waiting on a human task. Ask the assistant to list pending tasks |
+| An MCP step in a run fails | The instance may not be connected. Ask the assistant to check the instance's connection, or see [MCP instances](/integrations/mcp-instances) |
 
-- [Platform MCP authoring skills](/api/platform-mcp-authoring-skills) — public skill bundles for external agents (raw GitHub fetch, no private repo)
-- [API authentication](/api/authentication) — PAT scopes and creation
-- [MCP instances](/integrations/mcp-instances) — connector tools for workflow runs (different from Platform MCP)
-- [API reference](/api/reference) — full REST endpoint catalog
+## Stay safe
+
+- Use a dedicated token for each assistant, so you can revoke it without affecting other automation.
+- Give it only the scopes it needs.
+- Review what the assistant plans before it approves human tasks or changes production workflows.
+- Revoke any token that appears in logs or shared configuration.
+
+## Next steps
+
+- [Platform MCP authoring skills](/api/platform-mcp-authoring-skills): guides your assistant can read to design workflows, databases, and apps well
+- [API authentication](/api/authentication)
+- [MCP instances](/integrations/mcp-instances): connector tools used inside workflow runs
+- [API reference](/api/reference)

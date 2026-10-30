@@ -1,90 +1,104 @@
 ---
 title: Google Tasks connector
-description: Manage task lists and to-dos from AgentRuntime workflows.
+description: Create, update, and complete Google Tasks and manage task lists from AgentRuntime workflows.
 ---
 
-The **google-tasks** MCP adapter wraps the [Google Tasks API](https://developers.google.com/tasks/reference/rest). Use it in workflow **mcp_call** steps to create follow-ups from form submissions, list open tasks for digests, mark items complete after approvals, and organize work across multiple task lists — lightweight task tracking without a full project-management tool.
+The **google-tasks** connector uses the [Google Tasks API](https://developers.google.com/tasks/reference/rest). Workflows can create follow-up tasks, list open tasks for a digest, update or complete them, and organize task lists, without a full project management tool.
 
 ## Prerequisites
 
-- A Google account with Google Tasks access
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
-- **project_contributor** access in your workspace
+- A Google account that can use Google Tasks.
+- A Google account connection in AgentRuntime with the **Google Tasks** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Google Tasks** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Enable Tasks">
-    On your Google connection, enable the **Tasks** service so the account exposes Tasks API scopes.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Tasks** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-tasks MCP instance">
-    Go to **MCP**, click **Add instance** for **google-tasks**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_tasklists` before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_task_list_tasklists` tool from your **Google Tasks** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. It lists your task lists and their IDs.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **Support ticket follow-up** — Zendesk or webhook payload → `create_task` in "Support queue" list with due date → **gmail** assignee notification.
-- **Daily task digest** — Morning schedule → `list_tasks` with `show_completed: false` → LLM priority summary → **slack** post to team channel.
-- **Form-to-action** — **google-form** new response → `create_task` with respondent notes → `update_task` when **human_task** resolves the case.
-- **Sprint cleanup** — End of sprint cron → `list_tasks` filtered by `completed_min` → archive notes to **google-sheets** → `clear_completed_tasks` on the list.
+- **Follow-ups.** A support webhook creates a task with `google_task_create_task` in a "Support queue" list, with a due date.
+- **Daily task digest.** `google_task_list_tasks` with `show_completed` `false` feeds an LLM summary.
+- **Form to action.** A new form response creates a task, and `google_task_update_task` completes it after a **Human** step.
+- **Cleanup.** After archiving, `google_task_clear_completed_tasks` clears finished tasks from a list.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `update_tasklist` | Rename an existing Google task list. |
-| `get_task` | Get a Google task by task ID. |
-| `create_task` | Create a task in a Google task list. |
-| `delete_task` | Delete a task from a Google task list. |
-| `move_task` | Move a task to a new parent or position within its list. |
-| `clear_completed_tasks` | Clear completed tasks from a Google task list. |
-| `create_tasklist` | Create a Google task list. |
-| `delete_tasklist` | Delete a Google task list and all of its tasks. |
-| `list_tasks` | List tasks in a Google task list, with optional filters. |
-| `update_task` | Update an existing Google task. |
-| `list_tasklists` | List the authenticated user's Google task lists. |
-| `get_tasklist` | Get a Google task list by task list ID. |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+The tool names use `google_task_`, not `google_tasks_`. `google_task_delete_tasklist` deletes a list and all its tasks.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_task_clear_completed_tasks` | Write | Clear completed tasks from a Google task list. | `task_list_id` |
+| `google_task_create_task` | Write | Create a task in a Google task list. | `task_list_id`, `title` |
+| `google_task_create_tasklist` | Write | Create a Google task list. | `title` |
+| `google_task_delete_task` | Delete | Delete a task from a Google task list. | `task_list_id`, `task_id` |
+| `google_task_delete_tasklist` | Delete | Delete a Google task list and all of its tasks. | `task_list_id` |
+| `google_task_get_task` | Read | Get a Google task by task ID. | `task_list_id`, `task_id` |
+| `google_task_get_tasklist` | Read | Get a Google task list by task list ID. | `task_list_id` |
+| `google_task_list_tasklists` | Read | List the authenticated user's Google task lists. | — |
+| `google_task_list_tasks` | Read | List tasks in a Google task list, with optional filters. | `task_list_id` |
+| `google_task_move_task` | Write | Move a task to a new parent or position within its list. | `task_list_id`, `task_id` |
+| `google_task_update_task` | Write | Update an existing Google task. | `task_list_id`, `task_id` |
+| `google_task_update_tasklist` | Write | Rename an existing Google task list. | `task_list_id`, `title` |
 
 ## Example
 
-Create a follow-up task when a high-priority form response arrives:
+Create a follow-up task. `due` is an RFC 3339 timestamp or `YYYY-MM-DD`.
 
 ```json
 {
   "id": "create-followup",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Create support follow-up",
-  "tool_name": "create_task",
+  "tool_name": "google_task_create_task",
   "tool_args": {
     "task_list_id": "{{input.support_task_list_id}}",
     "title": "Follow up: {{input.respondent_email}}",
-    "notes": "Form response ID: {{input.response_id}}\n\n{{input.summary}}",
+    "notes": "{{input.summary}}",
     "due": "{{input.due_date}}"
   },
-  "depends_on": [],
   "timeout_s": 30
 }
 ```
 
+## Configuration
+
+Google connectors take no keys from you: the permissions come from your Google account connection.
+
+**Google permissions (scopes) requested when you tick this service:**
+
+- `https://www.googleapis.com/auth/tasks`
+
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
+
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on Google connection | Re-authorize OAuth; Tasks scopes may have been revoked |
-| Task list not found | Run `list_tasklists` to resolve the correct `task_list_id` — titles are not IDs |
-| Subtask positioning wrong | Pass `parent` for subtasks and `previous` sibling ID for ordering |
-| Completed tasks still listed | Set `show_completed: false` on `list_tasks`, or run `clear_completed_tasks` after archival |
+| Problem | What to do |
+|---------|------------|
+| Task list not found | Run `google_task_list_tasklists` and use the ID, not the title. |
+| Subtask in the wrong position | Set `parent` to the parent task ID and `previous` to the sibling it should follow. |
+| Completed tasks still appear | Set `show_completed` to `false` on `google_task_list_tasks`. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

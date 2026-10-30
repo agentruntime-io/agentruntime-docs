@@ -1,132 +1,139 @@
 ---
 title: Command Center
-description: Review approvals, monitor active runs, and recover from failures in the AgentRuntime run inbox.
+description: See what needs your attention across the workspace: approvals, replies, missed tasks, runs in progress, and runs that stopped with errors.
 ---
 
-**Command Center** is your workspace-wide run inbox. Open it from the Console sidebar at **Command Center** (`/command-center`).
+**Command Center** is the inbox for everything running in your workspace. Open it from the Console sidebar (**Command Center**, at `/command-center`).
 
-Use it when you need to approve human tasks, pause or stop runs, or triage recent failures — without opening every workflow in Workflow Studio.
+**Who this is for:** people who answer human tasks (approvals, replies, questions) and people who keep an eye on runs.
+
+**What you will do on this page:** answer tasks, follow up on missed ones, pause or stop a run, and find out why a run stopped.
 
 ## What you see
 
-Command Center organizes runs into four sections:
+A strip of four chips runs across the top. Each chip shows a count; click one to switch the list below it.
 
-| Section | What it shows |
-|---------|---------------|
-| **Awaiting approval** | Runs paused on `human_task` steps with pending approve/reject actions |
-| **Stopping gracefully** | Runs in `draining` status — graceful stop in progress |
-| **Running now** | Live, queued, paused, and starting runs (excluding draining) |
-| **Failed recently** | Runs that failed or stopped in the last 24 hours |
+| Chip | What the list shows |
+|---|---|
+| **Needs you** | Human tasks waiting for a person: approvals, replies, and questions from agents. List title: **Needs your attention**. |
+| **Missed** | Tasks that nobody answered before their timeout, from the last 7 days, that nobody has followed up yet |
+| **In progress** | Runs that are running, starting, queued, paused, or stopping. List title: **In progress**. |
+| **Issues today** | Runs that failed, were stopped, or were cancelled in the last 24 hours. List title: **Stopped with errors**. |
 
-The page header shows badges when action is needed:
+<Frame caption="Command Center with one task under Needs you">
+  <img src="/images/workflows/command-center-overview.png" alt="Command Center with the four chips Needs you, Missed, In progress and Issues today, and one approval task for Refund request approval with View, Approve and Reject buttons" />
+</Frame>
 
-- **N pending** — human tasks waiting for approval
-- **N draining** — graceful stops still winding down
+When you open the page, Command Center picks the first chip that has something in it: **Needs you**, then **In progress**, then **Issues today**. The page refreshes by itself: every 3 seconds while something is waiting or running, otherwise every 30 seconds (the **Missed** list every minute).
 
-Data refreshes automatically every 3 seconds when there are pending approvals or active runs, otherwise every 30 seconds.
+## Needs you: answer tasks
 
-## Awaiting approval
+Tasks are listed oldest first, so the person who has waited longest is answered first. A task waiting more than 10 minutes is highlighted. Each row shows the workflow, a label for the kind of task, and a short line of context. If you have more than three tasks, filter chips appear: **All**, **Replies**, **Questions**, **Approvals**.
 
-When a workflow hits a `human_task` step, the run pauses and tasks appear here grouped by workflow and run.
+There are three kinds of task:
 
-For each pending task you see:
+| Kind | What you do |
+|---|---|
+| **Approval** | Click **Approve** or **Reject**. **Reject** opens an optional **Reason** box. If the workflow sends rejected work back for changes, the button reads **Send back** and asks what should change. |
+| **Reply needed** | Click **Reply**, write your message, and click **Send**. Use **Attach file** to add files. **Don't reply** closes the task without sending anything. |
+| **Question from the agent** | Click **Answer**, type your answer, and click **Send answer**. **End run** stops the run instead. |
 
-- Workflow name and run ID (first 8 characters)
-- Task type (for example, `approval`)
-- Step ID that triggered the pause
+An agent can also leave a **The agent's assumption**: it carried on with a guess and asks you to check it. Click **Looks right**, **Dismiss**, or **Correct it** (then **Send correction**). The run does not wait for these.
 
-### Approve or reject
+For tasks that come from a conversation with a contact (for example on WhatsApp), the row has a **Conversation** button. It opens the whole thread with that contact so you can read it before you answer. See [Conversation sessions](/workflows/conversation-sessions#hand-off-to-a-person).
 
-<Steps>
-  <Step title="Review the task">
-    Read the task type and step ID. For full payload context (draft email, proposed data changes), click **Review in studio** to open Workflow Studio on the run context tab.
-  </Step>
-  <Step title="Decide">
-    Click **Approve** to continue the run with an approval result, or **Reject** to stop the branch with a rejection result.
-  </Step>
-  <Step title="Confirm the run resumes">
-    After approval, the task disappears from Command Center and the run continues. Check **Running now** or open the run in Studio to watch downstream steps.
-  </Step>
-</Steps>
+Click **View** on any row to open the run in a side panel (see [Look at a run](#look-at-a-run)). After you answer, the task leaves the list and the run continues.
 
 <Note>
-  Approve/reject here is the same action as completing a task in Workflow Studio or via `POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete`. See [Human tasks](/workflows/human-tasks).
+  Answering here is the same as answering inside Workflow Studio or through the API. See [Human tasks](/workflows/human-tasks).
 </Note>
 
-## Running now
+## Missed: follow up on tasks nobody answered
 
-Active runs appear with status badges:
+A task can close on its own when its timeout runs out: it was handed back to the agent, approved or rejected automatically, could not be escalated, or simply expired. The person who should have answered may never know. The **Missed** list keeps these for 7 days.
+
+Each row shows the workflow, how the task ended (for example **Handed back**, **Approved automatically**, **Rejected automatically**, **Not escalated (no backup approvers)**, **Expired**), how long it waited, and the last messages the contact sent while they waited.
+
+- **Conversation** opens the contact's thread (read-only).
+- **View** opens the run.
+- **Mark followed up** removes the task from the list once you have dealt with it, for example by calling the customer back.
+
+## In progress: watch and control runs
+
+Runs are grouped by workflow. Use the **Filter…** box to find one workflow, and **Load more runs** to see older ones. Each run shows a status:
 
 | Status | Meaning |
-|--------|---------|
-| **running** | Steps are executing |
-| **paused** | Operator paused the run — no new steps schedule until resumed |
-| **pending** / **queued** / **starting** | Run is waiting to start or between states |
-| **draining** | Graceful stop — shown in the separate draining section |
+|---|---|
+| **Running** | Steps are executing |
+| **Paused** | Paused by a person, or waiting for a person. No new steps start until it resumes or the task is answered. |
+| **Pending**, **Queued**, **Starting** | Waiting to start |
+| **Draining** | A graceful stop is winding down |
+| **Stalled** | Looks active but has shown no progress for 2 hours or more |
 
 ### Run controls
 
-From **Running now** (and **Stopping gracefully**), you can:
+| Control | What it does |
+|---|---|
+| **Pause** | Stops new steps from starting. Steps already running can finish. Available while a run is **Running**. |
+| **Resume** | Continues a paused run |
+| **Stop** | Ends the run. The main **Stop** button is a **Force stop**. The arrow beside it offers **Force stop**, **Stop immediately**, and **Stop gracefully**. |
+| **Pause all**, **Resume all**, **Stop all** | The same, for every run in a workflow group |
 
-| Action | Effect |
-|--------|--------|
-| **Stop (immediate)** | Halt now — cancels in-flight MCP calls; default stop mode |
-| **Stop (graceful)** | Enter `draining` — let active steps finish, block new scheduling |
-| **Pause** | Pause scheduling; in-flight steps may complete |
-| **Resume** | Continue a paused run |
+**Stop gracefully** lets steps that are already running finish, never starts the rest, and ends the run as **Stopped**. The immediate options cancel tool calls that are in flight. A stopped run cannot be resumed.
 
-Click **Open run** to jump to Workflow Studio's event log for that run.
+<Frame caption="An in-progress run with the Stop menu open">
+  <img src="/images/workflows/command-center-in-progress-stop-menu.png" alt="The In progress list with one Paused run showing Resume, Stop and View buttons, and the Stop menu open with Force stop, Stop immediately and Stop gracefully" />
+</Frame>
 
-<Warning>
-  Immediate stop can leave downstream steps unexecuted. Graceful stop waits for in-flight work but never starts steps that were only pending. Both are terminal — you cannot resume a stopped run.
-</Warning>
+A run waiting on a person is not stuck. It is designed to wait until the task is answered.
 
-## Stopping gracefully
+## Issues today: why did a run stop?
 
-When you choose graceful stop, the run moves to **Stopping gracefully** until all in-flight steps complete. The badge reads **Draining**.
+Runs that failed, were stopped, or were cancelled in the last 24 hours appear under **Stopped with errors**, with a short reason:
 
-If a drain takes too long, escalate to **immediate stop** from the same row. A drain timeout surfaces as `DRAIN_TIMEOUT` in the failure log.
+| Reason shown | What it means |
+|---|---|
+| **MCP tool error** | A tool returned an error |
+| **LLM request failed** | A model call failed (key, model, or provider problem) |
+| **Insufficient credits** | The workspace is out of credits |
+| **Run timed out (no progress)** | The run made no progress within the allowed time |
+| **Graceful stop timed out** | A graceful stop did not finish in time |
+| **Stopped by operator** | A person stopped the run |
+| **Step failed**, **Human review step failed**, **Workflow failed** | A step, a human task, or the workflow itself failed |
+| **Service unavailable**, **Could not reach workflow service** | A temporary problem on the AgentRuntime side; start a new run |
 
-## Failed recently
+Click **View** to see the step-by-step events. See [Troubleshooting](/platform/troubleshooting) for fixes and [Run recovery](/workflows/run-recovery) for what you can do next.
 
-Runs that **failed** or were **stopped** in the last 24 hours appear here. Open the run in Workflow Studio to read step-level error messages and `failure_code` values.
+## Look at a run
 
-Common failure codes:
+**View** opens a side panel with the workflow name, how the run started (for example **Manual**), any task waiting on you (with its **Approve** and **Reject** buttons), and **Recent activity**, a short list of the latest run events. For runs that are in progress or have stopped, the panel also shows the status, any problem, and the run controls. Click **Open in Studio** to see the full run in the **Events** tab.
 
-| Code | Meaning |
-|------|---------|
-| `MCP_TOOL_FAILED` | MCP tool returned an error |
-| `LLM_REQUEST_FAILED` | LLM call failed (key, model, or provider error) |
-| `INSUFFICIENT_CREDITS` | Workspace out of credits |
-| `RUN_STALLED_OR_TIMED_OUT` | No progress within the timeout window |
-| `RUN_STOPPED` | Operator stopped the run |
-
-See [Troubleshooting](/platform/troubleshooting) for recovery steps.
+<Frame caption="The View panel of a run that is waiting for approval">
+  <img src="/images/workflows/command-center-view-panel.png" alt="The run side panel with the workflow name, a Needs your approval task with Approve and Reject buttons, a Recent activity list, and an Open in Studio button" />
+</Frame>
 
 ## When a run looks stuck
 
-Work through this checklist:
-
-1. **Check status in Command Center** — Is it `paused`, `draining`, or waiting on approval? Complete the human task or resume if paused.
-2. **Open the run in Studio** — Read the event log for the last step started. A step stuck in `running` may be waiting on a slow MCP call or LLM response.
-3. **Try pause then stop** — Pause prevents new steps. If still stuck, use immediate stop.
-4. **Check connections** — MCP binding failures often show as `MCP_TOOL_FAILED` on the first tool step. See [Troubleshooting](/platform/troubleshooting).
-5. **Check credits** — `INSUFFICIENT_CREDITS` blocks new runs and can fail in-flight billing gates.
-
-Runs waiting on human approval are **not stuck** — they are designed to pause until you approve or reject.
+1. Check its chip. If it is in **Needs you**, it is waiting for a person. Answer the task.
+2. If it is **Paused**, click **Resume** (unless you paused it on purpose).
+3. If it shows **Stalled**, click **View** and read the last events in **Recent activity**. A slow tool or model call is the usual cause.
+4. If nothing moves, click **Stop** and start a new run.
+5. If the same step keeps failing, check its connection and your credits. See [Troubleshooting](/platform/troubleshooting).
 
 ## API equivalents
 
 | Console action | API |
-|----------------|-----|
-| List pending tasks | `GET /v1/tasks/pending` |
-| Complete task | `POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` with `{ "approved": true\|false }` |
-| List tenant runs | `GET /v1/runs` |
-| Stop / pause / resume | `POST /v1/workflows/{id}/command` with `stop`, `pause`, or `resume` |
+|---|---|
+| List waiting tasks | `GET /v1/tasks/pending` |
+| List missed tasks | `GET /v1/tasks/missed` |
+| Mark a missed task followed up | `POST /v1/tasks/{task_id}/follow-up` |
+| Complete a task | `POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete` |
+| List runs | `GET /v1/runs` |
+| Stop, pause, resume | `POST /v1/workflows/{id}/command` with `stop`, `pause`, or `resume` |
 
-## Related docs
+## Next steps
 
-- [Runs and observability](/workflows/runs-and-command-center) — run lifecycle, failure badges
-- [Run recovery (roadmap)](/workflows/run-recovery) — planned continue-from-failure
-- [Human tasks](/workflows/human-tasks) — authoring approval gates
-- [Workflow patterns](/workflows/patterns) — approve-then-send and error handling
+- [Human tasks](/workflows/human-tasks): build approval and reply steps
+- [Runs and observability](/workflows/runs-and-command-center): the run lifecycle and step badges
+- [Run recovery](/workflows/run-recovery): after a failure
+- [Workflow patterns](/workflows/patterns)

@@ -7,54 +7,54 @@ areas:
   - workflows
   - api
   - billing
-summary: Platform v0.2.1 — server-side message queue, composer draft sync, conversation archive, stronger API permissions, lifecycle accountability timestamps, and Console auth polish.
+summary: Platform v0.2.1 — message queue, composer draft sync, conversation archive, stronger API permissions, lifecycle accountability timestamps, and Console auth polish.
 added:
-  - "**Message queue** — follow-up user messages persist as `queued` server-side and dispatch when the agent lane pauses or completes **GA**"
+  - "**Message queue** — follow-up user messages are saved as `queued` and sent when the agent pauses or completes **GA**"
   - "**Composer draft sync** — unsent text autosaves per conversation and thread; survives reloads and syncs across devices **GA**"
   - "**Conversation archive** — archive rooms from the header menu; archived conversations leave the active inbox without deleting history **GA**"
-  - "**Turn reload recovery** — refresh mid-stream and Space restores in-flight turn status from the turn-status API **GA**"
-  - "**Copilot execution lanes** — DM and agent rooms use isolated workflow starters so parallel chat surfaces do not share run state **GA**"
+  - "**Turn reload recovery** — refresh mid-stream and Space restores in-flight turn status **GA**"
+  - "**Isolated Autopilot conversations** — DM and agent rooms no longer share run state, so parallel chat surfaces stay independent **GA**"
   - "Console **Resend verification email** with classified errors (wrong password, wrong provider) — no support CTA on expected mistakes **GA**"
   - "Account **password change** and improved OAuth-linked profile updates in workspace settings **GA**"
-  - "**Stop session workflow** — graceful stop for an in-flight chat-bound run without orphan pending rows **GA**"
+  - "**Stop conversation workflow** — graceful stop for an in-flight chat-bound run without orphan pending rows **GA**"
 changed:
   - "Public API **`/v1/*` routes** enforce stronger permission checks — capabilities on membership or PAT scopes replace legacy role-only checks **GA**"
-  - "Console session handling — centralized token refresh and expiry handling for long-lived sessions"
-  - "**Lifecycle accountability** — `archived_at`/`archived_by`, `deleted_at`/`deleted_by`, `created_by`/`updated_by` on workspace entities; legacy `is_deleted` / `is_archived` flags retired"
-  - "Conversation membership checks added before enqueue, draft, and archive operations in chat"
+  - "Console session handling — more reliable token refresh and expiry handling for long-lived sessions"
+  - "**Lifecycle accountability** — workspace records now track who created, updated, archived or deleted them, and when; the legacy `is_deleted` / `is_archived` flags are retired"
+  - "Conversation membership is checked before queueing messages, saving drafts, and archiving in chat"
   - "Rate limiting added on login and verification endpoints"
-  - "Billing context resolver enriched with permission-aware entitlements on context load"
+  - "Billing entitlements now take permissions into account"
 fixed:
   - "Multi-turn Autopilot no longer **finalizes the workflow run on resume** when the graph uses a `chat_agent` step alias"
   - "Verification email resend surfaces a clear error when a redirect URI is rejected during sign-in"
-  - "Membership **reactivate** when re-adding a soft-deleted member instead of creating duplicates"
+  - "Re-adding a previously removed member **reactivates** the membership instead of creating duplicates"
 ---
 
-**Platform v0.2.1** builds on [v0.2.0](/changelog/2026-06-20) (session workflow and Continue on limit).
+**Platform v0.2.1** builds on [v0.2.0](/changelog/2026-06-20) (conversation workflows and Continue on limit).
 
 ## Workspace Chat
 
-**Message queue** — if a turn is still running, new user messages wait server-side with `queued` status and dispatch when the lane frees up, instead of failing or spawning duplicate runs. Users can cancel queued messages before dispatch.
+**Message queue** — if a turn is still running, new user messages wait with `queued` status and are sent when the agent is free, instead of failing or spawning duplicate runs. Users can cancel queued messages before they are sent.
 
-**Composer drafts** autosave unsent text scoped to tenant, user, conversation, and optional thread root — pick up where you left off on another device.
+**Composer drafts** autosave unsent text scoped to workspace, user, conversation, and optional thread — pick up where you left off on another device.
 
 **Archive** moves conversations out of the active inbox while preserving history and recording who archived and when.
 
-**Reload recovery** and **Continue on limit** sidebar UX work together: after refresh, Space restores the Continue prompt from persisted turn state.
+**Reload recovery** and **Continue on limit** sidebar UX work together: after refresh, Space restores the Continue prompt from the saved turn state.
 
-**Execution lanes** bind each copilot starter (DM vs agent room) to its own workflow binding so parallel chat surfaces do not share run state incorrectly.
+**Isolated conversations** keep DM and agent-room Autopilot conversations from sharing run state.
 
 ## Console
 
-**Resend verification email**, clearer auth error copy, **password change**, and centralized session refresh reduce friction in sign-in and account recovery flows.
+**Resend verification email**, clearer auth error copy, **password change**, and more reliable session refresh reduce friction in sign-in and account recovery flows.
 
 ## API and permissions
 
-Public API routes now enforce stronger permission checks aligned with membership capabilities and PAT scopes. If an integration suddenly receives `403`, verify the token's scopes and the user's project or tenant permissions — not only legacy role names.
+Public API routes now enforce stronger permission checks aligned with membership capabilities and PAT scopes. If an integration suddenly receives `403`, verify the token's scopes and the user's project or workspace permissions — not only legacy role names.
 
-OAuth profile updates, password change, PAT creation, MCP execute, onboarding, and billing handlers all participate in the same permission model.
+OAuth profile updates, password change, PAT creation, MCP execute, onboarding, and billing all follow the same permission model.
 
-**Lifecycle accountability** gives admins a clearer audit trail: who archived a conversation, who deleted a message, and when entity state changed — without relying on boolean `is_deleted` flags.
+**Lifecycle accountability** gives admins a clearer audit trail: who archived a conversation, who deleted a message, and when records changed — without relying on boolean `is_deleted` flags.
 
 ## Related docs
 

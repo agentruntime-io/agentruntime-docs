@@ -1,95 +1,69 @@
 ---
 title: API overview
-description: REST API surface for workflows, runs, integrations, and billing at api.agentruntime.io.
+description: What you can do with the AgentRuntime REST API, and where to start.
 ---
 
-The AgentRuntime **BFF API** is the public integration surface for all programmatic access. Base URL:
+The AgentRuntime **REST API** lets your own code do what you do in the Console: create and run workflows, approve human tasks, manage connections, and read usage. This page is for developers who are new to the API. It explains the basics and points you to the right next page.
 
-| Environment | URL |
-|-------------|-----|
-| Production | `https://api.agentruntime.io` |
-| Development | `https://api-dev.agentruntime.io` |
+**Base URL:** `https://api.agentruntime.io`
 
-Authenticate with a session cookie (browser) or [personal access token](/api/authentication) (scripts and services).
+## What you need
 
-For copy-paste curl and JSON samples, see [API examples](/api/examples).
+- An AgentRuntime workspace, and a role that allows what you want to do ([roles](/platform/roles-permissions))
+- A personal access token (PAT). See [API authentication](/api/authentication) to create one in a few clicks
+- A tool that can send HTTPS requests, such as `curl`
 
-## Request context
+## Try it in one minute
 
-Tenant- and project-scoped requests include context headers:
-
-| Header | Description |
-|--------|-------------|
-| `X-Tenant-Id` | Workspace (tenant) identifier |
-| `X-Project-Id` | Project scope for workflow and integration operations |
-
-The Console sets these automatically. API clients must send them on scoped endpoints.
-
-## Major endpoint groups
-
-### Workflows and runs
-
-| Area | Base path | Notes |
-|------|-----------|-------|
-| Workflows | `/v1/workflows` | CRUD, versions, validate |
-| Run commands | `/v1/workflows/{id}/command` | `start`, `pause`, `resume`, `stop` |
-| Runs feed | `/v1/runs` | Tenant-wide run list |
-| Events | `/v1/workflows/{id}/runs/{runID}/events` | Step log |
-| Stream | `/v1/workflows/{id}/stream` | WebSocket live events |
-| Human tasks | `/v1/tasks/pending`, `/v1/workflows/.../tasks/...` | HITL inbox |
-
-Requires **project_viewer** (read) or **project_contributor** (write/run).
-
-### Integrations
-
-| Area | Base path |
-|------|-----------|
-| Connections | `/v1/connections` |
-| MCP servers & instances | `/v1/mcp/*` |
-| Inbound webhooks | `/v1/inbound-webhooks` |
-
-### AI and chat
-
-| Area | Base path |
-|------|-----------|
-| Autopilot | `/v1/autopilot/*` |
-| Chat proxy | `/v1/chat/*` |
-| Memory | `/v1/memory/*` |
-| LLM catalog | `/v1/llm-*` |
-
-### Platform
-
-| Area | Base path |
-|------|-----------|
-| Auth | `/v1/auth/*` |
-| Billing | `/v1/billing/*` |
-| Analytics | `/v1/analytics/*` |
-| PATs | `/v1/pats` |
-| Onboarding | `/v1/onboarding/*` |
-
-## Example: start a workflow run
+Create a token with the `workflow:read` scope, then run:
 
 ```bash
-curl -X POST "https://api.agentruntime.io/v1/workflows/{workflow_id}/command" \
-  -H "Authorization: Bearer YOUR_PAT" \
-  -H "X-Tenant-Id: your-tenant" \
-  -H "X-Project-Id: your-project" \
-  -H "Content-Type: application/json" \
-  -d '{"command": "start", "params": {"customer_id": "123"}}'
+curl "https://api.agentruntime.io/v1/workflows" \
+  -H "Authorization: Bearer pat_YOUR_TOKEN"
 ```
 
-## Platform MCP
+**What you should see:** a JSON list of the workflows your token can see. If you get `401`, check the token. If you get `403`, add the missing scope.
 
-For IDE integrations, use **Platform MCP** at `https://mcp.agentruntime.io/mcp` with a PAT. It exposes Console operations as MCP tools rather than raw REST.
+To start a run:
 
-## Internal services
+```bash
+curl -X POST "https://api.agentruntime.io/v1/workflows/WORKFLOW_ID/command" \
+  -H "Authorization: Bearer pat_YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"command": "start", "params": {"trigger_payload": {"customer_id": "123"}}}'
+```
 
-AgentRuntime's engine and backend services are **internal** and not part of the public API surface. Customer integrations should always go through the public API (`https://api.agentruntime.io`) — never call internal service URLs directly.
+The token needs `workflow:run` (and `mcp:execute` if the workflow has MCP steps). The reply contains a `run_id` you can use to follow the run. More samples are in [API examples](/api/examples).
 
-## Rate limits and errors
+## What the API covers
 
-The API returns standard HTTP status codes. `401` and `403` indicate auth or role failures. `422` often signals validation errors from dry-run or graph checks. Retry idempotent reads on `5xx` with exponential backoff.
+| Area | Paths | Use it to… |
+|------|-------|------------|
+| Workflows | `/v1/workflows` | Create, edit, publish, validate, and run workflows |
+| Runs | `/v1/runs`, `/v1/workflows/{id}/runs/...` | Follow runs and read their events and results |
+| Human tasks | `/v1/tasks/pending`, `/v1/workflows/.../tasks/...` | List and complete approvals |
+| Webhooks | `/v1/inbound-webhooks` | Let other systems start runs |
+| Integrations | `/v1/connections`, `/v1/mcp/*` | Manage connections, MCP servers, and instances |
+| AI | `/v1/autopilot/*`, `/v1/memory/*` | Autopilot and memory |
+| Account | `/v1/billing/*`, `/v1/analytics/*`, `/v1/pats` | Usage, billing, analytics, and API keys |
 
-See the full [API reference](/api/reference) and [Platform MCP](/api/platform-mcp) for endpoint tables and IDE integration.
+Every endpoint, with the role it needs, is in the [API reference](/api/reference).
 
-Contact [support@agentruntime.io](mailto:support@agentruntime.io) for enterprise rate limits and SLA details.
+## How requests are scoped
+
+A token belongs to one workspace, and optionally to one project. Requests made with it are automatically limited to that workspace and project, so you do not send any workspace header. Console sessions in a browser use the workspace and project you have selected.
+
+## Working from an AI assistant
+
+If you would rather ask an assistant than write HTTP requests, connect it to [Platform MCP](/api/platform-mcp). It offers the same operations as tools.
+
+## Errors and limits
+
+The API uses standard HTTP status codes. `401` and `403` mean sign-in or permission problems, `422` means the request was understood but is not valid (for example a workflow graph with an error), and `429` means you are sending too fast. Wait for the time in the `Retry-After` header, then retry. Retry `5xx` responses with exponential backoff. The full list is in the [API reference](/api/reference#responses-and-errors).
+
+## Next steps
+
+1. [API authentication](/api/authentication): create a token
+2. [API examples](/api/examples): copy a working request
+3. [API reference](/api/reference): look up any endpoint
+4. Need higher rate limits or an SLA? Email [support@agentruntime.io](mailto:support@agentruntime.io)

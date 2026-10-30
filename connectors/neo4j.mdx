@@ -1,66 +1,76 @@
 ---
 title: Neo4j connector
-description: Query and update Neo4j graph databases with Cypher from AgentRuntime workflow steps.
+description: Run Cypher queries and explore the schema of a Neo4j graph database from AgentRuntime workflow steps.
 ---
 
-The **neo4j** MCP adapter connects over Bolt with a URI, username, password, and optional target database name. It provides read-only and write Cypher execution, schema introspection (`labels`, relationship types, property keys), and a connectivity ping. Use it for relationship analytics, knowledge graphs, recommendation pipelines, org-chart lookups, and graph-aware agents — often feeding tabular summaries into [Postgres](/connectors/postgres) or [MySQL](/connectors/mysql).
+The **neo4j** connector lets workflow steps query and update a Neo4j graph database over the Bolt protocol. It can run read-only or write Cypher queries, list the labels, relationship types, and property keys in your graph, and check connectivity. Use it to answer relationship questions (who reports to whom, which products are bought together), to keep a knowledge graph up to date from other tools, or to give an agent a way to explore your graph. To combine graph results with tabular data, see the [Postgres connector](/connectors/postgres) or [MySQL connector](/connectors/mysql).
 
 ## Prerequisites
 
-- A Neo4j database (self-hosted, Aura, or compatible) reachable over Bolt
-- Bolt URI (`bolt://`, `bolt+s://`, `neo4j://`, or `neo4j+s://`)
-- Database username and password with appropriate roles
-- Optional target `Database` name for multi-database deployments (Neo4j 4+)
-- **project_contributor** access
+- A Neo4j database that AgentRuntime can reach over the network (self-hosted, or Neo4j Aura).
+- The Bolt connection URI, for example `neo4j+s://xxxx.databases.neo4j.io` for Aura or `bolt://localhost:7687` for a local server (a local address is only usable if AgentRuntime can reach it). Aura shows the connection URI for each instance in its console.
+- A database username and password. For Neo4j Aura the username is typically `neo4j`, with the password shown when the instance is created. Use a user whose role matches what workflows do: reader roles for `neo4j_query_read`, a role with write access for `neo4j_execute_write`.
+- Optional: the database name, if your server hosts several databases. The default is `neo4j`.
+- Permission in your workspace to create connections and MCP instances (MCP write permission).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create a connection with your Neo4j Bolt credentials:
+    Open **Connections** in the [Console](https://console.agentruntime.io) and click **New custom connection**. Optionally set a **Display name**, then under **Credentials** add one row per setting (**Key** and **Value**):
 
-    - `URI` — e.g. `bolt+s://xxxx.databases.neo4j.io` (Aura) or `bolt://localhost:7687`
-    - `Username` / `Password` — database authentication
-    - `Database` — target database name (optional; defaults to `neo4j`)
+    - `neo4j_uri`: the Bolt URI, for example `neo4j+s://xxxx.databases.neo4j.io`
+    - `neo4j_username`: the database username
+    - `neo4j_password`: the database password
+    - `neo4j_database`: optional, defaults to `neo4j`
+
+    Click **Save**. The dialog also asks who can use the connection; choose the sharing option that fits your team.
   </Step>
-  <Step title="Add neo4j MCP instance">
-    Go to **MCP**, click **Add instance** for **neo4j**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the neo4j MCP instance">
+    Open **MCP**, click **Add connectors**, click the **neo4j** connector, then **Add to workspace**. Open **Instance config**, select your connection in the **Connection** picker, make sure the profile is **active**, and save.
   </Step>
-  <Step title="Test with a ping">
-    Add a workflow with **mcp_call** → `neo4j_ping`. Run it to confirm Bolt connectivity before Cypher queries.
+  <Step title="Smoke test with an MCP step">
+    In **Workflow Studio**, create a workflow with a single `mcp` step using `tool_name` `neo4j_ping` (no arguments) and run it. A result of `{"ok": true}` means the connection works.
   </Step>
-  <Step title="Inspect graph schema (optional)">
-    Run **mcp_call** → `neo4j_schema` to list labels, relationship types, and property keys before building traversal queries.
+  <Step title="Look at the schema (optional)">
+    Run `neo4j_schema` to see the labels, relationship types, and property keys in your graph before you write queries.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+See [Authentication](/integrations/authentication) for how connections are bound to MCP instances.
 
 ## What you can build
 
-- **Recommendation engine** — `neo4j_query_read` traverse product → category → co-purchase paths → LLM ranks suggestions.
-- **Org chart lookup** — `neo4j_query_read` on `(:Person)-[:REPORTS_TO*]->(:Person)` → answer manager-chain questions in Autopilot.
-- **Graph enrichment** — External API data → `neo4j_execute_write` MERGE nodes and relationships from webhook payloads.
-- **Schema-aware agents** — `neo4j_schema` list labels and relationship types → grounded Cypher generation with read-only queries.
+- **Recommendations.** Use `neo4j_query_read` to follow product, category, and co-purchase relationships, then have an LLM step rank suggestions.
+- **Org chart answers.** Query reporting lines such as `(:Person)-[:REPORTS_TO*]->(:Person)` to answer "who is Dana's manager chain?" in a workflow or agent.
+- **Graph updates from events.** When a webhook arrives, use `neo4j_execute_write` with a `MERGE` statement to create or update nodes and relationships.
+- **Schema-aware agents.** Let an agent call `neo4j_schema` first so the Cypher it writes uses labels and properties that exist.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `neo4j_query_read` | Run a read-only Cypher query against Neo4j |
-| `neo4j_execute_write` | Run a write Cypher query against Neo4j |
-| `neo4j_schema` | Return Neo4j labels, relationship types, and property keys from the graph catalog |
-| `neo4j_ping` | Verify Neo4j connectivity with a simple query |
+| Tool | What it does |
+|------|--------------|
+| `neo4j_ping` | Check connectivity by running `RETURN 1`. |
+| `neo4j_schema` | Return node labels, relationship types, and property keys. |
+| `neo4j_query_read` | Run a read-only Cypher query. |
+| `neo4j_execute_write` | Run a Cypher query that creates, changes, or deletes data. Writes data. |
+| `neo4j_list_gds_procedures` | List Graph Data Science procedures. Needs the GDS plugin on your server; returns an empty list when it is not installed. |
+
+Parameters:
+
+- `neo4j_query_read` and `neo4j_execute_write`: `cypher` (required), `parameters` (an object for `$name` placeholders), and `max_records` (default 500, maximum 10000). Both return `records`, `truncated` (true when more rows existed than `max_records`), and `applied_limit`.
+- `neo4j_ping`, `neo4j_schema`, and `neo4j_list_gds_procedures` take no arguments.
 
 ## Example
 
-Find collaborators two hops away from a user:
+Find collaborators up to two hops away from a user:
 
 ```json
 {
   "id": "find-collaborators",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Find nearby collaborators",
+  "instance_id": "REPLACE_NEO4J_INSTANCE",
   "tool_name": "neo4j_query_read",
   "tool_args": {
     "cypher": "MATCH (u:User {id: $userId})-[:WORKED_WITH*1..2]-(other:User) RETURN DISTINCT other.name AS name, other.email AS email LIMIT 20",
@@ -73,35 +83,34 @@ Find collaborators two hops away from a user:
 }
 ```
 
-Reference graph results in a downstream step:
-
-```
-{{steps.find-collaborators.result.records}}
-```
+Use the rows in a later step with `{{steps.find-collaborators.result.records}}`.
 
 ## Configuration
 
+Connection keys (the connection's **Key** names):
+
 | Key | Required | Default | Description |
 |-----|----------|---------|-------------|
-| `neo4j_uri` | Yes | — | Bolt URI (e.g. `bolt://localhost:7687` or `neo4j+s://....databases.neo4j.io`) |
-| `neo4j_username` | Yes | — | Neo4j database username for Bolt authentication |
-| `neo4j_password` | Yes | — | Neo4j database password for Bolt authentication |
-| `neo4j_database` | No | `neo4j` | Target database name passed to the driver session |
+| `neo4j_uri` | Yes | none | Bolt URI, for example `bolt://localhost:7687` or `neo4j+s://....databases.neo4j.io`. |
+| `neo4j_username` | Yes | none | Database username for Bolt authentication. |
+| `neo4j_password` | Yes | none | Database password for Bolt authentication. |
+| `neo4j_database` | No | `neo4j` | Database name used for queries. |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Bolt connection failed | Confirm URI scheme (`+s` for TLS), host, and port `7687` |
-| `Unauthorized` | Verify username/password; reset credentials in Aura or self-hosted admin |
-| Empty `records` | Check label/property names with `neo4j_schema`; validate `$parameters` match Cypher placeholders |
-| Results truncated | Increase `max_records` (cap 10000) or add tighter `LIMIT` in Cypher |
-| Write rejected | Confirm the DB user has write privileges for `neo4j_execute_write` operations |
+| `missing neo4j configuration: uri, username, password are required` | The connection lacks one of those keys, or the instance profile is not wired to it. |
+| Connection failed | Check the URI scheme (use `neo4j+s://` or `bolt+s://` for TLS endpoints such as Aura), the host, and that your firewall allows the connection. |
+| Authentication error | Check the username and password. |
+| Empty `records` | Run `neo4j_schema` to confirm label and property names, and check that the keys in `parameters` match the `$name` placeholders in the query. |
+| `truncated` is true | Raise `max_records` (up to 10000) or tighten the query with `LIMIT` or filters. |
+| Write fails with a permission error | Use a database user whose role allows writes. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [Postgres connector](/connectors/postgres) — relational store alongside graph analytics
-- [MySQL connector](/connectors/mysql) — SQL reporting on tabular data linked to graph entities
+- [Postgres connector](/connectors/postgres)
+- [MySQL connector](/connectors/mysql)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

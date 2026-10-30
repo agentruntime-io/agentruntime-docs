@@ -1,63 +1,83 @@
 ---
 title: Integrations quickstart
 sidebarTitle: Quickstart
-description: Connect your first MCP tool in AgentRuntime — connections, instances, and workflow steps.
+description: Connect your first tool to AgentRuntime in about ten minutes — save credentials, add a connector to your workspace, and call it from a workflow.
 ---
 
-This guide walks through the three-layer integration model in AgentRuntime: **connections** (credentials), **MCP instances** (deployed tool servers), and **workflow steps** (runtime tool calls).
+This guide is for anyone who wants a workflow to use an outside service such as Gmail, Postgres, or Shopify. By the end you will have one working connector that a workflow step can call.
 
-<Info>
-  **Docs structure:** Pages in **Integration setup** cover the shared model (connections, instances, auth). **Connectors** lists one page per MCP adapter (`connectors/{slug}`) with tools and config only for that adapter.
-</Info>
+## How integrations fit together
 
-## Before you begin
+Three things work together:
 
-- **Project contributor** role in your workspace
-- Credentials for the tool you want to connect (Google account, API key, or WhatsApp business account)
-
-## The integration model
+1. **Connection** — your saved credentials (an OAuth sign-in or an API key). Secrets are stored in the Vault and are not shown again after you save them.
+2. **MCP instance** — your workspace's copy of a connector from the catalog. A connector is a set of **tools**, such as "send email" or "run query". The instance remembers which connection it should use.
+3. **Workflow step** — an MCP step in a workflow that calls one tool on the instance.
 
 ```mermaid
 flowchart LR
-  Conn[Connection credentials] --> Inst[MCP instance]
-  Inst --> Step[Workflow mcp_call step]
+  Conn[Connection] --> Inst[MCP instance]
+  Inst --> Step[Workflow MCP step]
 ```
 
-1. **Connection** — Stores OAuth tokens or API keys
-2. **MCP instance** — Installs a catalog server in your project and binds a connection
-3. **Workflow step** — Calls a tool on that instance at runtime
+## Before you begin
+
+- The **project_contributor** role (or higher) in your project. Without it, the buttons on the **Connections** and **MCP** pages are disabled and show "You need MCP write permission".
+- A workspace selected in the Console header.
+- The credentials for the tool you want to connect: a Google account, an API key, or a WhatsApp Business account.
 
 ## Steps
 
 <Steps>
-  <Step title="Create a connection">
-    Go to **Connections** (`/connections`) and connect your tool:
+  <Step title="Save your credentials as a connection">
+    1. Open **Connections** in the [Console](https://console.agentruntime.io).
+    2. Click **Add from template** and pick your service. Services that sign in with OAuth (Google, WhatsApp) are listed under **Accounts**. API-key services are listed under **API keys & credentials**.
+       If your service is not listed, click **New custom connection** instead.
+    3. Follow the prompts and click **Save**.
 
-    - **Google account** card — OAuth for Workspace MCP adapters (Gmail, Drive, Sheets, …)
-    - **Connect WhatsApp** — Embedded signup or manual token entry
-    - **New custom connection** — API keys, tokens, DSNs (Resend, GitHub, Postgres, …)
+    You should see the new connection under **Saved connections**. See [Connections](/integrations/connections) for each flow.
+  </Step>
+  <Step title="Add the connector to your workspace">
+    1. Open **MCP** in the sidebar. The page is titled **MCP connectors**.
+    2. Click **Add connectors**. The **App catalog** opens.
+    3. Select a connector (for example `gmail` or `postgres`) and click **Add to workspace**.
 
-    See [Connections](/integrations/connections).
+    A new instance appears on the **MCP connectors** page.
   </Step>
-  <Step title="Install an MCP instance">
-    Go to **MCP** (`/mcp`), find a server in the platform catalog (for example, `gmail`, `postgres`, or `shopify`), and click **Add instance**.
+  <Step title="Tell the instance which connection to use">
+    1. Open the instance. You land on **Instance config**.
+    2. Under **Profiles for this connector**, click **New profile** (or open an existing one).
+    3. Choose your connection in the credentials section, set **Status** to **Active**, and click **Save**.
+    4. Click **Use this profile for workflows**.
+
+    The profile now shows an **active** badge. Workflows use the active profile.
   </Step>
-  <Step title="Wire credentials on the instance">
-    Open **Instance config** (`/mcp/instances/{id}`). Pick a config profile, wire your connection, and set the profile **active**.
+  <Step title="Check that it works (recommended)">
+    Open the connector's server page and its **MCP validation** page, then click **Run checks**. Or run a small workflow that calls a single read-only tool.
   </Step>
-  <Step title="Validate (recommended)">
-    Run **MCP validation** at `/mcp/{server_id}/validate` or test with a single-tool workflow run before production traffic.
+  <Step title="Call the tool from a workflow">
+    1. In **Workflow Studio**, add an MCP step. (In workflow JSON the step type is `mcp`.)
+    2. Choose your instance and a tool.
+    3. Fill in the tool arguments. You can use values from earlier steps with template variables.
+
+    See [Workflow Studio](/workflows/studio) for the editor.
   </Step>
-  <Step title="Add an MCP step to a workflow">
-    In Workflow Studio, add an **mcp_call** step. Select your instance, pick a tool, and configure `tool_args`. Reference upstream data with template variables.
-  </Step>
-  <Step title="Validate and run">
-    Dry-run validate the workflow, publish, and start a run. Check the event log for tool responses.
+  <Step title="Run it">
+    Click **Dry-run** to check the workflow, publish it, and start a run. Open the run's event log to see what the tool returned.
   </Step>
 </Steps>
 
+## Common problems
+
+| Problem | What to do |
+|---------|------------|
+| **New custom connection** or **Add connectors** is greyed out | You need MCP write permission (the `project_contributor` role or higher), and a workspace must be selected. |
+| The tool is not offered in Workflow Studio | Make sure the instance has an **active** profile with a connection, then reload the workflow. |
+| A run fails with an authorization error | Open the connection and click **Test**, or re-enter the key with **Rotate**. For Google, click **Reconnect**. |
+
 ## Next steps
 
-- [MCP instances](/integrations/mcp-instances) — config profiles and binding details
-- [Connector catalog](/integrations/connector-catalog) — full list of available adapters
-- [Authentication methods](/integrations/authentication) — OAuth vs API keys
+- [Connections](/integrations/connections) — Google, WhatsApp, and API-key flows
+- [MCP instances](/integrations/mcp-instances) — profiles in detail
+- [Connector catalog](/integrations/connector-catalog) — connectors with their own pages
+- [Authentication methods](/integrations/authentication) — OAuth, API keys, and connection strings

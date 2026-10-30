@@ -7,6 +7,8 @@ A **conversation session** keeps **one run per conversation**. The first message
 
 Use sessions for anything that is a back-and-forth with one person: a WhatsApp support line, an order assistant, a booking flow, or a chat on your own app that you drive through the API.
 
+**Who this is for:** people building a chat assistant (for example on WhatsApp) in Workflow Studio. You need a workflow with an agent step and a connection that can send messages. If you have not built a workflow before, start with [Workflow Studio](/workflows/studio).
+
 | Without sessions | With sessions |
 |---|---|
 | Every message starts a new run | One run holds the whole conversation |
@@ -57,8 +59,8 @@ A closed session ends as **Success**. That means the run ended cleanly. It does 
   <Step title="Mark the steps that talk">
     On each agent step that talks to the contact, turn on **Talks in the conversation**. On a human step that takes over the chat, turn on **Hand off the conversation to a person**. The **Steps that talk in the conversation** list in the Sessions tab shows which steps you have marked.
   </Step>
-  <Step title="Publish">
-    Session settings are saved with the draft. **Publish** the workflow so live messages use them.
+  <Step title="Check which version runs">
+    Session settings are saved with your workflow and apply to **Live** at once. New messages start sessions on your **Live** copy unless the webhook or channel route that receives them is set (under **Runs**) to **Last published** or a fixed version. In that case, publish the workflow so live messages use your changes. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
   </Step>
 </Steps>
 
@@ -279,7 +281,7 @@ Each recipe is a combination of the settings above. Durations are in minutes in 
 |---|---|---|---|
 | A quick support chat | 30 (default) | – | The contact comes back later and starts fresh. With **Remember each contact**, the agent still sees their history. |
 | One conversation per order or booking, open all day | 1440 (1 day) | – | Good for delivery updates and follow-up questions. |
-| An ongoing relationship, open for a month | 43200 (30 days) | – | One run per contact for the month. Changes you publish only reach new sessions (see below). |
+| An ongoing relationship, open for a month | 43200 (30 days) | – | One run per contact for the month. Changes you make only reach new sessions (see below). |
 | Never close on its own | A very long value, for example 525600 (1 year) | – | There is no "never" setting. Close sessions yourself with **Stop** when you need to. |
 | A fixed window, for example a 2-hour booking session | 30 | 120 | Closes after 2 hours even if the contact is still writing; their next message starts a new session. |
 | Close soon after the conversation goes quiet | 5 to 10 | – | Keeps runs short when each conversation is one question. |
@@ -335,9 +337,19 @@ POST /v1/workflows/{id}/command
 
 ## Things to know
 
-- **Published version.** A session runs the workflow version that was published when it started. Changes you publish apply to sessions that start afterwards. To move an open conversation onto the new version, stop its run; the contact's next message starts a new session.
+- **Which version runs.** A session keeps the version it started with. Edits you make later (and versions you publish later) apply to sessions that start afterwards. To move an open conversation onto the new version, stop its run; the contact's next message starts a new session.
 - **Bursts and order.** Messages from one conversation are recorded in the order they arrive, even when they arrive at the same moment, and a burst is answered together rather than message by message.
 - **What runs while waiting.** Nothing. A waiting session holds no worker and runs no steps until the next message or its timer.
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| The contact gets no reply | Check **Reply channel**: the **Connection** and **Send tool** must be set. With **None: post in the conversation only**, replies are recorded but not sent. Check that at least one agent has **Talks in the conversation** turned on. |
+| Every agent answers the contact | No step has **Talks in the conversation** on. Turn it on for the front-desk agent only. |
+| The conversation closed too soon | **Close after idle** is blank or `0`, which means the default of 30 minutes. Set a longer value (see [Recipes](#recipes)). |
+| A person's reply is rejected by WhatsApp | More than 24 hours passed since the contact's last message. Use an approved template message. |
+| A template value is missing from the agent's prompt | An unfilled template is left out and listed under `unresolved_inputs` in the step result. Write prompts against `{{input.text}}` and fields every message carries. |
 
 ## Related
 

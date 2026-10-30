@@ -1,63 +1,81 @@
 ---
 title: Human tasks
-description: Add approval gates and human-in-the-loop pauses to AgentRuntime workflows.
+description: Pause a workflow for a person to approve, reject, reply, or answer a question, and decide what happens when nobody does.
 ---
 
-**Human tasks** let you pause a workflow until a person reviews, approves, rejects, or edits data. They are essential for production agents that take real-world actions — sending emails, updating CRM records, or processing payments.
+A **human task** pauses a run until a person responds. Use it before anything with real-world effects: sending an email to a customer, changing a CRM record, taking a payment. It is also how a person takes over a conversation from an agent.
 
-## How human tasks work
+**Who this is for:** people building workflows (to add a human step) and people answering tasks (see [Command Center](/workflows/command-center)).
 
-1. A workflow reaches a `human_task` step
-2. The run **pauses** and creates a pending task with the `task_payload` you defined
-3. The task appears in **Command Center** and in per-run task lists
-4. A project contributor **completes** the task (approve, reject, or submit edits)
-5. The run **resumes** with the completion result available to downstream steps
+**What you will do:** add an approval step, answer it, and choose what happens after an approval, a rejection, or a timeout.
 
-## Authoring a human task step
+## How a human task works
 
-Add a step with `type: "human_task"`:
+1. The run reaches a `human` step and **pauses**.
+2. A task appears in [Command Center](/workflows/command-center) under **Needs you**, and in the run panel.
+3. A person answers it: approves, rejects, replies, or answers a question.
+4. The run **continues**, and later steps can read what the person said.
 
-| Field | Description |
-|-------|-------------|
-| `task_type` | Category such as `approval` or `edit` |
-| `task_payload` | JSON shown in the UI — title, description, fields to review, optional editable values |
-
-Keep payloads concise. Include enough context for a reviewer to decide without opening external systems.
-
-## Completing tasks in the Console
-
-See the [Command Center guide](/workflows/command-center) for the full operator inbox.
+## Add an approval step
 
 <Steps>
-  <Step title="Open Command Center">
-    Go to **Command Center** in the sidebar. Pending tasks are listed with workflow name, run ID, and task title.
+  <Step title="Add a Human step">
+    In [Workflow Studio](/workflows/studio), add a **Human** step after the step that drafts the content, and connect them. The step's `type` is `human`.
   </Step>
-  <Step title="Review the payload">
-    Open the task to see the data the workflow paused on — draft email, proposed CRM update, generated summary, etc.
+  <Step title="Say what to review">
+    The Human step's settings in Studio do not have fields for the reviewer's message. Set it in the step's JSON, under `task_payload`: a `title` (a short summary) and a `message` (background details), so the reviewer can decide without opening anything else. Use templates to include the draft, for example `{{steps.draft.result.text}}`. To edit it, click **JSON** in the Studio toolbar (or **Edit JSON** in the JSON menu), change the step, and apply the change. See [JSON editor](/workflows/json-editor).
   </Step>
-  <Step title="Approve or reject">
-    Click **Approve** to continue the run with an approval result, or **Reject** to stop the branch with a rejection result. Some task types allow editing fields before submission.
+  <Step title="Choose who can answer (optional)">
+    **Required approvers (user IDs)**: leave empty and anyone who can edit the project may answer. The same settings panel also has **Designated agent approvers (agent IDs)**, **Resolver policy**, **Gate tags (delegation scope)**, **Reject requires direct human**, and **Delegation may**. These control who can answer on someone's behalf. Standing delegations are managed in **Settings → Delegation**.
+
+    <Frame caption="The settings of a Human step">
+      <img src="/images/workflows/build-first-human-step.png" alt="Workflow Studio with the Human step Approve the refund selected, and its settings on the right: Required approvers, Designated agent approvers, Resolver policy, If no response (timeout policy), When rejected, Gate tags and Reject requires direct human" />
+    </Frame>
+  </Step>
+  <Step title="Choose what happens next">
+    Set **If no response (timeout policy)** and **When rejected**. See below.
+  </Step>
+  <Step title="Dry-run and run">
+    Click **Dry-run**, then **Run**.
+
+    You should see the run pause at the Human step, and a task in Command Center under **Needs you**.
   </Step>
 </Steps>
 
-You can also complete tasks from Workflow Studio's run panel when viewing an active run.
+Fields on a `human` step:
 
-## What downstream steps receive
+| Field | Description |
+|---|---|
+| `task_type` | The kind of task. `approval` (default) is an approve/reject decision. |
+| `task_payload` | What the person sees: `title`, `message`, and any fields you want to show. Add `response` for a reply box. |
+| `timeout_s` | How long to wait before the timeout policy applies. Studio's default is 86400 (24 hours). |
+| `timeout_policy` | What to do when nobody answers in time |
+| `on_reject` | What to do when the person rejects |
 
-When a task completes, the `human_task` step result is a JSON object:
+Keep payloads short. Include enough for the reviewer to decide.
 
-| Field | Always present | Description |
-|-------|----------------|-------------|
-| `approved` | Yes | `true` if approved, `false` if rejected |
+## Answer a task
 
-The Console **Approve** and **Reject** buttons send only `{ "approved": true }` or `{ "approved": false }`. They do **not** rename or edit draft fields automatically.
+In Command Center, the **Needs you** list shows each task. For an approval, click **Approve** or **Reject**. **Reject** opens an optional **Reason** box. You can also answer from the run panel in Workflow Studio. The full guide to the inbox is in [Command Center](/workflows/command-center).
 
-To pass edited text to downstream steps, either:
+Click **View** on a task to see the run behind it before you decide. The side panel shows the task with its own **Approve** and **Reject** buttons, and a **Recent activity** list.
 
-- Reference the **upstream LLM/MCP step** that produced the draft (for example `{{steps.draft-review.result.text}}`) and gate with `condition: "{{steps.approve-review.result.approved}}"`
-- Complete the task via API with an optional `result` object (merged into the step result alongside `approved`)
+<Frame caption="The View panel of a task waiting for approval">
+  <img src="/images/workflows/command-center-view-panel.png" alt="The run side panel in Command Center with a Needs your approval task showing Approve and Reject buttons, and a Recent activity list" />
+</Frame>
 
-Example API body with edits:
+## What downstream steps receive {#what-downstream-steps-receive}
+
+When a task is completed, the Human step's result is:
+
+| Field | Description |
+|---|---|
+| `approved` | `true` if approved, `false` if rejected |
+| Other fields | Anything the person or API call adds (see below). A reject reason is under `comment`, an answer to an agent's question under `answer`, and a reply under the field you name. |
+
+The **Approve** and **Reject** buttons send only `approved`. They do not edit your draft. To use the draft, read it from the step that wrote it, for example `{{steps.draft.result.text}}`.
+
+To pass edited text through, complete the task through the API with an optional `result` object. It is merged into the step result next to `approved`:
 
 ```json
 {
@@ -68,33 +86,38 @@ Example API body with edits:
 }
 ```
 
-Downstream templates would use `{{steps.approve-review.result.comment_body}}`.
+A later step can then read `{{steps.approve-review.result.comment_body}}`.
 
-## API completion
+## When someone rejects: `on_reject` {#on-reject}
 
-Automate or integrate approvals via the API:
+In Studio this is **When rejected**.
 
-```
-POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete
-```
+| Setting | What happens |
+|---|---|
+| **Stop this branch** (default, `stop_branch`) | Steps after the approval are skipped. Other branches carry on. The run completes with the outcome "rejected". |
+| **Fail the run** (`fail_run`) | The run fails with the reviewer's comment. |
+| **Run the reject path** (`reject_path`) | Steps marked **Run only when rejected** (`run_when: "rejected"`) run, and the others are skipped. If the task is approved it is the other way round. |
+| **Send back for changes** (`send_back`) | The reviewer's comment goes back to the drafting step (or the steps in **Send back to**), which runs again, and then the approval asks again. After **Max revisions** (default 3) a rejection stops the branch. The button then reads **Send back** instead of **Reject**. |
 
-Requires **project_contributor** and workflow run scopes on your PAT.
+## When nobody answers: `timeout_policy`
 
-List pending tasks:
+When the step's `timeout_s` runs out, **If no response (timeout policy)** decides:
 
-- Per run: `GET /v1/workflows/{id}/runs/{runID}/tasks/pending`
-- Tenant inbox: `GET /v1/tasks/pending`
+| Setting | What happens |
+|---|---|
+| **Keep waiting** (`none`) | The task expires and the step fails with "human_task timed out". It is listed under **Missed**. |
+| **Auto-approve** | The task is approved by the system |
+| **Auto-reject** | The task is rejected by the system |
+| **Escalate to backup approvers** | The task goes to the user IDs you list. If you list none, it is rejected. |
+| **Hand the conversation back (session workflows)** (`return`) | For [conversation sessions](/workflows/conversation-sessions#hand-off-to-a-person): the agent takes the chat back. |
 
-## Design patterns
+Tasks closed this way (other than a normal escalation) appear under **Missed** in Command Center so a person can follow up.
 
-| Pattern | When to use |
-|---------|-------------|
-| **Approve before send** | LLM drafts content; human approves before an MCP email/send step |
-| **Escalation** | Low-confidence LLM output routes to human review via a `condition` + `human_task` branch |
-| **Data correction** | Human edits extracted fields before downstream MCP writes |
-| **Conversation hand-off** | An agent hands a customer chat to staff, who reply from the task; see [Conversation sessions](/workflows/conversation-sessions#hand-off-to-a-person) |
+<Warning>
+  Do not skip the approval for risky outbound messages, and do not use **Auto-approve** for them either. A task that nobody answers should not send the message.
+</Warning>
 
-### Reply tasks
+## Reply tasks
 
 Add a `response` to `task_payload` to give the person a reply box instead of **Approve** / **Reject**:
 
@@ -102,8 +125,45 @@ Add a `response` to `task_payload` to give the person a reply box instead of **A
 "response": { "field": "reply", "label": "Reply to the customer", "placeholder": "Type the message to send" }
 ```
 
-The text they write becomes the step result under `field` (`{{steps.<step id>.result.reply}}`). **Don't reply** completes the task without one. In a [conversation session](/workflows/conversation-sessions), the reply is also sent to the customer as the person who wrote it.
+The text they write becomes the step result under `field`: `{{steps.<step-id>.result.reply}}`. **Send** completes the task with their reply. **Don't reply** completes it without one. In a [conversation session](/workflows/conversation-sessions), the reply is also sent to the customer as the person who wrote it.
 
-<Warning>
-  Runs paused on human tasks hold worker resources. Set timeouts on preceding steps and monitor Command Center so approvals do not stall production runs.
-</Warning>
+## Questions from agents
+
+An agent that is stuck can ask a person instead of guessing. The question shows in **Needs you** as **Question from the agent**, with an answer box (**Send answer**) and **End run**. Your answer goes back to the agent, which continues. An agent can also carry on with an assumption and ask you to check it (**The agent's assumption**: **Looks right**, **Dismiss**, **Correct it**). You control this per agent step with **Agent may ask a person**, **Max questions per run**, and **Answer within (minutes, optional)**. See [Autonomous episodes](/workflows/autonomous-episodes).
+
+## Patterns
+
+| Pattern | When to use it |
+|---|---|
+| **Approve before send** | A model drafts content, a person approves, then a tool step sends it |
+| **Escalation** | A step decides a case is risky and a Human step has `skip_when` on the safe case, so only risky cases reach a person |
+| **Data correction** | A person fixes extracted data before it is written somewhere |
+| **Conversation hand-off** | An agent hands a customer chat to staff, who reply from the task. See [Conversation sessions](/workflows/conversation-sessions#hand-off-to-a-person). |
+
+## API
+
+```
+POST /v1/workflows/{id}/runs/{runID}/tasks/{task_id}/complete
+```
+
+You need `project_contributor` or higher, and a personal access token needs the matching scope. Body: `approved`, and optionally `result`.
+
+| What | Request |
+|---|---|
+| Pending tasks for one run | `GET /v1/workflows/{id}/runs/{runID}/tasks/pending` |
+| Pending tasks, whole workspace | `GET /v1/tasks/pending` |
+| Missed tasks | `GET /v1/tasks/missed` |
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| The run is paused and nobody sees a task | Check who is allowed to answer under **Required approvers (user IDs)**. |
+| The step failed with "human_task timed out" | The timeout policy is **Keep waiting** and nobody answered in time. Choose a different policy, or raise the step's **Timeout**. |
+| Approve did not change the draft | Expected. Read the draft from the step that wrote it, or complete the task through the API with a `result`. |
+
+## Next steps
+
+- [Command Center](/workflows/command-center)
+- [Workflow patterns](/workflows/patterns)
+- [Conversation sessions](/workflows/conversation-sessions)

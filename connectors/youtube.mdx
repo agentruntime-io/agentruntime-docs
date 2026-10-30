@@ -1,80 +1,95 @@
 ---
 title: YouTube connector
-description: Search videos, read channels and playlists, manage comments and subscriptions via the YouTube Data API.
+description: Search videos, read channels and playlists, and manage comments, ratings, and subscriptions through the YouTube Data API.
 ---
 
-The **youtube** MCP adapter connects to the [YouTube Data API v3](https://developers.google.com/youtube/v3). Search and list videos, resolve channel IDs, read RSS feeds without quota, manage comments and subscriptions, and call raw API endpoints — for content monitoring, publishing workflows, and media research.
+The **youtube** connector gives workflows access to [YouTube](https://www.youtube.com/) through the YouTube Data API v3. Look up channels and videos, search, read playlists and comments, reply to comments, and manage subscriptions. Two tools read a channel's public feed and need no sign-in, so you can watch for new uploads without using API quota.
 
 ## Prerequisites
 
-- A Google Cloud project with **YouTube Data API v3** enabled
-- For authenticated tools (comments, subscriptions, ratings): OAuth **access token** with appropriate scopes
-- For public read-only tools (`youtube_list_channel_videos_rss`, `youtube_resolve_channel_id`): no token required
-- **project_contributor** access in AgentRuntime
+- A Google account that can approve YouTube access (for every tool except the two listed below).
+- The **project_contributor** role or higher in your project.
+- A workspace selected in the Console header.
+
+The tools `youtube_resolve_channel_id` and `youtube_list_channel_videos_rss` use public pages and the public channel feed, not the YouTube Data API, so they need no token. Every other tool needs a YouTube access token on the active profile.
 
 ## Connect in AgentRuntime
 
+The simplest route is to sign in with Google. One Google connection can also serve other Google connectors; see [Google Workspace](/integrations/google-workspace).
+
 <Steps>
-  <Step title="Enable YouTube Data API">
-    In [Google Cloud Console](https://console.cloud.google.com/), enable YouTube Data API v3 for your project.
+  <Step title="Sign in with Google">
+    Open **Connections** and click **Sign in with Google**. Enter a **Display name**, tick **YouTube** in the services list, and click **Continue to Google**. Choose your account and approve the permissions.
   </Step>
-  <Step title="Obtain credentials">
-    For public RSS and search tools, you may omit `AccessToken`. For write operations and authenticated reads, complete OAuth and store a refreshable access token.
+  <Step title="Add the connector">
+    Click **MCP** in the sidebar, click **Add connectors**, find **youtube**, select it, and click **Add to workspace**.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection**. Add `AccessToken` when using authenticated tools. Optionally set `APIBase`, `UserAgent`, and `TimeoutSec`.
+  <Step title="Attach the Google connection">
+    Open the new instance. On **Instance config**, click **New profile**, enter a **Display name**, and choose your Google account in the credentials section.
   </Step>
-  <Step title="Add youtube MCP instance">
-    Go to **MCP**, click **Add instance** for **youtube**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Make the profile active">
+    Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**.
   </Step>
-  <Step title="Test public access">
-    Run **mcp_call** → `youtube_list_channel_videos_rss` with a channel handle to verify without OAuth.
+  <Step title="Test it in a workflow">
+    In **Workflow Studio**, add a connector tool step for this instance and choose `youtube_list_channel_videos_rss` with a channel handle. Then try `youtube_search` or `youtube_get_channel` with `mine` set to `true` to confirm the signed-in account works.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+If you already have a YouTube OAuth access token, you can instead choose **Type secrets on this screen** on **Instance config** and paste it into `access_token`. A pasted token expires, and you must replace it yourself.
 
-<Note>
-  `youtube_list_channel_videos_rss` uses the public RSS feed and does not consume YouTube Data API quota. Prefer it for simple "latest videos" monitoring when OAuth is not configured.
-</Note>
+See [MCP instances](/integrations/mcp-instances) for more on profiles.
 
 ## What you can build
 
-- **Channel digest** — `youtube_list_channel_videos_rss` on competitor channels → LLM weekly summary → email or Notion.
-- **Comment moderation** — `youtube_get_comment_threads` → LLM flags spam → **human_task** → `youtube_reply_comment` or hide via custom API call.
-- **Playlist curation** — `youtube_search` → filter → add items to internal tracking sheet.
-- **Subscription sync** — `youtube_subscriptions_list` → compare to CRM list → `youtube_subscriptions_insert` for new channels.
+- **Channel digest.** Run `youtube_list_channel_videos_rss` on a few channels each week, summarize the titles with an LLM step, and email the digest.
+- **Comment triage.** Run `youtube_get_comment_threads` on a new video, have an LLM flag spam or questions, send the questions to a person with a **human** step, then answer with `youtube_reply_comment`.
+- **Topic research.** Use `youtube_search` for a topic, read each hit with `youtube_list_videos`, and save the findings to a sheet.
+- **Subscription sync.** List current subscriptions with `youtube_subscriptions_list`, compare with a list you maintain, and add missing channels with `youtube_subscriptions_insert`.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `youtube_resolve_channel_id` | Resolve channel ID from ID, @handle, or URL (no Data API) |
-| `youtube_list_channel_videos_rss` | Recent videos via public RSS feed (no Data API quota) |
-| `youtube_get_channel` | Channel by ID, username, or `mine=true` |
-| `youtube_get_video` | Single video by ID |
-| `youtube_list_videos` | Multiple videos by ID (up to 50) |
-| `youtube_search` | Search videos, channels, or playlists |
-| `youtube_list_channel_videos` | Channel videos via search.list |
-| `youtube_list_playlists` | Playlists for a channel or authenticated user |
-| `youtube_list_playlist_items` | Entries in a playlist |
-| `youtube_get_comment_threads` | Comment threads on a video or channel |
-| `youtube_insert_comment` | Top-level comment on a video |
-| `youtube_reply_comment` | Reply to an existing comment |
-| `youtube_subscriptions_list` | List subscriptions |
-| `youtube_subscriptions_insert` | Subscribe to a channel |
-| `youtube_subscriptions_delete` | Unsubscribe by subscription ID |
-| `youtube_rate_video` | Like, dislike, or clear rating |
-| `youtube_custom_api_call` | Raw YouTube Data API v3 request |
+### Look up without signing in
+
+| Tool | What it does |
+|------|--------------|
+| `youtube_resolve_channel_id` | Finds a channel ID from an ID, an `@handle`, or a channel URL |
+| `youtube_list_channel_videos_rss` | Lists a channel's recent videos from its public feed. `channel_identifier` and `limit` are required; a `limit` of 0 returns the whole feed |
+
+### Read with a signed-in account
+
+| Tool | What it does |
+|------|--------------|
+| `youtube_search` | Searches for videos, channels, or playlists (`query` required, optional `type`, `order`, `max_results` up to 50) |
+| `youtube_get_channel` | Returns a channel. Pass exactly one of `channel_id`, `for_username`, or `mine` set to `true` |
+| `youtube_get_video` | Returns one video by `video_id` |
+| `youtube_list_videos` | Returns several videos by `video_ids` |
+| `youtube_list_channel_videos` | Lists a channel's videos using search (`channel_id` required) |
+| `youtube_list_playlists` | Lists playlists for a `channel_id`, or for the signed-in account with `mine` set to `true` |
+| `youtube_list_playlist_items` | Lists the entries in a playlist (`playlist_id` required) |
+| `youtube_get_comment_threads` | Lists comment threads for a `video_id` or a `channel_id` |
+| `youtube_subscriptions_list` | Lists the signed-in account's subscriptions |
+
+### Change data
+
+| Tool | What it does |
+|------|--------------|
+| `youtube_insert_comment` | Posts a top-level comment on a video (`video_id` and `text`) |
+| `youtube_reply_comment` | Replies to a comment (`parent_comment_id` and `text`) |
+| `youtube_rate_video` | Sets a rating on a video: `like`, `dislike`, or `none` to clear it |
+| `youtube_subscriptions_insert` | Subscribes the signed-in account to a channel (`channel_id`) |
+| `youtube_subscriptions_delete` | Removes a subscription by `subscription_id` |
+| `youtube_custom_api_call` | Sends any YouTube Data API v3 request (`method`, `path`, optional `query` and `body`). Can change data |
+
+Reading tools also take paging inputs such as `max_results` and `page_token`, and some take `part` to choose which fields come back.
 
 ## Example
 
-Fetch the latest videos from a channel via RSS:
+Get the latest videos from a channel without using any quota:
 
 ```json
 {
-  "id": "youtube-rss",
-  "type": "mcp_call",
+  "id": "youtube_rss",
+  "type": "mcp",
   "name": "Latest channel videos",
   "tool_name": "youtube_list_channel_videos_rss",
   "tool_args": {
@@ -85,27 +100,32 @@ Fetch the latest videos from a channel via RSS:
 }
 ```
 
+Studio fills in `instance_id` when you pick the instance. The result has `channel_id`, `count`, and `items`, each with `id`, `title`, `link`, `pubDate`, and `author`. A later step can read `{{steps.youtube_rss.result.items}}`.
+
 ## Configuration
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `AccessToken` | No | OAuth access token; required for authenticated tools only |
-| `APIBase` | No | YouTube Data API base URL |
-| `UserAgent` | No | HTTP User-Agent for RSS and fetch helpers |
-| `TimeoutSec` | No | HTTP timeout in seconds |
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `access_token` | For all tools except the two public ones | none | A YouTube OAuth access token. Signing in with Google supplies it for you |
+| `api_base` | No | `https://www.googleapis.com/youtube/v3` | The YouTube Data API address |
+| `user_agent` | No | `agentruntime-mcp-youtube-go/1.0` | The User-Agent sent with requests |
+| `request_timeout_seconds` | No | `30` | Time limit for each request, in seconds |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Quota exceeded | Prefer RSS tool for latest videos; cache results; request quota increase in Google Cloud |
-| `403` on comments | Token needs `youtube.force-ssl` scope; channel must allow comments |
-| Channel not resolved | Try `@handle`, full channel URL, or UC... channel ID |
-| Empty search results | Check `type`, `order`, and query encoding; verify API key or token |
+| `resolved config is missing access_token` | The tool needs a signed-in account. Attach your Google connection to the active profile, or use one of the two public tools |
+| `youtube api error 401` | The token is invalid or expired. Sign in with Google again, or replace a pasted token |
+| `youtube api error 403` | YouTube refused the request. Read the message that follows the code: it may be a quota limit, a missing permission, or comments turned off on the video. Use the RSS tool for simple "latest videos" checks, since it uses no quota |
+| Channel not found | Try the `@handle`, the full channel URL, or the channel ID that starts with `UC` |
+| Empty search results | Check `query`, `type`, and `order`. Set `type` to `video`, `channel`, or `playlist` |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [RSS connector](/connectors/rss) — generic feed parsing
+- [Google Workspace](/integrations/google-workspace) for the shared Google sign-in
+- [MCP instances](/integrations/mcp-instances)
+- [RSS connector](/connectors/rss) for other feeds
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

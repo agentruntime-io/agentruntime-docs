@@ -1,108 +1,218 @@
 ---
 title: GitHub connector
-description: Automate repositories, issues, and pull requests from AgentRuntime workflows.
+description: Work with GitHub repositories, issues, pull requests, Actions, and more from AgentRuntime workflows.
 ---
 
-The **github** MCP adapter wraps the [GitHub REST API](https://docs.github.com/en/rest). Use it to triage issues, review pull requests, sync repo metadata, and post updates when workflows complete — without leaving AgentRuntime.
+The **github** connector lets workflows work with GitHub: read and write issues and pull requests, browse and change files, follow Actions runs, search code, and more. Use it to triage issues, summarize pull requests, post status comments, or keep a changelog up to date.
 
 ## Prerequisites
 
-- A GitHub account with access to the repositories you will automate
-- A **personal access token** (classic or fine-grained) with scopes for those repos (`repo`, `read:org` as needed)
-- **project_contributor** access in your AgentRuntime workspace
+- A GitHub account with access to the repositories you want to automate.
+- A GitHub **personal access token** (classic or fine-grained) that can reach those repositories.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Create a GitHub connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection. Paste your GitHub token as the secret. Store the token in a connection profile — never in workflow JSON.
+  <Step title="Create a GitHub token">
+    In GitHub, open **Settings**, then **Developer settings**, then **Personal access tokens**, and generate a token. For a fine-grained token, select the repositories you will use and grant only the permissions your workflow needs (for example read access to contents and pull requests, and write access to issues if you will comment). Copy the token.
   </Step>
-  <Step title="Add github MCP instance">
-    Go to **MCP**, click **Add instance** for **github**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **GitHub** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Verify access">
-    Run a test workflow with **mcp_call** → `get_authenticated_user` to confirm the token works before automating production repos.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `github_api_token` (your token). Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
+  </Step>
+  <Step title="Test it">
+    In **Workflow Studio**, add the `github_get_me` tool from your **GitHub** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. This tool has no arguments and returns the user the token belongs to.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for how connections bind to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **PR release assistant** — On webhook or schedule: `list_pull_requests` → `get_pull_request` + `list_pull_request_files` → LLM summary → `add_issue_comment` or Gmail notify reviewers.
-- **Issue triage** — `list_issues` with labels filter → LLM classify → `update_issue` to add labels and assignees.
-- **Changelog draft** — `compare_commits` between tags → LLM generate notes → `create_or_update_file` on `CHANGELOG.md` → optional **human_task** before merge.
-- **Onboarding repo scan** — `search_repositories` or `list_repos` → `get_file_contents` for README → store metadata in Postgres for internal dashboards.
+- **Pull request helper.** `github_list_pull_requests` and `github_pull_request_read` feed an LLM step that writes a review summary, which `github_add_issue_comment` posts.
+- **Issue triage.** `github_list_issues` finds new issues, an LLM step classifies them, and `github_issue_write` sets labels and assignees.
+- **Changelog draft.** `github_compare_commits` between two tags feeds an LLM step, and `github_create_or_update_file` commits the notes (add a **Human** approval step first).
+- **CI watcher.** `github_actions_list` and `github_actions_get_job_logs` collect failing runs so a workflow can open an issue or notify the team.
 
 ## Tools
 
-### Pull requests & branches
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
 
-| Tool | Description |
-|------|-------------|
-| `get_pull_request` | Get a pull request by number |
-| `list_pull_requests` | List pull requests for a repository |
-| `list_pull_request_files` | List files changed in a pull request |
-| `create_pull_request` | Create a pull request |
-| `update_pull_request` | Update an existing pull request |
-| `merge_pull_request` | Merge a pull request |
-| `list_branches` | List branches for a repository |
-| `get_branch` | Get branch details |
-| `create_branch` | Create a branch from a base branch or commit SHA |
+Several tools combine related actions behind a `method` argument (for example `github_issue_read`, `github_issue_write`, and `github_pull_request_read`). The tool's input schema lists the allowed `method` values.
 
-### Issues & comments
+Tools marked **Delete** remove data and may be irreversible.
 
-| Tool | Description |
-|------|-------------|
-| `get_issue` | Get a single issue by number |
-| `list_issues` | List issues for a repository |
-| `create_issue` | Create an issue |
-| `update_issue` | Update an existing issue |
-| `add_issue_comment` | Add a comment to an issue |
-| `list_issue_comments` | List comments on an issue |
+### Actions
 
-### Repository & code
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_actions_get` | Read | Get GitHub Actions workflow, run, job, artifact, usage, or logs URL. | `method`, `owner`, `repo`, `resource_id` |
+| `github_actions_get_job_logs` | Read | Get GitHub Actions job logs by job ID or failed jobs in a run. | `owner`, `repo` |
+| `github_actions_list` | Read | List GitHub Actions workflows, runs, jobs, or artifacts. | `method`, `owner`, `repo` |
+| `github_actions_run_trigger` | Write | Trigger GitHub Actions workflow runs or lifecycle operations. | `method`, `owner`, `repo` |
 
-| Tool | Description |
-|------|-------------|
-| `get_repo` | Get repository metadata |
-| `list_repos` | List repositories for the authenticated user |
-| `get_file_contents` | Get file contents from a path |
-| `create_or_update_file` | Create or update a file |
-| `delete_file` | Delete a file |
-| `list_commits` | List commits |
-| `compare_commits` | Compare two refs or commits |
-| `list_tags` | List tags |
-| `create_fork` | Fork a repository |
+### Pull requests
 
-### Search & users
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_add_comment_to_pending_review` | Write | Add an inline comment to a pending pull request review. | `owner`, `repo`, `pullNumber`, `review_id`, `path`, `body` |
+| `github_add_reply_to_pull_request_comment` | Write | Reply to a pull request review comment. | `owner`, `repo`, `pullNumber`, `comment_id`, `body` |
+| `github_create_pull_request` | Write | Create a pull request in a repository. | `owner`, `repo`, `title`, `head`, `base` |
+| `github_list_pull_requests` | Read | List pull requests for a repository. | `owner`, `repo` |
+| `github_merge_pull_request` | Write | Merge a pull request. | `owner`, `repo`, `number` |
+| `github_pull_request_read` | Write | Get information on a specific pull request in a GitHub repository. | `method`, `owner`, `repo`, `pullNumber` |
+| `github_pull_request_review_write` | Write | Create, submit, or delete pull request reviews. | `method`, `owner`, `repo`, `pullNumber` |
+| `github_request_copilot_review` | Write | Request a GitHub Copilot code review for a pull request. | `owner`, `repo`, `pullNumber` |
+| `github_search_pull_requests` | Read | Search GitHub pull requests. | `query` |
+| `github_update_pull_request` | Write | Update an existing pull request. | `owner`, `repo`, `number` |
+| `github_update_pull_request_branch` | Write | Update a pull request branch with the latest base. | `owner`, `repo`, `pullNumber` |
 
-| Tool | Description |
-|------|-------------|
-| `search_repositories` | Search repositories |
-| `search_code` | Search code |
-| `search_issues_pull_requests` | Search issues and pull requests |
-| `search_users` | Search users |
-| `get_user` | Get a public user profile |
-| `get_authenticated_user` | Get the authenticated user for the token |
+### Issues and labels
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_add_issue_comment` | Write | Add a comment to an issue. | `owner`, `repo`, `number`, `body` |
+| `github_assign_copilot_to_issue` | Write | Assign Copilot to an issue in a GitHub repository. | `owner`, `repo`, `issue_number` |
+| `github_get_label` | Read | Get a label. | `name`, `owner`, `repo` |
+| `github_issue_dependency_read` | Read | Read issue dependencies. | `method`, `owner`, `repo`, `issue_number` |
+| `github_issue_dependency_write` | Write | Write issue dependencies. | `method`, `owner`, `repo`, `issue_number`, `blocked_by` |
+| `github_issue_read` | Read | Get information about a specific issue in a GitHub repository. | `method`, `owner`, `repo`, `issue_number` |
+| `github_issue_write` | Write | Create or update an issue in a GitHub repository. | `method`, `owner`, `repo` |
+| `github_label_write` | Write | Create, update, or delete repository labels. | `method`, `owner`, `repo`, `name` |
+| `github_list_issue_fields` | Read | List custom issue fields for an organization or repository. | `owner` |
+| `github_list_issue_types` | Read | List issue types. | `org` |
+| `github_list_issues` | Read | List issues for a repository. | `owner`, `repo` |
+| `github_list_label` | Read | List labels from a repository. | `owner`, `repo` |
+| `github_search_issues` | Read | Search GitHub issues. | `query` |
+| `github_sub_issue_write` | Write | Add, remove, or reprioritize sub-issues. | `method`, `owner`, `repo`, `issue_number` |
+
+### Discussions
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_discussion_comment_write` | Write | Create or update a discussion comment. | `method`, `owner`, `discussionNumber`, `body` |
+| `github_get_discussion` | Read | Get a discussion. | `discussion_number`, `org`, `team_slug` |
+| `github_get_discussion_comments` | Read | List comments on a discussion. | `owner`, `discussionNumber` |
+| `github_list_discussion_categories` | Read | List discussion categories for a repository or organization. | `owner` |
+| `github_list_discussions` | Read | List discussions for a repository or organization. | `owner` |
+
+### Projects
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_projects_get` | Read | Get GitHub Projects resources. | `method`, `owner` |
+| `github_projects_list` | Read | List GitHub Projects resources. | `method`, `owner` |
+| `github_projects_write` | Write | Write GitHub Projects resources. | `method`, `owner` |
+
+### Security alerts
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_get_code_quality_finding` | Read | Get a code quality finding in a repository. | `owner`, `repo`, `findingNumber` |
+| `github_get_code_scanning_alert` | Read | Get a code scanning alert. | `alert_number`, `owner`, `repo` |
+| `github_get_dependabot_alert` | Read | Get a dependabot alert in a repository. | `owner`, `repo`, `alertNumber` |
+| `github_get_global_security_advisory` | Read | Get a global security advisory. | `ghsa_id` |
+| `github_get_secret_scanning_alert` | Read | Get a secret scanning alert in a repository. | `owner`, `repo`, `alertNumber` |
+| `github_list_code_scanning_alerts` | Read | List code scanning alerts in a repository. | `owner`, `repo` |
+| `github_list_dependabot_alerts` | Read | List dependabot alerts in a repository. | `owner`, `repo` |
+| `github_list_global_security_advisories` | Read | List global security advisories from GitHub. | — |
+| `github_list_org_repository_security_advisories` | Read | List repository security advisories for an organization. | `org` |
+| `github_list_repository_security_advisories` | Read | List security advisories for a repository. | `owner`, `repo` |
+| `github_list_secret_scanning_alerts` | Read | List secret scanning alerts in a repository. | `owner`, `repo` |
+
+### Notifications
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_dismiss_notification` | Write | Dismiss a notification by marking it read or done. | `threadID`, `state` |
+| `github_get_notification_details` | Read | Get detailed information for a specific GitHub notification. | `notificationID` |
+| `github_list_notifications` | Read | List notifications for authenticated user. | — |
+| `github_manage_notification_subscription` | Write | Ignore, watch, or delete a notification thread subscription. | `notificationID`, `action` |
+| `github_manage_repository_notification_subscription` | Write | Ignore, watch, or delete a repository notification subscription. | `owner`, `repo`, `action` |
+| `github_mark_all_notifications_read` | Write | Mark all notifications as read. | — |
+
+### Gists
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_create_gist` | Write | Create a new gist. | `filename`, `content` |
+| `github_get_gist` | Read | Get a gist. | `gist_id` |
+| `github_list_gists` | Read | List gists for a user. | — |
+| `github_update_gist` | Write | Update an existing gist. | `gist_id`, `filename`, `content` |
+
+### Search
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_search_code` | Read | Search code across GitHub. | `query` |
+| `github_search_commits` | Read | Search commits on GitHub. | `query` |
+| `github_search_orgs` | Read | Search GitHub organizations. | `query` |
+| `github_search_repositories` | Read | Search GitHub repositories. | `query` |
+| `github_search_users` | Read | Search GitHub users. | `query` |
+
+### Users and teams
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_get_me` | Read | Get details of the authenticated GitHub user. | — |
+| `github_get_team_members` | Read | Get team members. | `org`, `team_slug` |
+| `github_get_teams` | Read | Get teams the user belongs to across organizations. | — |
+| `github_get_user` | Read | Get a public GitHub user profile by username. | `username` |
+| `github_list_starred_repositories` | Read | List repositories starred by a user. | — |
+| `github_star_repository` | Write | Star a repository for the authenticated user. | `owner`, `repo` |
+| `github_unstar_repository` | Write | Unstar a repository. | `owner`, `repo` |
+
+### Repositories, branches, and files
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `github_compare_commits` | Read | Compare two refs or commits in a repository. | `owner`, `repo`, `base`, `head` |
+| `github_create_branch` | Write | Create a branch. | `branch_name`, `owner`, `repo`, `sha` |
+| `github_create_or_update_file` | Write | Create or update a file in a repository. | `owner`, `repo`, `path`, `message`, `content` |
+| `github_create_repository` | Write | Create repository. | `name` |
+| `github_delete_file` | Delete | Delete a file in a repository. | `owner`, `repo`, `path`, `message`, `sha` |
+| `github_fork_repository` | Write | Create a fork of a repository. | `owner`, `repo` |
+| `github_get_branch` | Read | Get branch details for a repository. | `owner`, `repo`, `branch` |
+| `github_get_commit` | Read | Get a single commit by SHA. | `owner`, `repo`, `sha` |
+| `github_get_file_blame` | Read | Get blame information for a file. | `owner`, `repo`, `path` |
+| `github_get_file_contents` | Read | Get file contents from a repository path. | `owner`, `repo`, `path` |
+| `github_get_latest_release` | Read | Get the latest release for a repository. | `owner`, `repo` |
+| `github_get_release_by_tag` | Read | Get a release by tag name. | `owner`, `repo`, `tag` |
+| `github_get_repo` | Read | Get repository metadata by owner and repository name. | `owner`, `repo` |
+| `github_get_repository_tree` | Read | Get the tree structure of a GitHub repository at a specific ref or SHA. | `owner`, `repo` |
+| `github_get_tag` | Read | Get a repository tag by name. | `owner`, `repo`, `tag` |
+| `github_list_branches` | Read | List branches for a repository. | `owner`, `repo` |
+| `github_list_commits` | Read | List commits for a repository branch or ref. | `owner`, `repo` |
+| `github_list_releases` | Read | List releases for a repository. | `owner`, `repo` |
+| `github_list_repositories` | Read | List repositories. | — |
+| `github_list_repository_collaborators` | Read | List collaborators on a repository. | `owner`, `repo` |
+| `github_list_tags` | Read | List tags for a repository. | `owner`, `repo` |
+| `github_push_files` | Write | Create or update multiple files in one commit. | `owner`, `repo`, `branch`, `message`, `files` |
 
 ## Example
 
-Comment on a PR after an automated check passes:
+Comment on a pull request or issue. `number` is the issue or pull request number.
 
 ```json
 {
   "id": "pr-comment",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Post review summary",
-  "tool_name": "add_issue_comment",
+  "tool_name": "github_add_issue_comment",
   "tool_args": {
     "owner": "your-org",
     "repo": "your-repo",
-    "issue_number": "{{input.pr_number}}",
+    "number": "{{input.pr_number}}",
     "body": "Automated review complete.\n\n{{steps.llm-summary.result.text}}"
   },
-  "depends_on": ["llm-summary"],
+  "depends_on": [
+    "llm-summary"
+  ],
   "timeout_s": 30
 }
 ```
@@ -111,19 +221,22 @@ Comment on a PR after an automated check passes:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIToken` | Yes | GitHub personal access token or fine-grained token with scopes for target repositories |
+| `github_api_token` | Yes | GitHub personal access token or fine-grained token with access to the repositories you call. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `401 Bad credentials` | Regenerate token; update the connection and re-validate the MCP instance |
-| `403 Resource not accessible` | Fine-grained token must include the repo; classic token needs `repo` scope |
-| Empty `search_*` results | GitHub search has rate limits and indexing delay; narrow the query |
+| Problem | What to do |
+|---------|------------|
+| `401` "Bad credentials" | The token is wrong, expired, or revoked. Create a new one and update the profile. |
+| `403` or `404` on a repository | The token cannot see that repository. For a fine-grained token, add the repository and the needed permission. |
+| Empty search results | GitHub rate-limits search and can lag on new content. Narrow the query and retry later. |
+| Want to start a workflow from a GitHub event | See [Inbound webhooks](/integrations/inbound-webhooks). |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Inbound webhooks](/integrations/inbound-webhooks) — trigger workflows from GitHub events
+- [Inbound webhooks](/integrations/inbound-webhooks) to start workflows from GitHub events
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

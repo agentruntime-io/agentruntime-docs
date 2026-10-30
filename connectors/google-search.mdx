@@ -1,89 +1,94 @@
 ---
 title: Google Search connector
-description: Query your Vertex AI Search app from AgentRuntime workflows for grounded retrieval.
+description: Search your own content with Google Cloud Vertex AI Search from AgentRuntime workflows.
 ---
 
-The **google-search** MCP adapter calls [Vertex AI Search](https://cloud.google.com/generative-ai-app-builder/docs/enterprise-search-introduction) (Discovery Engine) via `searchLite`. Use it in workflow **mcp_call** steps to retrieve indexed content from your own data stores and feed ranked results into LLM steps for RAG-style answers. Unlike web search, results come only from content you have indexed in your Vertex AI Search app.
+The **google-search** connector queries a [Vertex AI Search](https://cloud.google.com/generative-ai-app-builder/docs/enterprise-search-introduction) app in your own Google Cloud project. Use it to retrieve results from content you have indexed, such as a help center or internal docs, and pass them to an LLM step. It does not search the public web. For web search, see the [Brave](/connectors/brave) or [Exa](/connectors/exa) connectors.
 
 ## Prerequisites
 
-- A Google Cloud project with Vertex AI Search (Discovery Engine) configured and an indexed search app
-- A Google Cloud API key authorized for Discovery Engine
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**) or a connection profile with search credentials
-- **project_contributor** access in your workspace
+- A Google Cloud project with a Vertex AI Search app that has content indexed.
+- A Google Cloud **API key** that is allowed to call Vertex AI Search (the Discovery Engine API).
+- The **project ID** and the **app (engine) ID**.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth if your deployment binds search through Workspace. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Collect your Google Cloud details">
+    In the [Google Cloud console](https://console.cloud.google.com/), note the **project ID** and the **app ID** of your Vertex AI Search app. Create an API key under **APIs & Services**, **Credentials**, and restrict it to the Vertex AI Search (Discovery Engine) API.
   </Step>
-  <Step title="Enable Search">
-    On your Google connection, enable the **Search** service, or create a connection profile with your Vertex AI Search API key, project ID, and app ID.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Search** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-search MCP instance">
-    Go to **MCP**, click **Add instance** for **google-search**. Open **Instance config**, wire your connection, and set `ProjectID`, `AppID`, and `APIKey` in the instance config if not inherited from the connection.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_key`, `project_id`, and `app_id`. This connector does not use **Sign in with Google**. Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with a simple `search` query before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_search_search` tool from your **Google Search** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. Pass a `query` and any value for `user_pseudo_id`, such as `test-user`.
   </Step>
 </Steps>
 
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
+
 ## What you can build
 
-- **Support knowledge lookup** — Customer question in webhook → `search` against your help-center index → LLM answer with citations from `results`.
-- **Internal doc assistant** — User prompt → `search` with `user_pseudo_id` for personalization → rank and summarize top hits for a chat response.
-- **Compliance check** — Policy change draft → `search` for related procedures → LLM gap analysis → **human_task** for legal review.
-- **Product catalog Q&A** — **google-sheets** SKU sync to search index → `search` by feature or part number → return matching product snippets to the caller.
+- **Support answers.** A customer question goes to `google_search_search`, and an LLM drafts an answer from the returned `results`.
+- **Internal doc assistant.** A chat prompt searches your indexed documents and the best hits go back to the user.
+- **Policy checks.** A draft policy change searches related procedures, and an LLM lists gaps for a **Human** reviewer.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `search` | Run a query against Vertex AI Search using Discovery Engine searchLite. |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+The result includes `results`, `count`, `total_size`, and `next_page_token`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_search_search` | Read | Run a query against Vertex AI Search using Discovery Engine searchLite. | `query`, `user_pseudo_id` |
 
 ## Example
 
-Retrieve relevant documentation before an LLM summarizes an answer:
+Search your Vertex AI Search app. `user_pseudo_id` is an anonymous ID used for personalization; any stable value works.
 
 ```json
 {
   "id": "search-kb",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Search knowledge base",
-  "tool_name": "search",
+  "tool_name": "google_search_search",
   "tool_args": {
     "query": "{{input.user_question}}",
     "user_pseudo_id": "{{input.session_id}}"
   },
-  "depends_on": [],
   "timeout_s": 30
 }
 ```
 
 ## Configuration
 
-Beyond OAuth, the adapter requires Vertex AI Search identifiers:
-
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | Google Cloud API key authorized for Vertex AI Search |
-| `ProjectID` | Yes | Google Cloud project ID that owns the search app |
-| `AppID` | Yes | Vertex AI Search engine (app) ID used as the collection engine name |
-| `APIBase` | No | Discovery Engine API base URL override |
+| `api_key` | Yes | Google Cloud API key authorized for Vertex AI Search. |
+| `project_id` | Yes | Google Cloud project ID that owns the search app. |
+| `app_id` | Yes | Vertex AI Search engine (app) ID. |
+| `api_base` | No | Discovery Engine API base URL. Default `https://discoveryengine.googleapis.com/v1`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `403` API key not authorized | Enable Discovery Engine API and restrict the key to the correct project |
-| Empty `results` | Confirm the search app index is built and the query matches indexed content |
-| Wrong tenant or project | Verify `ProjectID` and `AppID` match the engine in Google Cloud Console |
-| Pagination needed | Use `next_page_token` from the response in a follow-up call if your workflow supports paging |
+| Problem | What to do |
+|---------|------------|
+| `403` or "API key not valid" | Enable the Discovery Engine API in the project and allow it on the key. |
+| Empty `results` | Check that the app has indexed content and that the query matches it. |
+| Wrong project or app | Compare `project_id` and `app_id` with the values in the Google Cloud console. |
+| Need more results | Pass `next_page_token` from the previous result if your tool arguments support paging, or refine the query. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

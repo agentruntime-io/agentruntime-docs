@@ -1,206 +1,145 @@
 ---
 title: Template intellisense
-description: Use Workflow Studio suggestions to insert {{input.*}} and step output variables without memorizing step IDs or template syntax.
+description: Use Workflow Studio suggestions to insert {{input.*}} and step output variables without memorising step IDs or template syntax.
 sidebarTitle: Template intellisense
 ---
 
-Workflow Studio helps you connect steps with **template variables** — placeholders like `{{input.topic}}` or `{{steps.<step-id>.result.message}}` that fill in at run time from start input or upstream step output.
+A **template** is a placeholder in double braces, such as `{{input.topic}}` or `{{steps.<step-id>.result.message}}`. At run time AgentRuntime replaces it with a real value: from the run's starting input, or from an earlier step's output.
 
-**Template intellisense** is the inline helper in text fields: type `{{`, search by step name or field, pick a suggestion, and Studio inserts the correct path for you.
+**Template intellisense** is the helper in Studio's text fields. Type `{{`, search by step name or field, pick a suggestion, and Studio writes the correct path for you.
 
-## Where you'll see it
+**Who this is for:** anyone who wants one step to use another step's output.
 
-Template intellisense appears anywhere Workflow Studio accepts template text, including:
+## Where you will see it
 
-| Location | Typical fields |
-|----------|----------------|
-| **Workflow configuration → Trigger** | Starting input for selected steps — agent **prompt**, tool arguments, shared run input |
-| **Agent Call** structured input | Catalog agent fields that support templates |
-
-Look for the small **variable** icon inside the field. It opens the same list of suggestions you get while typing.
+Suggestions appear in any text field that accepts templates: a step's **prompt**, tool arguments, the **Starting input** fields under **Setup → Manual**, and the **Skip when** field. A small variable icon (tooltip **Insert variable**) sits inside the field and opens the same list.
 
 <Tip>
-  Open **Workflow configuration** (click empty canvas) → **Variables** for a read-only cheat sheet of every step and common paths on the current graph.
+  Click **Variables** in the toolbar (under **More** in a narrow window) to open the **Variable reference**: a read-only list of the start inputs, run context, connection context, step outputs, and step inputs available in this workflow, each with a copy button.
 </Tip>
 
-## Quick start
+## Use a suggestion
 
 <Steps>
   <Step title="Open a template field">
-    In **Workflow configuration**, open the **Trigger** tab and expand a step — for example an **Agent Call** entry step. Click a field like **Task text or template for the agent turn**.
+    Click a field such as an **Agent** step's prompt, or a field under **Setup → Manual**.
   </Step>
   <Step title="Type {{">
-    Type two opening braces. Suggestions appear when your cursor is inside an unfinished `{{ …` segment (before the closing `}}`).
+    Type two opening braces. Suggestions appear while your cursor is inside an unfinished `{{ …` (before the closing `}}`).
   </Step>
-  <Step title="Search naturally">
-    Keep typing a step name, field name, or path fragment. You do not need special symbols — see [What you can type](#what-you-can-type).
+  <Step title="Search in plain words">
+    Keep typing a step name, a field name, or part of a path. For example `prepare news context message`.
   </Step>
-  <Step title="Pick a suggestion">
-    Click a row, or press **Enter** or **Tab** while it is highlighted. Studio inserts the full variable and adds the closing `}}` when needed.
+  <Step title="Pick one">
+    Click a row, or press **Enter** or **Tab**. Studio inserts the full variable and adds the closing `}}`.
+
+    You should see something like `{{steps.f79e84fa-609c-485e-83f1-acb3db67f856.result.message}}`.
   </Step>
 </Steps>
 
-**Example:** you type `{{prepare news context message` and choose **Prepare news context · message**. Studio saves something like:
-
-```
-{{steps.f79e84fa-609c-485e-83f1-acb3db67f856.result.message}}
-```
-
-The list showed the step's **display name**; the saved text uses that step's real **Step ID** (the UUID shown in the step config header).
-
-## What the dropdown shows
-
-Each suggestion has two lines:
-
-| Line | What it means |
-|------|----------------|
-| **Bold text** | Friendly label — step name **·** field, e.g. `Prepare news context · message`, or `input.topic` for start input |
-| **Gray path** | Exact template that will be inserted, e.g. `{{steps.<uuid>.result.message}}` |
-
-The middle dot in the label is for reading only — you never type it.
-
-## What you can type
-
-While your cursor is inside `{{ …` (before `}}`), Studio filters suggestions as you type:
+Each suggestion has two lines. The bold line is a friendly label, such as `Prepare news context · message`. The grey line is the exact text that will be inserted. The dot in the label is only for reading; you never type it.
 
 | You type | Finds |
-|----------|-------|
-| `input` or `input.topic` | Workflow start input |
-| `prepare news` | Steps whose display name matches |
-| `prepare news context message` | Step name plus field, with or without spaces |
-| `message` | Field names on steps or start input |
-| `steps.f79e84fa…` | A step by the start of its Step ID |
-| `steps.prepare news` | A step by display name after `steps.` |
+|---|---|
+| `input` or `input.topic` | Start input |
+| `prepare news` | Steps whose name matches |
+| `prepare news context message` | Step name plus field |
+| `message` | Fields named `message` on steps or start input |
+| `steps.f79e84fa…` | A step by the start of its id |
 
-<Tip>
-  Think in plain language: `prepare news context message` is enough to surface **Prepare news context · message** — you do not need to know the UUID first.
-</Tip>
+When a field contains `{{…}}` blocks, Studio shows how many **variable(s) detected** under it.
 
 ## Two kinds of variables
 
-### Start input — `{{input.*}}`
+### Start input: `{{input.*}}`
 
-Values provided when a run starts — from **Run setup**, the API, or a webhook.
+Values given when the run starts: from **Setup**, the API, or a webhook. If your workflow has an input schema, its fields appear in the suggestions.
 
 ```
 {{input.topic}}
 {{input.message}}
 ```
 
-If you defined an **input schema** when you published the workflow, those fields appear in suggestions.
+### Step output: `{{steps.<step-id>.result.*}}`
 
-Per-step start input uses the same `{{input.*}}` syntax on that step's fields; the engine applies the right payload for the step that is running.
-
-### Step output — `{{steps.<step-id>.result.*}}`
-
-Data returned by an earlier step on the canvas.
+What an earlier step returned.
 
 ```
 {{steps.505d4d95-dcb2-4a9f-a3a7-007c062898f4.result.message}}
 ```
 
-- **`<step-id>`** — the step's **Step ID** (UUID in the step config panel on Studio canvas nodes).
-- **`.result.<field>`** — a field on that step's output.
+- `<step-id>` is the step's **Step ID** (the UUID in the step's settings header).
+- `.result.<field>` is a field in that step's output.
 
-You can reference **nested** data when the runtime provides it — for example `{{steps.<id>.result.items.0.title}}` — even if Studio does not list every nested key in the dropdown.
+You can reach deeper into the output by hand, for example `{{steps.<id>.result.items.0.title}}`, even when the dropdown does not list every nested field.
 
-## Step ID vs display name
+## Step ID versus display name {#step-id-vs-display-name}
 
-Every step has two names in Studio:
+Every step has two names:
 
-| Field | Where you see it | Use in templates? |
-|-------|------------------|-------------------|
-| **Display name / label** | Node title on the canvas (e.g. `Lua transform`) | **No** — search only in intellisense |
-| **Step ID** | Step config header (UUID on top-level nodes) | **Yes** — this is `<step-id>` in `{{steps.<step-id>.result.*}}` |
+| Name | Where you see it | Use it in templates? |
+|---|---|---|
+| **Display name** | The title on the canvas, for example `Lua transform` | No. Use it only to search. |
+| **Step ID** | The step's settings header | **Yes.** This is `<step-id>`. |
 
-Hand-authored JSON may use slug ids (e.g. `fetch_leads`) on imported graphs; **inner loop steps** use short ids from the body definition. Always use **`id`**, never the **`name`** field from the published graph.
+Graphs written by hand may use readable ids such as `fetch_leads`, and steps inside loops use short ids. Always use the step's `id`, never its `name`.
 
-## Mustache (`{{…}}`) vs Lua `steps[…]`
+## Templates versus Lua {#mustache-vs-lua-steps}
 
-| Context | Syntax | Example |
-|---------|--------|---------|
-| MCP **tool_args**, LLM **prompt**, run setup templates | Dot paths inside `{{…}}` only | `{{steps.<step-id>.result.user_id}}` |
-| **Lua transform** script | Dot or bracket with **step id** | `steps["<step-id>"].result` or `steps.<id>.result` |
+| Where | Syntax | Example |
+|---|---|---|
+| Tool arguments, prompts, and other template fields | Dot paths inside `{{…}}` only | `{{steps.<step-id>.result.user_id}}` |
+| Lua script | Dot or bracket, with the step id | `steps["<step-id>"].result` |
 
 <Warning>
-  Patterns like `{{steps['Lua transform'].output.field}}` do **not** work: bracket form is not parsed inside `{{…}}`, and the label is not the step id. Dry-run reports **`template_unresolved`**; a run would send literal `{{…}}` text to the tool.
+  `{{steps['Lua transform'].output.field}}` does not work. Brackets are not read inside `{{…}}`, a display name is not an id, and the field is `.result`, not `.output`. A dry-run reports `template_unresolved`, and a real run would send the literal `{{…}}` text to the tool.
 </Warning>
 
-Use **`.result.`** in templates (canonical). Do not rely on `.output.` in hand-typed paths.
+Lua does not use `{{…}}` at all.
 
-## Common dry-run errors (`template_unresolved`)
+## What the suggestions come from
 
-| What you see | Typical cause | Fix |
-|--------------|---------------|-----|
-| `tool_args[rows[0].field]: template could not be fully resolved` with `steps['…']` in the template | Bracket or display name in `{{…}}` | Rewrite to `{{steps.<step-id>.result.field}}` (use intellisense or Step ID from the node) |
-| Same code on `{{input.email}}` | Missing run-start field | Add the key in **Run setup** or use `{{input.email \| omit}}` / a literal default |
-| Wired upstream step, dot syntax, correct id | Rare — check `depends_on` / data wiring | See [Dry-run validation](/workflows/dry-run) — valid `steps.*` refs do not require upstream output at validate time |
+Studio builds suggestions from your workflow's input schema, the tools' output schemas, and your agents' output schemas. Where none is known, it falls back to common fields:
 
-Dry-run shows a **suggestion** line under each issue when the engine recognizes the mistake.
+| Step | Fields often suggested |
+|---|---|
+| **Agent** | The agent's output schema fields, or `message` |
+| **Tool (`mcp`)** | The tool's output properties, including nested ones |
+| **LLM** | `text` |
+| **Human** | `approved` |
 
-## Common fields in suggestions
+## Defaults and optional values
 
-Studio builds suggestions from **published input schema**, **MCP tool output schemas**, and **catalog agent `output_schema`** when available. Otherwise it falls back to common fields per step type.
+Inside one `{{…}}`, a `|` means "or else":
 
-| Step type | Output fields often suggested |
-|-----------|------------------------------|
-| **Agent Call** | Catalog `output_schema` fields, or `message` / `result` |
-| **MCP Call** | Tool `outputSchema` properties (including nested paths like `data.title`) |
-| **LLM Call**, **Lua transform** | `message`, `result`, `content`, `response` |
-| **Approval Gate** | `approved` |
-| **Shared start input** | `message`, `topic`, `data`, plus your published input schema |
-
-Nested JSON paths beyond the dropdown still work at run time — type them manually when needed.
-
-## Variable picker
-
-Click the **variable** icon in the field to open **Available variables**:
-
-- Browse all start-input and step-output suggestions for the workflow
-- Click a row to insert at the cursor
-- Use **Insert trigger input placeholder** for a quick `{{input.message}}` starter
-
-## Mixing text and variables
-
-Templates can be part of a normal sentence:
-
-```
-Write a newsletter about {{input.topic}} using this research:
-
-{{steps.<step-id>.result.content}}
-```
-
-When the field contains `{{…}}` blocks, Studio shows how many **variable(s) detected** under the field.
+| Template | Meaning |
+|---|---|
+| `{{input.field \| "default"}}` | Use `"default"` when `field` is missing or empty |
+| `{{input.field \| omit}}` | Leave the key out when it is missing |
+| `{{input.a \| steps.read.result.a \| omit}}` | Try `input.a`, then the step's `a`, then leave it out |
 
 ## Inside a For each loop
 
-In a **For each** body step, the runtime also supports loop variables:
+Inside a **For each** body, `{{item}}` and `{{index}}` (or `{{foreach.item}}` and `{{foreach.index}}`) give the current item and its position. They work at run time but are not in the suggestion list, so type them yourself.
 
-```
-{{item}}
-{{index}}
-```
-
-These work at run time inside the loop body. They are not in the Studio suggestion list today — type them directly when you need them.
-
-## Good to know
+## Tips
 
 | Topic | Guidance |
-|-------|----------|
-| **Display names** | Search by step name in Studio; saved templates always use the step's **Step ID** (UUID on canvas nodes). Never paste the canvas label into `{{steps.…}}`. |
-| **Lua vs {{…}}** | Bracket `steps["id"]` is for Lua scripts only. MCP and LLM fields need `{{steps.<step-id>.result.field}}`. |
-| **Deep JSON paths** | Suggestions cover common top-level fields; nested paths can be typed by hand. |
-| **Valid syntax** | One `{{`, a path, one `}}`. Broken text like `{{input.topic{{input.topic}}}}` will not resolve — fix before you run. |
-| **Undo (Ctrl+Z)** | Restores the previous whole field value. Use **Ctrl+Shift+Z** or **Ctrl+Y** to redo. |
+|---|---|
+| Valid syntax | One `{{`, a path, one `}}`. Broken text such as `{{input.topic{{input.topic}}}}` will not resolve. |
+| Undo | **Ctrl+Z** restores the previous whole value of the field. **Ctrl+Shift+Z** or **Ctrl+Y** redoes it. |
+| Check before you run | Run **Dry-run**. A malformed template is left as literal text at run time. |
 
-<Warning>
-  Malformed templates fail silently at run time — the unresolved `{{…}}` text is left as-is. Use **Validate** (dry-run) before important runs, and check the payload preview under run setup fields.
-</Warning>
+## Common problems
 
-## Related
+| Problem | What to try |
+|---|---|
+| A value comes through as literal `{{…}}` | Use the step `id` and dot syntax, and make sure the step is in `depends_on`. |
+| `{{input.email}}` fails a dry-run | Add `email` under **Setup**, or use `{{input.email \| omit}}`. |
+| No suggestions appear | The cursor must be inside an unfinished `{{ …`. Click the variable icon instead. |
 
-- [Workflow Studio](/workflows/studio) — authoring and validation
-- [JSON editor](/workflows/json-editor) — template snippets in JSON mode (Ctrl+Space)
-- [Run setup and start input](/workflows/run-setup) — `trigger_payload`, saved defaults, API
-- [Step types](/workflows/step-types) — what each step type returns
-- [JSON schema cookbook](/workflows/json-schema-cookbook) — example graphs with templates
+## Next steps
+
+- [Dry-run validation](/workflows/dry-run)
+- [Step types](/workflows/step-types)
+- [JSON editor](/workflows/json-editor)

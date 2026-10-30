@@ -9,10 +9,10 @@ areas:
 summary: Platform v0.3.1 — MCP-to-LLM workflow dependency fixes, LLM step timeouts, Workspace Chat offline drafts, and Google connect form improvements.
 changed:
   - "**MCP-to-LLM chains** — Workflow Studio preserves field-wire dependencies in `depends_on` so MCP tool steps correctly gate linked LLM steps **GA** · Workflow Studio → graph wiring · [Workflow Studio](/workflows/studio)"
-  - "**LLM step timeouts** — workflow engine applies clearer timeout handling for LLM calls and long-running steps **GA** · [Step types](/workflows/step-types)"
+  - "**LLM step timeouts** — clearer timeout handling for LLM calls and long-running steps **GA** · [Step types](/workflows/step-types)"
   - "**Google account connect** — improved accessibility and form structure when linking Google accounts **GA** · Connections → Google · [Google Workspace](/integrations/google-workspace)"
   - "**Workspace Chat offline drafts** — drafts persist more reliably when connectivity drops mid-compose **GA** · Workspace Chat"
-  - "**Agent turn credentials** — turn requests carry model reference and credential context for consistent agent execution **API only**"
+  - "**Agent model and credentials** — agent requests carry the selected model and credential context so the intended model and key are used consistently **API only**"
 fixed:
   - "**MCP-to-LLM depends_on** — field-wired MCP → LLM chains no longer drop dependency edges at run time"
 ---
@@ -21,7 +21,7 @@ fixed:
 
 ## Workflow Studio and runs
 
-**MCP-to-LLM chains** — when you wire an MCP tool step into an LLM step using field mapping, the run engine now keeps those dependencies in `depends_on`. Previously, some chains could start the LLM step before the MCP step finished supplying inputs.
+**MCP-to-LLM chains** — when you wire an MCP tool step into an LLM step using field mapping, runs now keep those dependencies in `depends_on`. Previously, some chains could start the LLM step before the MCP step finished supplying inputs.
 
 **LLM step timeouts** — LLM calls and long-running workflow steps use improved timeout handling, reducing hung runs when a provider stalls.
 
@@ -35,7 +35,7 @@ fixed:
 
 ## API and agents
 
-**Agent turn credentials** — agent turn requests include model reference and credential context so downstream execution picks the intended model and key (**API only** — no Console UI change).
+**Agent model and credentials** — agent requests include the model reference and credential context so the intended model and key are picked up (**API only** — no Console UI change).
 
 ## Related docs
 

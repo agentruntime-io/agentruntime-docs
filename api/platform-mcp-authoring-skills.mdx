@@ -1,44 +1,56 @@
 ---
 title: Platform MCP authoring skills
-description: Public skill bundles for external AI agents — Tenant Data, workflows, Surfaces, and end-to-end design on Platform MCP.
+description: Guides your AI assistant can read so it designs AgentRuntime workflows, databases, and apps correctly.
 ---
 
-External agents (ChatGPT, Codex, Claude) should call **`ar_get_started`** on [Platform MCP](/api/platform-mcp) first, then load skill markdown from the **public** tree below (no access to the private platform-mcp GitHub repo required).
+An AI assistant that builds things in AgentRuntime does a better job when it knows the platform's rules. **Authoring skills** are plain Markdown guides written for assistants. They explain how to design a solution, write valid workflow steps, define a workspace database, and build an app.
 
-## Raw fetch (recommended for agents)
+This page is for people who use an assistant (Claude, ChatGPT, Codex, Cursor) with [Platform MCP](/api/platform-mcp). In most cases you do nothing: the assistant is pointed to these guides automatically when it calls `ar_get_started`. This page tells you where they live, in case you want to read them yourself or give them to an assistant that cannot browse.
 
-Base URL:
+## The guides
 
-```
-https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/
-```
+Each guide is a public file. No sign-in is needed to read it.
 
-| Skill | URL |
-|-------|-----|
-| **Platform design** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-platform-design/SKILL.md) |
-| **Tenant Data** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-tenant-data-authoring/SKILL.md) |
-| **Workflow authoring** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-workflow-authoring/SKILL.md) |
-| **Surfaces apps** | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-surfaces-authoring/SKILL.md) |
+| Guide | Use it when the assistant is… | Link |
+|-------|-------------------------------|------|
+| **Platform design** | Planning a whole solution before building | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-platform-design/SKILL.md) |
+| **Workflow authoring** | Writing or editing workflow steps | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-workflow-authoring/SKILL.md) |
+| **Tenant Data** | Designing a workspace database (**Databases** in the Console) | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-tenant-data-authoring/SKILL.md) |
+| **Surfaces apps** | Building an app (**Apps** in the Console) | [SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-surfaces-authoring/SKILL.md) |
 
-Browse the full tree on GitHub: [platform-mcp-skills](https://github.com/agentruntime-io/agentruntime-docs/tree/main/platform-mcp-skills).
+You can browse the whole folder on GitHub: [platform-mcp-skills](https://github.com/agentruntime-io/agentruntime-docs/tree/main/platform-mcp-skills).
 
-## JSON schemas (embedded contracts)
+## JSON schemas
 
-| Schema | Raw URL |
-|--------|---------|
-| Tenant Data `{ tables[] }` | [tenantdata-logical.schema.json](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/schemas/tenantdata-logical.schema.json) |
-| Surfaces v1 | [surfaces-v1.schema.json](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/schemas/surfaces/surfaces-v1.schema.json) |
+These files describe the exact shape of the data the assistant writes.
 
-Or call Platform MCP **`tenantdata_logical_schema`** and **`surfaces_schema_catalog`** — they return the same public URLs.
+| Schema | Describes |
+|--------|-----------|
+| [tenantdata-logical.schema.json](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/schemas/tenantdata-logical.schema.json) | A workspace database: `{ "tables": [...] }` |
+| [surfaces-v1.schema.json](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/schemas/surfaces/surfaces-v1.schema.json) | An app |
 
-## Typical order
+The assistant can also get the same links by calling the Platform MCP tools `tenantdata_logical_schema` and `surfaces_schema_catalog`.
 
-1. `ar_get_started` — tenant, playbooks, `embedded_schema_tools`
-2. Load **platform-design** SKILL, then tenant-data → workflow → surfaces as needed
-3. `workflows_validate` with `tenantdata_schema` before run
-4. For Surfaces apps: create workflows first, then set **`workflow_ref` to their UUIDs** (avoid **Import pending** in Console). No publishing needed: views and runs use each workflow's Live copy; publish only to pin a caller to a frozen version.
+## The usual order
 
-## Related
+When you ask an assistant to build something, a good run looks like this:
 
-- [Platform MCP](/api/platform-mcp) — endpoint, auth, tool groups
-- [Workflow dry-run](/workflows/dry-run) — user-facing validate concepts
+1. It calls `ar_get_started` to learn about your workspace and the guides.
+2. It reads the **Platform design** guide, then the guides for the parts it needs (database, workflow, app).
+3. It checks each workflow with `workflows_validate` before running it.
+4. For an app, it creates the workflows first, then points the app at them by their IDs. This avoids the **Import pending** state in the Console.
+
+You do not need to publish a workflow before an app or a run can use it. They use the workflow's **Live** copy. Publish a numbered version only when something must stay pinned to a stable copy.
+
+## Common problems
+
+| Problem | What to do |
+|---------|------------|
+| The assistant ignores the guides | Tell it to call `ar_get_started` first and read the guides it lists. If it cannot browse, paste the guide link or content into the chat |
+| An app shows **Import pending** | The app points to a workflow that does not exist yet. Create the workflow, then update the app with its ID |
+| The assistant writes steps that fail validation | Ask it to read the Workflow authoring guide and run `workflows_validate`. See [Dry run](/workflows/dry-run) |
+
+## Next steps
+
+- [Platform MCP](/api/platform-mcp): connect your assistant
+- [Dry run](/workflows/dry-run): how workflow checking works

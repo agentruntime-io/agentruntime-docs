@@ -1,76 +1,181 @@
 ---
 title: ClickUp connector
-description: Manage ClickUp workspaces, lists, tasks, and comments from AgentRuntime workflows.
+description: Create and update ClickUp tasks, lists, comments, docs, time entries, and chat messages from AgentRuntime workflows.
 ---
 
-The **clickup** MCP adapter connects to the [ClickUp API](https://clickup.com/api). List workspaces and spaces, create and update tasks, read comments, and keep project management in sync with automation — ideal for ticket routing, status updates, and agent-driven task creation.
+The **clickup** connector connects your workflows to the [ClickUp API](https://clickup.com/api). Use it to turn requests into tasks, keep statuses in sync with other tools, post updates as comments, track time, and read or write ClickUp Docs and Chat.
 
 ## Prerequisites
 
-- A ClickUp account with access to the target workspaces
-- A ClickUp **personal API token** (`pk_...`) from **Settings → Apps**
-- List and task IDs from ClickUp URLs or discovery tools
-- **project_contributor** access in AgentRuntime
+- A ClickUp account with access to the workspaces and lists you want to automate.
+- A ClickUp **personal API token** (starts with `pk_`).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Create a ClickUp API token">
-    In ClickUp, go to **Settings → Apps** and generate a personal API token. Copy the `pk_...` value.
+    In ClickUp, open your avatar menu, go to **Settings**, then **Apps**, and generate a personal API token. Copy the `pk_` value.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **ClickUp** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add clickup MCP instance">
-    Go to **MCP**, click **Add instance** for **clickup**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_key` (your `pk_` token). Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Discover IDs">
-    Run **mcp_call** → `clickup_get_workspaces`, then `clickup_get_spaces` and `clickup_get_list` to map workspace → list IDs before hard-coding them in workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `clickup_get_workspaces` tool from your **ClickUp** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. This tool has no arguments. The IDs it returns are the starting point for every other tool.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **Support → task** — Form submission or chat escalation → `clickup_create_task` in the support list with priority and assignees.
-- **Status sync** — GitLab issue closed → `clickup_update_task` to move ClickUp status to Done.
-- **Daily standup digest** — `clickup_get_tasks` on a sprint list → LLM summarizes blockers.
-- **Comment trail** — Agent adds context with `clickup_create_comment`; humans reply in ClickUp UI.
+- **Support request to task.** A form or chat escalation becomes a task with `clickup_create_task` in your support list, with priority and assignees.
+- **Status sync.** When an issue closes in another tool, `clickup_update_task` moves the matching ClickUp task to its done status.
+- **Daily digest.** `clickup_get_tasks` reads a sprint list and an LLM step summarizes blockers for the team.
+- **Time and comments.** `clickup_create_comment` leaves an agent's notes on a task, and `clickup_start_time_tracking` and `clickup_stop_time_tracking` log work.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `clickup_get_workspaces` | List workspaces accessible to the token |
-| `clickup_get_spaces` | List non-archived spaces in a workspace |
-| `clickup_get_list` | Get list metadata by list ID |
-| `clickup_get_tasks` | List open tasks in a list (paginated) |
-| `clickup_get_task` | Get a task by task ID |
-| `clickup_create_task` | Create a task with name, description, status, priority, assignees, due date |
-| `clickup_update_task` | Update task fields and assignees |
-| `clickup_delete_task` | Delete a task by ID |
-| `clickup_get_comments` | List comments on a task |
-| `clickup_create_comment` | Post a comment on a task |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+Tools marked **Delete** remove data permanently. Consider a **Human** approval step before them.
+
+To find the IDs you need, call `clickup_get_workspaces`, then `clickup_get_spaces`, then `clickup_get_folders` or `clickup_get_folderless_lists`, then `clickup_get_lists_in_folder`.
+
+### Search
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_search` | Read | Keyword search across tasks and docs in a workspace. Tasks: one page from GET /team/{id}/task + client keyword filter; docs: first page name match. Use page/docs_cursor for more. Top-level action â€” no resource segment in wire name. | `workspace_id` |
+
+### Comments
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_create_comment` | Write | Post a comment on a ClickUp task. | `task_id`, `comment` |
+| `clickup_delete_comment` | Delete | Permanently delete a comment by comment ID; irreversible. | `comment_id` |
+| `clickup_get_comments` | Read | List comments on a ClickUp task. | `task_id` |
+| `clickup_get_list_comments` | Read | List comments on a ClickUp list. | `list_id` |
+| `clickup_update_comment` | Write | Update a task or list comment. | `comment_id`, `comment` |
+
+### Time tracking
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_create_time_entry` | Write | Manually log a time entry. | `workspace_id`, `start`, `duration` |
+| `clickup_delete_time_entry` | Delete | Permanently delete a time entry; irreversible. | `workspace_id`, `time_entry_id` |
+| `clickup_get_current_time_entry` | Read | Get the running timer if any. | `workspace_id` |
+| `clickup_get_task_time_entries` | Read | List time tracked on a task. | `task_id` |
+| `clickup_get_task_time_in_status` | Read | Get time spent in each status for a task. | `task_id` |
+| `clickup_get_time_entries` | Read | List time entries in a workspace. | `workspace_id` |
+| `clickup_start_time_tracking` | Write | Start a timer for the authenticated user. | `workspace_id` |
+| `clickup_stop_time_tracking` | Write | Stop the active timer. | `workspace_id` |
+| `clickup_update_time_entry` | Write | Update a time entry. | `workspace_id`, `time_entry_id` |
+
+### Docs
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_create_doc` | Write | Create a doc in a workspace. | `workspace_id`, `name` |
+| `clickup_create_doc_page` | Write | Create a page in a doc. | `workspace_id`, `doc_id`, `name` |
+| `clickup_delete_doc` | Delete | Permanently delete a doc and its pages; irreversible. | `workspace_id`, `doc_id` |
+| `clickup_delete_doc_page` | Delete | Permanently delete a doc page; irreversible. | `workspace_id`, `doc_id`, `page_id` |
+| `clickup_get_doc` | Read | Get a ClickUp Doc by doc ID. | `workspace_id`, `doc_id` |
+| `clickup_get_doc_page` | Read | Get a ClickUp Doc page with markdown content. | `workspace_id`, `doc_id`, `page_id` |
+| `clickup_list_doc_pages` | Read | List pages in a ClickUp Doc. | `workspace_id`, `doc_id` |
+| `clickup_list_docs` | Read | List ClickUp Docs in a workspace with cursor pagination. | `workspace_id` |
+| `clickup_update_doc` | Write | Update doc metadata. | `workspace_id`, `doc_id` |
+| `clickup_update_doc_page` | Write | Update a doc page and its content. | `workspace_id`, `doc_id`, `page_id` |
+
+### Chat
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_create_chat_channel` | Write | Create a chat channel. | `workspace_id`, `name` |
+| `clickup_delete_chat_message` | Delete | Permanently delete a chat message; irreversible. | `workspace_id`, `message_id` |
+| `clickup_get_chat_channel_members` | Read | List members of a ClickUp Chat channel. | `workspace_id`, `channel_id` |
+| `clickup_get_chat_channels` | Read | List ClickUp Chat channels in a workspace. | `workspace_id` |
+| `clickup_get_chat_message_replies` | Read | List replies to a ClickUp Chat message. | `workspace_id`, `message_id` |
+| `clickup_get_chat_messages` | Read | List messages in a ClickUp Chat channel. | `workspace_id`, `channel_id` |
+| `clickup_send_chat_message` | Write | Post a message to a ClickUp Chat channel. | `workspace_id`, `channel_id`, `content` |
+| `clickup_update_chat_message` | Write | Edit a chat message. | `workspace_id`, `message_id`, `content` |
+
+### Checklists
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_create_checklist` | Write | Create a checklist on a task. | `task_id`, `name` |
+| `clickup_create_checklist_item` | Write | Add an item to a checklist. | `checklist_id`, `name` |
+| `clickup_delete_checklist_item` | Delete | Permanently delete a checklist item; irreversible. | `checklist_id`, `checklist_item_id` |
+| `clickup_update_checklist_item` | Write | Update a checklist item name, assignee, or resolved state. | `checklist_id`, `checklist_item_id` |
+
+### Tasks
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_add_task_dependency` | Write | Add a dependency between tasks. | `task_id` |
+| `clickup_add_task_link` | Write | Link two tasks together. | `task_id`, `links_to_id` |
+| `clickup_add_task_tag` | Write | Add a tag to a task. | `task_id`, `tag_name` |
+| `clickup_add_task_to_list` | Write | Add a task to another list without changing its home list. | `list_id`, `task_id` |
+| `clickup_attach_file_to_task` | Write | Upload a file attachment to a task via base64 or URL. | `task_id` |
+| `clickup_create_subtask` | Write | Create a subtask under a parent task. | `list_id`, `parent_id`, `name` |
+| `clickup_create_task` | Write | Create a task in a ClickUp list. | `list_id`, `name` |
+| `clickup_delete_task` | Delete | Permanently delete a ClickUp task by task ID; irreversible. | `task_id` |
+| `clickup_get_task` | Read | Get a ClickUp task by task ID. | `task_id` |
+| `clickup_get_tasks` | Read | List tasks in a ClickUp list with page pagination. | `list_id` |
+| `clickup_move_task_to_list` | Write | Move a task to a new home list. | `task_id`, `list_id` |
+| `clickup_remove_task_custom_field` | Delete | Clear a custom field value on a task. | `task_id`, `field_id` |
+| `clickup_remove_task_dependency` | Delete | Remove a task dependency. | `task_id`, `depends_on` |
+| `clickup_remove_task_from_list` | Delete | Remove a task from a secondary list only; does not delete the task. | `list_id`, `task_id` |
+| `clickup_remove_task_link` | Delete | Remove a link between tasks. | `task_id`, `links_to_id` |
+| `clickup_remove_task_tag` | Delete | Remove a tag from a task. | `task_id`, `tag_name` |
+| `clickup_set_task_custom_field` | Write | Set a custom field value on a task. | `task_id`, `field_id`, `value` |
+| `clickup_update_task` | Write | Update an existing ClickUp task. | `task_id` |
+
+### Workspaces, folders, and lists
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `clickup_create_folder` | Write | Create a folder in a space. | `space_id`, `name` |
+| `clickup_create_list_in_folder` | Write | Create a list in a folder. | `folder_id`, `name` |
+| `clickup_create_list_in_space` | Write | Create a folderless list in a space. | `space_id`, `name` |
+| `clickup_get_folder` | Read | Get a ClickUp folder by folder ID. | `folder_id` |
+| `clickup_get_folderless_lists` | Read | List ClickUp lists not in any folder. | `space_id` |
+| `clickup_get_folders` | Read | List folders in a ClickUp space. | `space_id` |
+| `clickup_get_list` | Read | Get a ClickUp list by list ID. | `list_id` |
+| `clickup_get_list_custom_fields` | Read | List custom fields on a list. | `list_id` |
+| `clickup_get_lists_in_folder` | Read | List ClickUp lists inside a folder. | `folder_id` |
+| `clickup_get_spaces` | Read | List ClickUp spaces in a workspace. | `workspace_id` |
+| `clickup_get_workspace_members` | Read | List workspace members and guests (from GET /api/v2/team). | `workspace_id` |
+| `clickup_get_workspaces` | Read | List ClickUp workspaces accessible to the API token. | — |
+| `clickup_update_folder` | Write | Update a folder. | `folder_id` |
+| `clickup_update_list` | Write | Update a list. | `list_id` |
 
 ## Example
 
-Create a task from a workflow trigger:
+Create a task in a list. `priority` is 1 (urgent) to 4 (low), and `due_date` is a Unix timestamp in milliseconds.
 
 ```json
 {
   "id": "clickup-task",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Create ClickUp task",
   "tool_name": "clickup_create_task",
   "tool_args": {
     "list_id": "{{input.list_id}}",
     "name": "{{input.title}}",
-    "description": "{{steps.llm-draft.result.body}}",
+    "description": "{{steps.llm-draft.result.text}}",
     "priority": 2,
     "status": "to do"
   },
-  "depends_on": ["llm-draft"],
+  "depends_on": [
+    "llm-draft"
+  ],
   "timeout_s": 30
 }
 ```
@@ -79,21 +184,23 @@ Create a task from a workflow trigger:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | ClickUp personal API token (`pk_...`) |
-| `APIBase` | No | ClickUp API base URL |
+| `api_key` | Yes | ClickUp personal API token (`pk_...`). |
+| `api_base` | No | ClickUp API base URL. Default `https://api.clickup.com/api/v2`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `401 Unauthorized` | Regenerate token; personal tokens do not expire but can be revoked |
-| Invalid status name | Status labels are list-specific; copy exact names from ClickUp UI |
-| Task not visible | Confirm list ID and workspace access for the token owner |
-| Pagination gaps | Use `page` on `clickup_get_tasks` (100 tasks per page, starting at 0) |
+| Problem | What to do |
+|---------|------------|
+| `401` or "token invalid" | Generate a new token under **Settings → Apps** and update the profile. |
+| "Status not found" | `status` must match a status name defined on that list, exactly. |
+| A task or list is not found | Check the ID and that the token's owner has access to that workspace and list. |
+| Not all tasks are returned | `clickup_get_tasks` returns up to 100 tasks per page. Increase `page`, starting at 0, until a page comes back short. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Wrike connector](/connectors/wrike) — alternative project management
+- [Wrike connector](/connectors/wrike) for another project management tool
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

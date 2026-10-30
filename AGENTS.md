@@ -135,10 +135,10 @@ Every published `connectors/{slug}.mdx` page uses the **same section order** so 
 | Frontmatter `title` / `description` | `title`: `{Name} connector`. `description`: one-line value prop, not "MCP connector — tool X". |
 | Intro (no heading) | What the service is and why automate it in AgentRuntime (2–3 sentences). |
 | `## Prerequisites` | Accounts, API access, roles, network — bullets only. |
-| `## Connect in AgentRuntime` | `<Steps>` using real Console labels: **Connections** (`New custom connection`, **Google account** card, **Connect WhatsApp**), **MCP** (`Add instance`), **Instance config** (wire connection, **active** profile). Smoke-test with **mcp_call** — not "Validate bindings". |
+| `## Connect in AgentRuntime` | `<Steps>` using real Console labels: **Connections** (**Add from template**: **Sign in** on the Google row, **Connect** on other rows), **MCP** (**Add connectors**, then **Add to workspace**), **Instance config** (wire connection, **active** profile). Smoke-test with an `mcp` step — not "Validate bindings". |
 | `## What you can build` | 3–4 **concrete workflow ideas** with bold titles and one sentence each. Tie to real tools. |
 | `## Tools` | Table from staging draft or connector README. Group with `###` subheadings if more than ~15 tools. |
-| `## Example` | One `mcp_call` JSON block showing a realistic step. |
+| `## Example` | One `mcp` JSON block showing a realistic step. |
 | `## Configuration` | Config keys table when the adapter has required settings beyond the connection. |
 | `## Troubleshooting` | Small table (2–4 rows). Omit only if nothing useful to say. |
 | `## Related` | Always link: [Integrations quickstart](/integrations/quickstart), [Connector catalog](/integrations/connector-catalog), [Troubleshooting](/platform/troubleshooting). Add one contextual link (e.g. [Google Workspace](/integrations/google-workspace) for Google adapters). |

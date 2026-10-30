@@ -1,64 +1,90 @@
 ---
 title: MongoDB connector
-description: Query, aggregate, and update MongoDB collections from AgentRuntime workflow steps.
+description: Find, aggregate, insert, update, and delete documents in MongoDB from AgentRuntime workflow steps.
 ---
 
-The **mongodb** MCP adapter connects with a MongoDB URI (`mongodb://` or `mongodb+srv://`) and a default database name. It provides document reads, writes, counts, and aggregation pipelines using Extended JSON filters. Use it for operational data sync, event enrichment, analytics pipelines, webhook ingestion, and document-backed agents — complementary to [Firestore](/connectors/firestore) on Google Cloud or [Postgres](/connectors/postgres) for relational reporting.
+The **mongodb** connector lets workflow steps read and write documents in a MongoDB database you own, including MongoDB Atlas. It can look up documents, run aggregation pipelines, insert and update data, and manage indexes. Use it to keep a customer or event collection in sync with other tools, to build reports from your data, or to give an agent a way to look things up. For relational data see the [Postgres connector](/connectors/postgres).
 
 ## Prerequisites
 
-- A MongoDB deployment (self-hosted, Atlas, or compatible) reachable from AgentRuntime
-- A connection URI with credentials (`mongodb://` or `mongodb+srv://`)
-- A default database name for collection operations
-- Database user with `read` for reporting; `readWrite` only on collections workflows must modify
-- Atlas IP allowlist or VPC peering configured if the cluster is network-restricted
-- **project_contributor** access
+- A MongoDB deployment that AgentRuntime can reach over the network (self-hosted or MongoDB Atlas). If your cluster restricts access by IP address (Atlas calls this the IP access list), allow connections from AgentRuntime.
+- A database user with a password. Give it `read` access for reporting, and `readWrite` only on collections that workflows must change.
+- The connection string for that user: `mongodb://` or `mongodb+srv://`. In Atlas, open your cluster and choose **Connect** to see the connection string for your cluster, then replace the placeholder password with the user's password. Atlas documents these steps in its own connection guide.
+- The name of the default database your workflows will use.
+- Permission in your workspace to create connections and MCP instances (MCP write permission).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create a database connection with your MongoDB URI and default database:
+    Open **Connections** in the [Console](https://console.agentruntime.io) and click **New custom connection**. Optionally set a **Display name**, then under **Credentials** add these rows (**Key** and **Value**):
 
-    ```
-    mongodb+srv://user:password@cluster.example.mongodb.net/?retryWrites=true&w=majority
-    ```
+    - `mongodb_url`: your connection string, for example `mongodb+srv://reporting_user:your-password@cluster0.example.mongodb.net/?retryWrites=true&w=majority`
+    - `mongodb_database`: the default database, for example `production`
 
-    Set `URI` to the connection string and `Database` to the default database name (e.g. `production`). Include `authSource` in the URI when credentials live in the `admin` database.
+    Click **Save**. The dialog also asks who can use the connection; choose the sharing option that fits your team. If your user was created in a database other than `admin`, include `authSource` in the connection string.
   </Step>
-  <Step title="Add mongodb MCP instance">
-    Go to **MCP**, click **Add instance** for **mongodb**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the mongodb MCP instance">
+    Open **MCP**, click **Add connectors**, click the **mongodb** connector, then **Add to workspace**. Open **Instance config**, select your connection in the **Connection** picker, make sure the profile is **active**, and save.
   </Step>
-  <Step title="Test with a document count">
-    Add a workflow with **mcp_call** → `mongodb_count_documents` on a known collection. Run it to confirm connectivity before production reads or writes.
+  <Step title="Smoke test with an MCP step">
+    In **Workflow Studio**, create a workflow with a single `mcp` step using `tool_name` `mongodb_list_collections` (no arguments) and run it. You should see the collections in your default database.
   </Step>
-  <Step title="Inspect a sample document (optional)">
-    Run **mcp_call** → `mongodb_find_one` with an empty `filter_json` on a test collection to verify collection access and field shapes.
+  <Step title="Read a document (optional)">
+    Run `mongodb_find_one` with `{"collection": "<your collection>"}` to check you can read a real collection and see what its documents look like.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+See [Authentication](/integrations/authentication) for how connections are bound to MCP instances.
 
 ## What you can build
 
-- **Lead enrichment** — Webhook payload → `mongodb_find_one` existing contact → merge external API data → `mongodb_update_one`.
-- **Usage analytics** — `mongodb_aggregate` pipeline on events → LLM narrative → scheduled Resend digest.
-- **Ticket triage** — `mongodb_find` open tickets → LLM priority scoring → `mongodb_update_many` to set status.
-- **Approval-gated deletes** — **human_task** before `mongodb_delete_many` on production collections.
+- **Contact enrichment.** When a webhook arrives, look up the contact with `mongodb_find_one`, merge in data from another tool, and save it with `mongodb_update_one`.
+- **Usage digest.** Run `mongodb_aggregate` over an events collection on a schedule, let an LLM step summarize the result, and email it.
+- **Ticket triage.** Fetch open tickets with `mongodb_find`, score them with an LLM, and set their status with `mongodb_update_one`.
+- **Approval before deletes.** Put a `human` approval step before `mongodb_delete_many` on a production collection.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `mongodb_update_many` | Update many documents in a MongoDB collection |
-| `mongodb_count_documents` | Count documents in a MongoDB collection with an optional filter |
-| `mongodb_aggregate` | Run an aggregation pipeline on a MongoDB collection |
-| `mongodb_delete_one` | Delete one document from a MongoDB collection |
-| `mongodb_delete_many` | Delete many documents from a MongoDB collection |
-| `mongodb_find` | Find documents in a MongoDB collection with an optional filter and limit |
-| `mongodb_find_one` | Find one document in a MongoDB collection with an optional filter |
-| `mongodb_insert_one` | Insert one document into a MongoDB collection |
-| `mongodb_update_one` | Update one document in a MongoDB collection |
+Filters and documents are passed as JSON text (MongoDB Extended JSON) in parameters whose names end in `_json`.
+
+### Read
+
+| Tool | What it does |
+|------|--------------|
+| `mongodb_find` | Find documents matching a filter. Parameters: `collection` (required), `filter_json`, `limit` (default 20, max 200). Returns `documents` and `count`. |
+| `mongodb_find_one` | Find one document. Parameters: `collection` (required), `filter_json`. Returns `document`. |
+| `mongodb_count_documents` | Count documents. Parameters: `collection` (required), `filter_json`. Returns `count`. |
+| `mongodb_aggregate` | Run an aggregation pipeline. Parameters: `collection` and `pipeline_json` (required), `limit` (default 200, max 1000). Pipelines with `$out` or `$merge` are refused. |
+| `mongodb_list_databases` | List database names on the cluster. |
+| `mongodb_list_collections` | List collection names. Parameter: `database` (defaults to your configured database). |
+| `mongodb_explain` | Show the query plan for a `find` or `aggregate`. Parameters: `collection` and `operation` (required), `filter_json`, `pipeline_json`, `verbosity` (default `executionStats`). |
+
+### Write
+
+These tools change data.
+
+| Tool | What it does |
+|------|--------------|
+| `mongodb_insert_one` | Insert one document. Parameters: `collection`, `document_json` (both required). |
+| `mongodb_insert_many` | Insert several documents. Parameters: `collection`, `documents_json` (a JSON array; both required). |
+| `mongodb_update_one` | Update the first matching document. Parameters: `collection`, `update_json` (required, for example `{"$set": {...}}`), `filter_json`, `upsert`. |
+| `mongodb_update_many` | Update all matching documents. Same parameters as `mongodb_update_one`. |
+| `mongodb_replace_one` | Replace one document with a full new document. Parameters: `collection`, `replacement_json` (required), `filter_json`, `upsert`. |
+| `mongodb_delete_one` | Delete the first matching document. Parameters: `collection` (required), `filter_json`. |
+| `mongodb_delete_many` | Delete all matching documents. Parameters: `collection` (required), `filter_json`. |
+
+<Warning>
+An empty or missing `filter_json` matches every document. On `mongodb_update_many` and `mongodb_delete_many` always pass a filter unless you really mean the whole collection.
+</Warning>
+
+### Indexes
+
+| Tool | What it does |
+|------|--------------|
+| `mongodb_list_indexes` | List indexes on a collection. Parameter: `collection` (required). |
+| `mongodb_create_index` | Create an index. Parameters: `collection` and `index_keys_json` (required, for example `{"email": 1}`), `index_name`, `unique`. Writes to the database. |
+| `mongodb_drop_index` | Drop an index by name. Parameters: `collection`, `index_name` (both required). Writes to the database. |
 
 ## Example
 
@@ -67,8 +93,9 @@ Find recent signups for a welcome workflow:
 ```json
 {
   "id": "recent-signups",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Fetch recent signups",
+  "instance_id": "REPLACE_MONGODB_INSTANCE",
   "tool_name": "mongodb_find",
   "tool_args": {
     "collection": "users",
@@ -79,34 +106,32 @@ Find recent signups for a welcome workflow:
 }
 ```
 
-Reference documents in a downstream step:
-
-```
-{{steps.recent-signups.result.documents}}
-```
+Use the documents in a later step with `{{steps.recent-signups.result.documents}}`.
 
 ## Configuration
 
+Connection keys (the connection's **Key** names):
+
 | Key | Required | Default | Description |
 |-----|----------|---------|-------------|
-| `mongodb_uri` | Yes | — | MongoDB connection URI (`mongodb://` or `mongodb+srv://`) |
-| `mongodb_database` | Yes | — | Default database name for collection operations |
-| `mongodb_request_timeout_seconds` | No | `30` | Per-operation timeout in seconds for queries and writes |
+| `mongodb_url` | Yes | none | MongoDB connection URL (`mongodb://` or `mongodb+srv://`). |
+| `mongodb_database` | Yes | none | Default database name for collection operations. |
+| `mongodb_request_timeout_seconds` | No | `30` | Per-operation timeout in seconds. |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Connection refused / timeout | Check URI host, Atlas IP allowlist, and VPC peering or network path |
-| `Authentication failed` | Verify username, password, and `authSource` in the URI |
-| `filter_json` parse errors | Use Extended JSON syntax; escape quotes in workflow templates |
-| Write rejected | Confirm the DB user has `readWrite` on the target collection |
-| Aggregation limit exceeded | Default pipeline limit is 200 (max 1000); add `$limit` stages in `pipeline_json` |
+| `missing required configuration: please set mongodb_url and mongodb_database` | The connection lacks one of those keys, or the instance profile is not wired to it. |
+| Timeout or connection refused | Check the host in the connection string and that your IP access list or firewall allows AgentRuntime. |
+| Authentication failed | Check username and password, and add `authSource` to the connection string if the user lives in another database. |
+| `invalid filter_json` (or `update_json`, `pipeline_json`) | The value is not valid JSON. Escape quotes inside workflow JSON, and use Extended JSON forms such as `{"$date": "..."}` for dates. |
+| `mongodb_aggregate is read-only` | Remove `$out` and `$merge` stages; use the write tools to store data. |
+| Write rejected | Check that the database user has `readWrite` on the collection. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [Firestore connector](/connectors/firestore) — document store on Google Cloud
-- [Postgres connector](/connectors/postgres) — relational alternative for structured reporting
+- [Postgres connector](/connectors/postgres)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

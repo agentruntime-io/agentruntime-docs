@@ -1,81 +1,93 @@
 ---
 title: LLM providers
-description: Configure API keys and model catalogs for workflow LLM steps in AgentRuntime.
+description: Add your own AI provider keys, choose which models your workspace can use, and pick a model in workflows and agents.
 ---
 
-Workflow **llm_call** steps and platform agents resolve models through the **Providers** catalog. Add your vendor API keys so runs use your accounts and billing.
+An **LLM** (large language model) is the AI model behind an **LLM** step, an **agent**, or **Autopilot**. The **Providers** page is where you decide which models your workspace can use and whose account pays for them.
 
-Open **Providers** in the [Console](https://console.agentruntime.io) at `/providers`.
+This page is for workspace admins and builders who want to use their own OpenAI, Anthropic, Google, or gateway account, or who just want to know where to pick a model.
 
-## Console walkthrough
+## Two kinds of keys
 
-The **Providers** page shows two tiers of keys:
+| Kind | What it is | Who manages it |
+|------|------------|----------------|
+| **Platform keys** | Keys AgentRuntime provides. They are read-only and marked with a lock | AgentRuntime |
+| **Workspace keys** | Keys you add from your own provider account. Usage is billed by your provider | Workspace admins and project contributors |
 
-| Tier | What you see | Who manages it |
-|------|--------------|----------------|
-| **Platform keys** | Read-only rows supplied by AgentRuntime | Platform (for trials or bundled usage) |
-| **Workspace keys** | Keys you add for your tenant | **Tenant admins** and users with provider-key access |
+On the **Providers** page, each provider has a row for its keys. A **Platform default** row (marked with a lock, **Stored in Vault**) is always there for OpenAI and Anthropic. The **Model key source** switch at the top (**Platform** or **Workspace keys**) sets which keys the models across the Console use. You can also switch it in any model picker.
 
-Workspace keys are stored in Vault. After saving, you can reveal or rotate secrets from the same card. Workflow **llm_call** steps resolve models against this catalog — in Workflow Studio, drag **LLM Call** from the palette, then pick **Model** and **Source** in the node General tab; the compiled step stores `model_ref` and optional credential fields.
+<Frame caption="The Providers page">
+  <img src="/images/ai/providers-page.png" alt="The Providers page with an Add workspace key button, the Model key source switch set to Platform, and the provider rows for OpenAI and Anthropic, each with a locked Platform default key, and Google Gemini with No Google Gemini keys" />
+</Frame>
+
+If you add no keys, workflows and agents use the platform keys. If you add a workspace key, runs that choose that key use your provider account. **Settings → Usage & History** shows your usage.
 
 <Warning>
-  LLM API keys on **Providers** are different from **Settings → API keys** (PATs for REST automation). Do not paste LLM vendor keys into the API keys tab.
+  LLM provider keys on **Providers** are not the same as **Settings → API keys**. API keys are personal access tokens for calling the AgentRuntime API. Never paste a provider key into **API keys**, or an API key into **Providers**.
 </Warning>
 
-## Add a provider key
+## Before you start
+
+- A key from your AI provider (an API key from the provider's dashboard)
+- A role that can manage providers: a workspace admin or a project contributor. If you do not see **Add workspace key**, ask an admin
+
+## Add a workspace key
 
 <Steps>
   <Step title="Open Providers">
-    Go to **Providers** in the sidebar (`/providers`).
+    In the [Console](https://console.agentruntime.io), choose **Providers** in the sidebar.
   </Step>
-  <Step title="Select a vendor">
-    In **Workspace keys**, choose your LLM provider — OpenAI, Anthropic, Google, and others supported in the catalog.
+  <Step title="Start adding a key">
+    Click **Add workspace key**, or the **Add … key** button under a provider.
   </Step>
-  <Step title="Enter your API key">
-    Paste the key from your vendor dashboard. Keys are stored encrypted in Vault and scoped to your workspace.
+  <Step title="Fill in the form">
+    Choose the **Provider**, enter a **Display name** such as `Production` or `OpenAI dev`, and paste the API key into the key field (it is labelled for the provider, for example **OpenAI API key**). The eye icon in the field shows or hides what you typed. Providers include OpenAI, Anthropic, Google Gemini, OpenRouter, Portkey, and Amazon Bedrock. OpenRouter, Portkey, and Bedrock are **gateways**: one account that gives access to many models.
   </Step>
-  <Step title="Save and verify">
-    Save the key, then confirm models for that provider appear in the catalog. In Workflow Studio, add an **LLM Call** node and select a model (for example GPT-4o) and key source in the node config.
-  </Step>
-  <Step title="Optional: per-step override">
-    In an LLM step's config, you can bind a specific workspace key instead of the platform default. If loading keys fails, save the workflow and recheck **Providers**.
+  <Step title="Save">
+    Click **Save key**.
+
+    <Frame caption="The Add workspace key form, before you type anything">
+      <img src="/images/ai/providers-add-workspace-key.png" alt="The Add OpenAI key dialog with the Provider list set to OpenAI (Direct), an empty Display name field, an empty OpenAI API key field with an eye icon, and Cancel and Save key buttons" />
+    </Frame>
   </Step>
 </Steps>
 
-## System vs tenant keys
+**What you should see:** the key appears under its provider with a masked value. Use the eye icon to reveal it, **Default** to make it the default key for that provider, the key icon to rotate it, and the bin icon to delete it. You can add several keys for one provider.
 
-AgentRuntime may provide system-level keys for trials or specific plans. Tenant keys take precedence when configured — your workflows bill against your vendor account for those models.
+<Note>
+  Rotate a key on **Providers** first, then revoke the old one at your provider. Workflows that used a deleted key fall back to the platform default.
+</Note>
 
-Check **Settings → Usage & History** and **Analytics** (`/analytics`, when enabled) for credit consumption per model and action type.
+## Choose which models to use
 
-## Using models in workflows
+Under **Workspace models** you see the models enabled for agents and workflows. Platform defaults are always on.
 
-In Workflow Studio, add an **LLM Call** node (builtin `llm_call`). Configure in the node panel:
+1. Click **Browse models**.
+2. Choose a provider or gateway tab and add the models you want.
+3. Click the lightning icon next to a model to send a quick test message with your keys. **What you should see:** a reply from the model, or an error that tells you what is wrong with the key.
 
-| Field | Example |
-|-------|---------|
-| Model (UI) | GPT-4o, Claude, etc. from Providers catalog |
-| Source (UI) | Platform default, tenant key, or system key |
-| `prompt` | Instructions with `{{steps.*}}` template variables (Prompts tab) |
-| `llm_params` | `temperature`, `max_tokens`, etc. |
+## Pick a model in a workflow
 
-The saved graph compiles to an `llm_call` step with `model_ref` (for example `direct.openai.gpt-4o`) and optional `llm_credential_id` / `llm_credential_scope`. Runtime resolves vendor, wire model, and API key via the Providers catalog.
+1. Open a workflow in **Workflow Studio**.
+2. Drag an **LLM** step onto the canvas and select it.
+3. In the step settings, choose a **Model**, then an **API key**: the platform default or one of your workspace keys.
+4. Write your prompt and save.
 
-## Resolution order
+The saved step stores a `model_ref` (for example `direct.openai.gpt-4o`) and, if you chose one, the key. Use any model that appears in the picker. You can also use `model_ref` in the [JSON editor](/workflows/json-editor). See [Step types](/workflows/step-types#llm).
 
-When a run executes an LLM step:
+Agents use the same **Model** and **API key** pickers on the agent form.
 
-1. Match model ID to catalog entry
-2. Use tenant provider key if configured
-3. Fall back to system key if available for your plan
-4. Fail the step with a clear error if no key resolves
+## Common problems
 
-<Warning>
-  Missing or expired API keys cause LLM steps to fail at runtime. Validate with a dry-run where possible, then run a short test workflow after adding keys.
-</Warning>
+| Problem | What to do |
+|---------|------------|
+| An LLM step fails with a key error | The key is missing, expired, or has no credit at your provider. Check it on **Providers** and test the model with the lightning icon |
+| A model is missing from the picker | Add it under **Workspace models → Browse models** |
+| I cannot add a key | Your role cannot manage providers. Ask a workspace admin |
+| Usage looks higher than expected | Open **Settings → Usage & History**, and see [Billing and credits](/platform/billing-and-credits) |
 
-## Security
+## Next steps
 
-- Rotate keys in **Providers** before revoking them in the vendor dashboard
-- Restrict provider management to **project contributors** and admins
-- Do not embed API keys in workflow graphs or Lua scripts — always use the Providers catalog
+- [Step types](/workflows/step-types#llm): every field of an LLM step
+- [Dry run](/workflows/dry-run): check a workflow before running it
+- [Autopilot and chat](/ai/autopilot-and-chat): the Console assistant

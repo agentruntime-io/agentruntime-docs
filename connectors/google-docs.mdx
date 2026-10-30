@@ -1,86 +1,108 @@
 ---
 title: Google Docs connector
-description: Create, read, and fill Google Docs from AgentRuntime workflows.
+description: Create, read, and fill Google Docs, and export them, from AgentRuntime workflows.
 ---
 
-The **google-docs** MCP adapter wraps the [Google Docs API](https://developers.google.com/docs/api/reference/rest) and Drive search. Use it in workflow **mcp_call** steps to read document text, append LLM-generated sections, find docs by name, and produce filled copies from templates with placeholder replacement. Documents are addressed by Drive file ID.
+The **google-docs** connector uses the [Google Docs API](https://developers.google.com/docs/api/reference/rest) with Drive. Workflows can create documents, read their text, append sections, fill templates with placeholders, insert images, and export to PDF and other formats. Documents are identified by their Drive file ID.
 
 ## Prerequisites
 
-- A Google account with Google Docs and Drive access
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
-- **project_contributor** access in your workspace
+- A Google account that can use Google Docs and Drive.
+- A Google account connection in AgentRuntime with the **Google Docs** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Google Docs** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Enable Docs">
-    On your Google connection, enable the **Docs** service so the account exposes Docs and Drive API scopes.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Docs** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-docs MCP instance">
-    Go to **MCP**, click **Add instance** for **google-docs**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with `find_document` or `read_document` on a known doc before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_docs_list_documents` tool from your **Google Docs** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. With no arguments it lists documents in your Drive.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **Contract from template** — CRM webhook with deal fields → `create_document_based_on_template` replacing `[ClientName]` placeholders → **google-drive** `add_permission` for the signer.
-- **Meeting notes append** — **google-calendar** event ends → LLM summary from transcript → `find_document` by meeting title → `append_text` with dated section.
-- **Weekly report draft** — Postgres metrics query → LLM narrative → `create_document` with title and body → **gmail** link in status email.
-- **Onboarding packet** — New hire row in **google-sheets** → `create_document_based_on_template` with role-specific values → move to HR folder via **google-drive**.
+- **Contract from a template.** A CRM event supplies the deal fields and `google_docs_create_document_based_on_template` fills a template.
+- **Meeting notes.** An LLM writes a summary, `google_docs_find_document` locates the notes doc, and `google_docs_append_text` adds a dated section.
+- **Weekly report.** Metrics go to an LLM, then `google_docs_create_document` creates the report and its `url` goes in an email.
+- **PDF export.** `google_docs_download_document` exports a doc to PDF or DOCX as base64 for the next step.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `read_document` | Read a Google Doc by document ID and return both the full resource and flattened plain text. |
-| `append_text` | Append text to the end of an existing Google Doc. |
-| `find_document` | Find a Google Doc by name in Drive, with optional create-if-missing behavior. |
-| `create_document_based_on_template` | Create a Google Doc from a template by replacing placeholders with values and images. |
-| `create_document` | Create a Google Doc with a title and optional initial body content. |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+`google_docs_delete_document` removes a document permanently through Drive.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_docs_append_text` | Write | Append text to the end of an existing Google Doc. | `document_id`, `text` |
+| `google_docs_create_document` | Write | Create a Google Doc with a title and optional initial body content. | `title` |
+| `google_docs_create_document_based_on_template` | Write | Create a Google Doc from a template by replacing placeholders with values and images. | `template`, `values` |
+| `google_docs_delete_document` | Delete | Permanently delete a Google Doc through the Drive API. | `document_id` |
+| `google_docs_download_document` | Read | Export a Google Doc to PDF, DOCX, TXT, HTML, RTF, ODT, or EPUB and return base64 content. | `document_id` |
+| `google_docs_find_document` | Read | Find a Google Doc by name in Drive, with optional create-if-missing behavior. | `name` |
+| `google_docs_insert_image` | Write | Insert an image from a URL at the end of a Google Doc. | `document_id`, `image_url` |
+| `google_docs_list_documents` | Read | List Google Docs in Drive, with optional folder scoping and pagination. | — |
+| `google_docs_make_links_clickable` | Write | Convert plain-text URLs in a Google Doc into clickable hyperlinks. | `document_id` |
+| `google_docs_read_document` | Read | Read a Google Doc by document ID and return both the full resource and flattened plain text. | `document_id` |
 
 ## Example
 
-Fill a proposal template after an LLM extracts fields from a brief:
+Fill a proposal template. `values` maps placeholder names to text. `placeholder_format` is `curly_braces`, `square_brackets` (default), `single_curly`, or `single_square`.
 
 ```json
 {
   "id": "fill-proposal",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Generate proposal doc",
-  "tool_name": "create_document_based_on_template",
+  "tool_name": "google_docs_create_document_based_on_template",
   "tool_args": {
     "template": "{{input.proposal_template_id}}",
     "placeholder_format": "square_brackets",
     "values": {
       "ClientName": "{{input.client_name}}",
-      "ProjectScope": "{{steps.llm-scope.result.summary}}",
-      "EstimatedCost": "{{input.budget}}"
+      "ProjectScope": "{{steps.llm-scope.result.text}}"
     }
   },
-  "depends_on": ["llm-scope"],
+  "depends_on": [
+    "llm-scope"
+  ],
   "timeout_s": 60
 }
 ```
 
+## Configuration
+
+Google connectors take no keys from you: the permissions come from your Google account connection.
+
+**Google permissions (scopes) requested when you tick this service:**
+
+- `https://www.googleapis.com/auth/documents`
+- `https://www.googleapis.com/auth/drive`
+
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
+
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on Google connection | Re-authorize OAuth; Docs and Drive scopes may have been revoked |
-| Placeholders not replaced | Match `placeholder_format` to your template (`square_brackets`, `curly_braces`, etc.) |
-| `find_document` returns multiple matches | Scope with `folder_id` or use an exact template ID instead of name search |
-| `append_text` lands in wrong doc | Pass the `document_id` from `find_document` or `create_document`, not the URL slug alone |
+| Problem | What to do |
+|---------|------------|
+| Placeholders are not replaced | Match `placeholder_format` to how the template is written, and check the keys in `values` match the placeholder names. |
+| `google_docs_find_document` returns the wrong document | Use a more exact `name`, or set `folder_id` to narrow the search. |
+| Text lands in the wrong document | Pass the `document_id` returned by `google_docs_find_document` or `google_docs_create_document`. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

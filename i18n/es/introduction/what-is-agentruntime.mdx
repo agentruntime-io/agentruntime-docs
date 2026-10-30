@@ -21,7 +21,7 @@ Piensa en ello como **Airflow para IA**: ejecución de flujos orientada a evento
 | Componente | Función |
 |-----------|---------|
 | **Consola** | Interfaz web en [console.agentruntime.io](https://console.agentruntime.io) — Workflow Studio, Command Center, Conexiones, MCP, Proveedores, Chat |
-| **API BFF** | API pública en [api.agentruntime.io](https://api.agentruntime.io) — autenticación, flujos, ejecuciones, facturación, integraciones |
+| **API REST** | API pública en [api.agentruntime.io](https://api.agentruntime.io) — autenticación, flujos, ejecuciones, facturación, integraciones |
 | **Runtime de flujos** | Ejecuta grafos de flujos, gestiona paralelismo, reintentos y pausas con humano en el bucle |
 | **Capa MCP** | Catálogo de servidores de herramientas; **instancias** por inquilino con perfiles de configuración y enlaces de conexión |
 | **Agentes de plataforma** | Definiciones de agentes reutilizables que ejecutan conversaciones de varios turnos en salas de chat y canal |
@@ -37,27 +37,34 @@ flowchart LR
     IDE[IDE vía Platform MCP]
   end
   subgraph platform [AgentRuntime]
-    BFF[API BFF]
+    REST[API REST]
     RT[Runtime de flujos]
     MCP[Conectores MCP]
   end
-  Console --> BFF
-  API --> BFF
-  IDE --> BFF
-  BFF --> RT
+  Console --> REST
+  API --> REST
+  IDE --> REST
+  REST --> RT
   RT --> MCP
 ```
 
 ## Conceptos clave
 
 - **Espacio de trabajo (inquilino)** — Tu organización. Contiene proyectos, miembros, facturación e integraciones.
-- **Proyecto** — Donde viven los flujos, las ejecuciones y las instancias MCP. Los roles se asignan por proyecto.
+- **Proyecto** — Aísla los flujos (siempre pertenecen a un proyecto). Los agentes, las conexiones y los recursos MCP son del espacio de trabajo por defecto; puedes limitarlos a un proyecto cuando lo necesites. Los roles se asignan por proyecto.
 - **Flujo** — Un DAG versionado de pasos. Se crea en Workflow Studio y se valida antes de publicar.
-- **Ejecución** — Una ejecución de una versión publicada del flujo. Transmite eventos por WebSocket.
-- **Conexión** — Credenciales guardadas (Google OAuth, WhatsApp, claves API) vinculadas a instancias MCP.
-- **Instancia MCP** — Un servidor de herramientas desplegado en tu proyecto con configuración y credenciales conectadas.
+- **Ejecución** — Una ejecución de una versión publicada del flujo. Hereda el proyecto del flujo. Transmite eventos por WebSocket.
+- **Conexión** — Credenciales guardadas (Google OAuth, WhatsApp, claves API) vinculadas a instancias MCP. Por defecto son de todo el espacio de trabajo.
+- **Instancia MCP** — Un servidor de herramientas desplegado con configuración y credenciales conectadas. Por defecto es de todo el espacio de trabajo; el ámbito de proyecto es opcional.
 
 Consulta [Conceptos clave](/platform/key-concepts) para el modelo completo, o ve directo a [Inicio rápido](/platform/quickstart) para crear tu primer flujo.
+
+## Por dónde empezar
+
+1. Sigue el [Inicio rápido](/platform/quickstart) para configurar un espacio de trabajo y ejecutar un primer flujo. Lleva unos 30 minutos y no requiere código.
+2. Lee [Conceptos clave](/platform/key-concepts) cuando un término te resulte nuevo.
+3. Aprende [Workflow Studio](/workflows/studio) y prueba una [guía de principio a fin](/guides/overview).
+4. Invita a tu equipo con [Gestión de usuarios](/platform/user-management).
 
 ## Para quién es AgentRuntime
 

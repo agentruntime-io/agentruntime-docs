@@ -1,11 +1,11 @@
 ---
 title: End-to-end guides
-description: Full workflow recipes that chain connectors — from webhook to database to notification.
+description: Step-by-step recipes that connect several tools into a working workflow, such as webhook to database to email.
 ---
 
-These guides walk through **complete workflows** you can build in the Console. Each one connects multiple MCP adapters, shows per-step JSON, includes a **full workflow graph** for copy-paste, and links to connector setup pages.
+These guides walk you through **complete workflows** you can build in the Console. Each one connects several tools, shows the settings for every step, and includes a full workflow you can paste into the [JSON editor](/workflows/json-editor).
 
-Connector pages document individual tools. These guides show how to **combine** them into production outcomes.
+They are for people who have read the [Integrations quickstart](/integrations/quickstart) and want to see how the pieces fit together. Connector pages describe single tools. These guides show how to combine them to get a real result.
 
 ## Pick a guide
 
@@ -23,7 +23,7 @@ Connector pages document individual tools. These guides show how to **combine** 
     Summarize a pull request with an LLM, get human approval, and post the review on GitHub.
   </Card>
   <Card title="Scheduled Postgres → Gmail report" icon="calendar-clock" href="/guides/scheduled-postgres-gmail-report">
-    Run a weekly SQL report, generate a narrative with an LLM, and email stakeholders.
+    Run a weekly SQL report, write a summary with an LLM, and email stakeholders.
   </Card>
   <Card title="Lead webhook → ActiveCampaign + Notion" icon="user-plus" href="/guides/lead-sync-activecampaign-notion">
     Sync inbound leads to your CRM and log every submission in a Notion database.
@@ -33,32 +33,40 @@ Connector pages document individual tools. These guides show how to **combine** 
 ## What you need first
 
 <Steps>
-  <Step title="Integrations quickstart">
-    Understand [connections](/integrations/connections), [MCP instances](/integrations/mcp-instances), and how **mcp_call** steps bind to instances.
+  <Step title="Know the basics">
+    Read [Connections](/integrations/connections) and [MCP instances](/integrations/mcp-instances). A **connection** stores the login for another service. An **MCP instance** is that service's tools, installed in your workspace. An `mcp` step in a workflow uses one tool from an instance.
   </Step>
-  <Step title="Install connectors">
-    Each guide lists required adapters. Install them from **MCP** (**Add instance**), wire connections on **Instance config**, then build the workflow.
+  <Step title="Set up the tools">
+    Each guide lists the connectors it needs. For each one, open **MCP**, click **Add connectors**, click the connector and then **Add to workspace**, then connect it on **Instance config**.
   </Step>
-  <Step title="Workflow Studio">
-    Author graphs in [Workflow Studio](/workflows/studio). Use the [JSON cookbook](/workflows/json-schema-cookbook) if you prefer editing raw JSON.
+  <Step title="Open Workflow Studio">
+    Build in [Workflow Studio](/workflows/studio). If you prefer raw JSON, use the [JSON editor](/workflows/json-editor) and the [JSON cookbook](/workflows/json-schema-cookbook).
   </Step>
 </Steps>
+
+## Things that apply to every guide
+
+- **Tool names are exact.** A step's `tool_name` must match a tool published by the connector, such as `postgres_query` or `resend_send_email`. The connector page lists the tools.
+- **Models.** Guides use `gpt-4o` or `gpt-4o-mini` as examples. Use any model your workspace can use, and see [LLM providers](/ai/llm-providers).
+- **Your instance.** In the pasted JSON, replace each `REPLACE_…_INSTANCE` placeholder on an `mcp` step with the id of your own MCP instance.
+- **Saving and running.** Your changes are saved to the workflow's **Live** copy, and runs and triggers use it by default. You only need to **Publish** when you want a frozen version. See [Workflow Studio](/workflows/studio#live-copy-and-published-versions).
+- **Test first.** Use a manual run with sample input before you connect a real trigger. See [Dry run](/workflows/dry-run).
 
 ## Patterns behind these guides
 
 | Pattern | Guides using it |
 |---------|-----------------|
-| Webhook → store → notify | Form digest, lead sync |
-| External event → lookup → message | Shopify → WhatsApp |
-| Conversation → agent → person → agent | WhatsApp customer chat |
-| Fetch → LLM → human → action | GitHub PR review |
-| Schedule → query → summarize → email | Postgres weekly report |
+| Webhook, then store, then notify | Form digest, lead sync |
+| External event, then look up, then message | Shopify → WhatsApp |
+| Conversation, agent, person, agent | WhatsApp customer chat |
+| Fetch, LLM, human approval, action | GitHub PR review |
+| Schedule, query, summarize, email | Postgres weekly report |
 
-See also [Workflow patterns](/workflows/patterns) for approve-then-send, retries, and `for_each` fan-out.
+See [Workflow patterns](/workflows/patterns) for approve-then-send, retries, and `for_each` fan-out.
 
-## Related
+## Next steps
 
-- [Feature availability](/platform/feature-availability) — preview, API-only, and placeholder features
-- [Connector catalog](/integrations/connector-catalog) — all adapters and common patterns
-- [Inbound webhooks](/integrations/inbound-webhooks) — trigger runs from external systems
-- [Command Center](/workflows/command-center) — complete human tasks in multi-step guides
+- [Connector catalog](/integrations/connector-catalog): all available connectors
+- [External triggers](/workflows/external-triggers): schedules, webhooks, and events
+- [Command Center](/workflows/command-center): complete human tasks
+- [Troubleshooting](/platform/troubleshooting)

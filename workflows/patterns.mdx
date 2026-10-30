@@ -1,207 +1,189 @@
 ---
 title: Workflow patterns
-description: Production workflow recipes — approve then send, inbound triggers, retries, and human gates.
+description: Recipes you can adapt: approve then send, webhook and scheduled runs, handling failures, fan-out over a list, and handing a conversation to a person.
 ---
 
-These patterns combine step types, Command Center, and integrations into workflows you can adapt for production. See the [JSON cookbook](/workflows/json-schema-cookbook) for full graph examples.
+These patterns combine step types, [Command Center](/workflows/command-center), and triggers into workflows you can adapt. For full graph examples see the [JSON cookbook](/workflows/json-schema-cookbook).
 
-## Approve then send
+**Who this is for:** people who know the basics of [Workflow Studio](/workflows/studio) and want a proven shape for a common job.
 
-Pause before any outbound action that affects customers or production data.
+## Approve then send {#approve-then-send}
+
+Pause before any message or change that affects customers or production data.
 
 ```mermaid
 flowchart LR
-  Draft[LLM or MCP draft] --> Approve[human_task]
-  Approve -->|approved| Send[MCP send]
-  Approve -->|rejected| End[Run ends]
+  Draft[LLM or tool step: draft] --> Approve[Human step]
+  Approve -->|approved| Send[Tool step: send]
+  Approve -->|rejected| End[Steps after it are skipped]
 ```
 
-### Graph structure
+### Build it
 
-1. **Draft step** — `llm_call` or `mcp_call` generates content (email body, WhatsApp message, CRM update payload)
-2. **human_task** — `task_type: "approval"` with draft in `task_payload`
-3. **Send step** — `mcp_call` to `gmail` (`send_email`), `whatsapp` (`send_message`), or another connector — `depends_on` the human task, uses approved payload
-
-### Example human task payload
+1. **Draft step:** an `llm` or `mcp` step produces the content (an email body, a WhatsApp message, a CRM update).
+2. **Human step:** `task_type: "approval"`, with the draft in `task_payload`.
+3. **Send step:** an `mcp` step that sends the message. It `depends_on` the Human step.
 
 ```json
 {
+  "id": "approve-send",
+  "type": "human",
+  "name": "Approve order confirmation",
   "task_type": "approval",
+  "depends_on": ["draft-email"],
   "task_payload": {
     "title": "Send order confirmation",
-    "description": "Review before sending to {{input.customer_email}}",
+    "message": "Review before sending to {{input.customer_email}}",
     "draft_subject": "{{steps.draft-email.result.subject}}",
     "draft_body": "{{steps.draft-email.result.body}}"
   }
 }
 ```
 
-Complete approvals from [Command Center](/workflows/command-center). Downstream steps read the completion result.
+Approve it from [Command Center](/workflows/command-center) (**Needs you**). If the reviewer rejects, the steps after the approval are skipped by default and the run completes as "rejected". Change this with **When rejected**. See [Human tasks](/workflows/human-tasks#on-reject).
 
 <Warning>
-  Do not skip the human task for regulated or high-risk outbound messaging. A rejected task stops the branch — design downstream steps to handle rejection gracefully or use `condition` to branch.
+  Do not skip the approval for regulated or high-risk messages. Do not set the approval's timeout policy to **Auto-approve** for them either.
 </Warning>
 
-## Inbound webhook triggers
+## Inbound webhook triggers {#inbound-webhook-triggers}
 
-Start workflows from external systems (CRM, payment processor, monitoring alert).
+Start a workflow from an outside system: a CRM, a payment processor, a monitoring alert.
 
 ```mermaid
 sequenceDiagram
   participant Ext as External system
   participant WH as Inbound webhook
-  participant RT as Workflow runtime
+  participant RT as Workflow
   Ext->>WH: POST signed payload
-  WH->>RT: start run with input params
+  WH->>RT: start run with the payload as input
 ```
 
-### Setup
+### Build it
 
-1. Create a workflow whose first step validates `{{input.*}}` fields
-2. Create an inbound webhook subscription — see [Inbound webhooks](/integrations/inbound-webhooks)
-3. Configure the external system to POST to the subscription URL with the signing secret
-4. Map POST body fields to workflow input
+1. Create a workflow whose first step checks the `{{input.*}}` fields it needs.
+2. Under **Setup → Inbound**, create a webhook. See [Inbound webhooks](/integrations/inbound-webhooks).
+3. Configure the outside system to `POST` to the webhook's URL, signed with its secret.
+4. The JSON body becomes the run's input.
 
-### Validate-first pattern
+### Check input first
 
-Always validate required input before calling external tools:
+Check required input before calling any tool:
 
 ```json
 {
   "id": "validate-input",
-  "type": "lua_script",
+  "type": "lua",
   "name": "Validate webhook payload",
   "script": "if not input.order_id then error('order_id required') end\nreturn { order_id = input.order_id }",
   "timeout_s": 5
 }
 ```
 
-Or use `condition` on downstream steps: `"condition": "{{input.order_id}}"`
+To skip a step for some inputs only, use `skip_when`. See [Step types](/workflows/step-types#settings-every-step-shares).
 
-### Idempotency
+### Be safe to repeat
 
-External systems may retry webhooks. Design workflows to be idempotent:
+Senders retry webhooks. Make the workflow safe to run twice for the same event:
 
-- Check if the order/event was already processed (MCP query step)
-- Use external IDs in `tool_args` so duplicate runs do not double-send
+- Look up whether the order or event was already handled (a tool step that queries your data).
+- Put an external id in the tool arguments so a duplicate does not send twice.
 
-<Note>
-  AgentRuntime does not provide built-in cron scheduling today. For recurring runs, use an external scheduler that calls the API or fires an inbound webhook on a timetable.
-</Note>
+## Scheduled runs
 
-## Error handling with retries
+Run a workflow every morning, hour, or week.
 
-### Per-step retries
+1. Open **Setup → Cron**.
+2. Choose a preset or type a 5-field cron expression, and a timezone.
+3. Choose the start values, which version to run (**Runs**), and an **Automation API key**.
+4. Click **Add schedule**.
 
-Set `retry_count` on steps that call flaky external APIs:
+See [External triggers](/workflows/external-triggers#cron-schedules). A typical scheduled report is: query data, ask a model to summarise, optionally ask a person to approve, then send.
 
-```json
-{
-  "id": "fetch-data",
-  "type": "mcp_call",
-  "name": "Fetch from API",
-  "tool_name": "postgres_query",
-  "retry_count": 3,
-  "timeout_s": 30
-}
-```
+## Handle failures
 
-The runtime retries after failure up to `retry_count` times before marking the step failed.
+### Time limits
 
-### Timeouts
+Every step has a time limit, set with `timeout_s` (**Timeout** in Studio). Studio sets 60 seconds on tool and LLM steps (the engine allows 120 seconds when a step has none); other defaults: agent steps 600 seconds (10 minutes), Human steps 86400 seconds (24 hours), Lua steps 5 seconds (maximum 30). Raise the limit for slow calls.
 
-Set `timeout_s` on every external call. Defaults are not unlimited — long-running MCP or LLM calls without timeouts can stall runs.
+### When a step fails
 
-| Step type | Suggested starting timeout |
-|-----------|---------------------------|
-| MCP tool call | 30–120s depending on API |
-| LLM call | 60–180s for long generations |
-| Lua script | 5–30s (hard cap 30s) |
-| for_each | Sum of body timeouts × parallelism |
+When a step fails, the run fails. Steps that were running at the same time show **Cancelled**, and steps that needed the failed step show **Skipped · Blocked**. The run appears under **Issues today** in Command Center. A failed step is not retried (the runtime ignores `retry_count`). Fix the cause, then start a new run. See [Run recovery](/workflows/run-recovery).
 
-### Failure propagation
+### Send risky cases to a person
 
-When a step fails after retries:
-
-- The run marks the step `failed`
-- Downstream steps that `depends_on` the failed step are skipped
-- The run appears in Command Center **Failed recently**
-
-Recover by fixing the root cause (connection, credits, tool args), publishing a new workflow version if needed, and starting a new run.
-
-### Human escalation on failure
-
-Route low-confidence or failed LLM output to human review instead of failing silently:
+Have a step decide whether a case is risky, and put a Human step after it that only runs for risky cases:
 
 ```mermaid
 flowchart LR
-  LLM[llm_call] --> Check[lua_script check confidence]
-  Check -->|low| Human[human_task]
-  Check -->|ok| Next[downstream step]
+  LLM[llm step] --> Check[lua step: is it risky?]
+  Check --> Human[Human step, skip_when safe]
+  Check --> Next[Next step]
 ```
 
-Use `condition` or a Lua branch to set a flag, then add a `human_task` on the low-confidence path.
+Use `skip_when` on the Human step with a true/false value that the Lua step returns, for example `{{steps.check.result.safe}}`.
 
 ## Parallel fan-out
 
-Use `for_each` to process a list with bounded parallelism:
+Use a `for_each` step to process a list. It runs several items at the same time, up to the limit you set:
 
 ```json
 {
   "id": "notify-each",
   "type": "for_each",
+  "name": "Notify each recipient",
+  "depends_on": ["fetch-recipients"],
   "for_each_items": "{{steps.fetch-recipients.result.contacts}}",
   "for_each_max_parallel": 5,
   "for_each_body_steps": [
     {
       "id": "send",
-      "type": "mcp_call",
-      "tool_name": "send_message",
-      "tool_args": {
-        "to": "{{foreach.item.phone}}",
-        "body": "{{steps.build-template.result.text}}"
-      },
+      "type": "mcp",
+      "name": "Send message",
+      "tool_name": "<your send tool>",
+      "tool_args": { "to": "{{foreach.item.phone}}", "body": "Hello {{foreach.item.name}}" },
       "timeout_s": 30
     }
   ]
 }
 ```
 
-Keep `for_each_max_parallel` low for rate-limited APIs (WhatsApp, email providers).
+Keep `for_each_max_parallel` low for services with rate limits, such as WhatsApp or email providers.
 
-## Memory-enriched steps
+## Hand a conversation to a person
 
-When memory is enabled, workflow prepare-step can inject long-term context before LLM steps. See [Memory](/ai/memory) (preview). Pattern:
+For a chat assistant (for example on WhatsApp), keep one run per conversation and let the agent hand the chat to staff when it needs to. See [Conversation sessions](/workflows/conversation-sessions) and the [WhatsApp customer chat guide](/guides/whatsapp-customer-chat).
 
-1. Index conversations or files into memory
-2. LLM step prompt references memory search results passed via prepare-step context
-3. Human task approves actions informed by retrieved knowledge
+## Agents that work together
+
+Several agents can hand work to each other inside one run, and an agent can ask a person when it is stuck. See [Autonomous episodes](/workflows/autonomous-episodes).
 
 ## Pattern checklist
 
-| Pattern | Human task? | Retries? | Trigger |
-|---------|-------------|----------|---------|
-| Approve then send | Yes | On draft step optional | Manual / API |
-| Webhook automation | Optional | On MCP steps | Inbound webhook |
-| Scheduled report | Optional | On extract steps | External cron → API |
-| Bulk processing | Optional | On for_each body | API / webhook |
+| Pattern | Human step? | Trigger |
+|---|---|---|
+| Approve then send | Yes | Manual, API, schedule, or webhook |
+| Webhook automation | Optional | Inbound webhook |
+| Scheduled report | Optional | Cron |
+| Bulk processing | Optional | API or webhook |
+| Chat assistant | Optional (hand-off) | Conversation sessions |
 
 ## End-to-end guides
 
-These patterns are expanded into full step-by-step recipes in **Guides**:
+These patterns are built step by step in the guides:
 
 - [Form webhook → Postgres → Resend digest](/guides/form-webhook-postgres-resend-digest)
 - [Shopify order → WhatsApp template](/guides/shopify-order-whatsapp)
 - [GitHub PR → LLM review → comment](/guides/github-pr-review)
 - [Scheduled Postgres → Gmail report](/guides/scheduled-postgres-gmail-report)
 - [Lead webhook → ActiveCampaign + Notion](/guides/lead-sync-activecampaign-notion)
+- [WhatsApp customer chat](/guides/whatsapp-customer-chat)
 
 See [all guides](/guides/overview).
 
-## Related docs
+## Related
 
-- [Command Center](/workflows/command-center) — approve tasks and monitor runs
-- [Human tasks](/workflows/human-tasks) — task authoring reference
-- [Inbound webhooks](/integrations/inbound-webhooks) — external triggers
-- [Connector catalog — common patterns](/integrations/connector-catalog#common-patterns)
-- [Troubleshooting](/platform/troubleshooting) — recover from failures
+- [Command Center](/workflows/command-center)
+- [Human tasks](/workflows/human-tasks)
+- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Troubleshooting](/platform/troubleshooting)

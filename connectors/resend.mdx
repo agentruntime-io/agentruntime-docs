@@ -1,58 +1,211 @@
 ---
 title: Resend connector
-description: Send transactional email and manage audiences from AgentRuntime workflows.
+description: Send transactional and broadcast email through Resend, and manage contacts, domains, and templates, from AgentRuntime workflows.
 ---
 
-The **resend** MCP adapter integrates [Resend](https://resend.com) for reliable transactional email. Use it to notify users when workflows finish, send reports, and drive onboarding sequences — with a verified sender domain.
+[Resend](https://resend.com) is an email service for sending email from your own domain. The **resend** connector lets workflow steps send single or batch emails, run broadcast campaigns, and manage contacts, segments, topics, domains, templates, webhooks, and automations in your Resend account.
+
+Typical uses: tell your team when a workflow finishes, email a customer a receipt or report, and keep a Resend contact list in step with another system.
 
 ## Prerequisites
 
-- A Resend account with a **verified domain** (or Resend's test domain for development)
-- A Resend **API key** with send permissions
-- A default **From** address on that verified domain
-- **project_contributor** access
+- A Resend account.
+- A sending domain verified in Resend, and a sender address on it (for example `notifications@yourdomain.com`). Resend also offers a test sender for early experiments; see Resend's own documentation for its limits.
+- A Resend API key. A key with sending access is enough for the email tools. Tools that manage contacts, domains, templates, webhooks, and API keys may need a key with full access.
+- The **project_contributor** role or higher in your workspace.
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Verify your domain in Resend">
-    In the Resend dashboard, add DNS records for your sending domain and wait for verification.
+  <Step title="Get a Resend API key">
+    In the Resend dashboard, add and verify your sending domain (Resend shows the DNS records to create). Then open **API Keys**, create a key, and copy it. Resend shows the full key only once.
   </Step>
   <Step title="Create a connection">
-    Go to **Connections**, click **New custom connection**, and create an API key connection, and paste your Resend API key. Optionally set `FromEmail` in the connection or MCP config profile.
+    Open **Connections** in the [Console](https://console.agentruntime.io) and click **New custom connection**. Enter a **Display name** (for example `Resend`). Under **Credentials**, add one row per setting, using **Add field** for more rows:
+
+    - **Key** `api_key`, **Value** your Resend API key.
+    - **Key** `from_email`, **Value** your verified sender address, for example `notifications@yourdomain.com`.
+
+    Click **Save**. The dialog also asks who can use the connection; choose the option that fits your team.
   </Step>
-  <Step title="Add resend MCP instance">
-    Go to **MCP**, click **Add instance** for **resend**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the resend MCP instance">
+    Open **MCP**, click **Add connectors**, find **resend**, and add it to your workspace. Open the instance, and on **Instance config** create or open a profile, choose your connection in the **Connection** picker, set the profile **Status** to **Active**, and click **Save**, then **Use this profile for workflows**.
   </Step>
-  <Step title="Send a test email">
-    Run a workflow with **mcp_call** → `send_email` to yourself before wiring production notifications.
+  <Step title="Smoke test">
+    In **Workflow Studio**, add a connector tools step that calls `resend_send_email` to your own address (see the example below) and run it. A result with an `email_id` and status `queued` means Resend accepted the message.
   </Step>
 </Steps>
 
+See [Authentication](/integrations/authentication) for how connections are attached to MCP instances.
+
 ## What you can build
 
-- **Workflow completion alerts** — After a run succeeds or fails, `send_email` with run ID, step summary, and a link to Command Center.
-- **Weekly digest** — Postgres `postgres_query` for metrics → LLM narrative → `send_email` to stakeholders.
-- **Human task reminders** — When a **human_task** is assigned, email the assignee with task title and due date.
-- **Audience sync reporting** — `list_audiences` to verify list IDs before syncing contacts from ActiveCampaign or a form webhook.
+- **Workflow completion alerts.** After a run succeeds or fails, call `resend_send_email` with the run name and a short summary.
+- **Weekly digest.** Query your data with the [Postgres connector](/connectors/postgres), let an LLM step write the summary, then send it with `resend_send_email`.
+- **Welcome and onboarding email.** When a new sign-up arrives, call `resend_create_contact` to add them to Resend and `resend_send_email` to greet them.
+- **Campaigns.** Create a broadcast with `resend_create_broadcast` and send or schedule it with `resend_send_broadcast`, after a **human** step approves the content.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `send_email` | Send an email through Resend |
-| `list_audiences` | List audiences visible to the API key |
+The connector exposes 87 tools. Tools that send email or change or delete data in your Resend account are marked in the description. Tools without a mark only read data.
+
+### Sending and sent email
+
+| Tool | What it does |
+|------|--------------|
+| `resend_send_email` | Send one email. Sends email. The sender is your configured `from_email`. |
+| `resend_send_batch_emails` | Send up to 100 emails in one call. Sends email. |
+| `resend_list_emails` | List sent emails. |
+| `resend_get_email` | Get one sent email by ID. |
+| `resend_cancel_email` | Cancel a scheduled email. Changes data. |
+| `resend_update_email` | Reschedule a scheduled email. Changes data. |
+| `resend_list_email_attachments` | List attachments on a sent email. |
+| `resend_get_email_attachment` | Get one attachment of a sent email. |
+
+### Received email
+
+| Tool | What it does |
+|------|--------------|
+| `resend_list_received_emails` | List emails received by your Resend inbox. |
+| `resend_get_received_email` | Get one received email by ID. |
+| `resend_list_received_email_attachments` | List attachments on a received email. |
+| `resend_get_received_email_attachment` | Get one attachment of a received email. |
+
+### Broadcasts and audiences
+
+| Tool | What it does |
+|------|--------------|
+| `resend_list_audiences` | List the names of your audiences. |
+| `resend_create_broadcast` | Create a broadcast campaign. Changes data. |
+| `resend_list_broadcasts` | List broadcasts. |
+| `resend_get_broadcast` | Get one broadcast by ID. |
+| `resend_update_broadcast` | Update a broadcast's name, segment, sender, subject, or content. Changes data. |
+| `resend_send_broadcast` | Send a broadcast now or schedule it. Sends email. |
+| `resend_remove_broadcast` | Delete a broadcast. Deletes data. |
+
+### Contacts
+
+Tools that take a contact accept either `contact_id` or `email`.
+
+| Tool | What it does |
+|------|--------------|
+| `resend_create_contact` | Create a contact. Changes data. |
+| `resend_list_contacts` | List contacts, optionally for one segment. |
+| `resend_get_contact` | Get one contact. |
+| `resend_update_contact` | Update a contact's name, subscription status, or properties. Changes data. |
+| `resend_remove_contact` | Delete a contact. Deletes data. |
+| `resend_list_contact_segments` | List the segments a contact belongs to. |
+| `resend_add_contact_segment` | Add a contact to a segment. Changes data. |
+| `resend_remove_contact_segment` | Remove a contact from a segment. Changes data. |
+| `resend_list_contact_topics` | List a contact's topic subscriptions. |
+| `resend_update_contact_topics` | Change a contact's topic subscriptions. Changes data. |
+| `resend_create_contact_import` | Bulk-import contacts from CSV content or a URL. Changes data. |
+| `resend_list_contact_imports` | List contact imports. |
+| `resend_get_contact_import` | Get the status of one import. |
+| `resend_list_contact_properties` | List custom contact properties. |
+| `resend_get_contact_property` | Get one contact property. |
+| `resend_create_contact_property` | Create a contact property. Changes data. |
+| `resend_update_contact_property` | Update a contact property's fallback value. Changes data. |
+| `resend_remove_contact_property` | Delete a contact property. Deletes data. |
+
+### Segments and topics
+
+| Tool | What it does |
+|------|--------------|
+| `resend_list_segments` | List segments. |
+| `resend_get_segment` | Get one segment. |
+| `resend_create_segment` | Create a segment. Changes data. |
+| `resend_remove_segment` | Delete a segment. Deletes data. |
+| `resend_list_topics` | List topics. |
+| `resend_get_topic` | Get one topic. |
+| `resend_create_topic` | Create a topic. Changes data. |
+| `resend_update_topic` | Update a topic's name or description. Changes data. |
+| `resend_remove_topic` | Delete a topic. Deletes data. |
+
+### Templates
+
+| Tool | What it does |
+|------|--------------|
+| `resend_list_templates` | List email templates. |
+| `resend_get_template` | Get a template by ID or alias. |
+| `resend_create_template` | Create a template draft. Changes data. |
+| `resend_update_template` | Update a template's details or HTML. Changes data. |
+| `resend_duplicate_template` | Copy a template as a new draft. Changes data. |
+| `resend_publish_template` | Publish a template. Changes data. |
+| `resend_remove_template` | Delete a template. Deletes data. |
+
+### Domains
+
+| Tool | What it does |
+|------|--------------|
+| `resend_list_domains` | List domains. |
+| `resend_get_domain` | Get a domain, including its DNS records. |
+| `resend_create_domain` | Add a domain and get the DNS records to create. Changes data. |
+| `resend_update_domain` | Change a domain's tracking and TLS settings. Changes data. |
+| `resend_verify_domain` | Ask Resend to check the domain's DNS records. |
+| `resend_remove_domain` | Delete a domain. Deletes data. |
+| `resend_create_domain_claim` | Start a domain ownership claim. Changes data. |
+| `resend_get_domain_claim` | Get the status of a domain claim. |
+| `resend_verify_domain_claim` | Verify a domain claim. |
+
+### Webhooks, events, and automations
+
+| Tool | What it does |
+|------|--------------|
+| `resend_list_webhooks` | List Resend webhooks. |
+| `resend_get_webhook` | Get one webhook. |
+| `resend_create_webhook` | Create a webhook for Resend email events. Changes data. |
+| `resend_update_webhook` | Update a webhook's endpoint, events, or status. Changes data. |
+| `resend_remove_webhook` | Delete a webhook. Deletes data. |
+| `resend_list_events` | List event definitions. |
+| `resend_get_event` | Get one event definition. |
+| `resend_create_event` | Create an event definition. Changes data. |
+| `resend_update_event` | Update an event's schema. Changes data. |
+| `resend_remove_event` | Delete an event definition. Deletes data. |
+| `resend_send_event` | Send an event for a contact to trigger automations. Changes data. |
+| `resend_list_automations` | List automations. |
+| `resend_get_automation` | Get one automation. |
+| `resend_create_automation` | Create an automation. Changes data. |
+| `resend_update_automation` | Update an automation. Changes data. |
+| `resend_remove_automation` | Delete an automation. Deletes data. |
+| `resend_list_automation_runs` | List runs of an automation. |
+| `resend_get_automation_run` | Get one automation run. |
+
+### Account, keys, and logs
+
+| Tool | What it does |
+|------|--------------|
+| `resend_list_api_keys` | List API keys. |
+| `resend_create_api_key` | Create a Resend API key. Changes data. |
+| `resend_remove_api_key` | Delete a Resend API key. Deletes data. |
+| `resend_list_oauth_grants` | List OAuth grants on your Resend account. |
+| `resend_revoke_oauth_grant` | Revoke an OAuth grant. Changes data. |
+| `resend_list_logs` | List API request logs. |
+| `resend_get_log` | Get one log entry with request and response. |
+
+### Key parameters
+
+- `resend_send_email`: `to` (required, **a list** of addresses), `subject` (required), and `text` and/or `html`. The sender is always your configured `from_email`; it is not a tool argument. If you give neither `text` nor `html`, the body is `(empty body)`.
+- `resend_send_batch_emails`: `emails` (required), a list of 1 to 100 objects. Each has `to` (list), `subject`, `text`, and optionally `html`, `from` (defaults to your `from_email`), `reply_to`, `cc`, `bcc`, `scheduled_at`, `tags`, and `topic_id`.
+- `resend_list_audiences`: optional `page_size` (default 20, maximum 100). It returns audience names and a count only, not IDs.
+- `resend_create_broadcast`: `name`, `segment_id`, `subject`, and `text` are required; `html`, `preview_text`, `from`, and `reply_to` are optional. `resend_send_broadcast` takes `broadcast_id` and an optional `scheduled_at`.
+- `resend_create_contact`: `email` is required; `first_name`, `last_name`, `unsubscribed`, `properties`, `segment_ids`, and `topics` are optional.
+
+Most management tools return the full Resend response as JSON text in `raw_json`.
 
 ## Example
+
+Email yourself a run summary:
 
 ```json
 {
   "id": "notify-complete",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Email run summary",
-  "tool_name": "send_email",
+  "instance_id": "YOUR_RESEND_INSTANCE_ID",
+  "tool_name": "resend_send_email",
   "tool_args": {
-    "to": "ops@example.com",
+    "to": ["ops@example.com"],
     "subject": "Workflow finished: {{input.workflow_name}}",
     "html": "<p>Run <strong>{{input.run_id}}</strong> completed.</p>"
   },
@@ -60,26 +213,33 @@ The **resend** MCP adapter integrates [Resend](https://resend.com) for reliable 
 }
 ```
 
+In Studio you pick the instance and tool from lists, and Studio fills in `instance_id`.
+
 ## Configuration
+
+These are the settings on the instance's config profile. When you use a connection, give its credential rows the same key names.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | Resend API key |
-| `FromEmail` | Yes | Verified sender address (default From on `send_email`) |
-| `APIBase` | No | Resend API base URL (default production endpoint) |
-| `AudienceID` | No | Default audience for list/subscription tools |
+| `api_key` | Yes | Resend API key. |
+| `from_email` | Yes | Sender address used as From for `resend_send_email`. Must be on a verified domain. |
+| `api_base` | No | Resend API base URL. Default `https://api.resend.com`. |
+| `audience_id` | No | Default audience ID for tools that do not take an audience argument. |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Domain not verified | Complete DNS verification in Resend before sending to external addresses |
-| `403` on send | From address must use a verified domain; check `FromEmail` in config |
-| Emails in spam | Configure SPF, DKIM, and DMARC for your sending domain |
+| `resolved config is missing api_key` or `missing from_email` | The active profile does not have that setting. Add the `api_key` and `from_email` rows to the connection and check the profile is **Active**. |
+| `Resend API error 403` when sending | Usually the `from_email` domain is not verified in Resend, or the key lacks permission. Finish DNS verification and check the key's access level. |
+| `Resend API error 401` | The API key is wrong or was deleted. Create a new key and use **Rotate** on the connection. |
+| `Resend API error 429` | Resend's rate limit. The connector retries a few times; space out large loops. |
+| Email lands in spam | Set up SPF, DKIM, and DMARC for your sending domain in your DNS provider. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [Gmail connector](/connectors/gmail) — send from a user's Google mailbox instead
+- [Gmail connector](/connectors/gmail) to send from a user's Google mailbox instead
+- [Form to Postgres to Resend digest](/guides/form-webhook-postgres-resend-digest)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

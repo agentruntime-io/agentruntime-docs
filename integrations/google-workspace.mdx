@@ -1,118 +1,122 @@
 ---
 title: Google Workspace
-description: Connect Google accounts once and use Gmail, Drive, Sheets, Calendar, and other Workspace MCP adapters.
+description: Sign in with Google once and use Gmail, Drive, Sheets, Calendar, and other Google connectors in your workflows.
 ---
 
-AgentRuntime connects to Google Workspace through a single **Google connection** (OAuth 2.0). One authorized account can power multiple MCP adapters — you do not repeat OAuth for each service.
+This page is for people who want workflows to use Gmail, Google Sheets, Google Calendar, and other Google services. You sign in with Google once, and several connectors can share that one connection.
 
-## Supported adapters
+## What you get
 
-Enable the services you need on your Google connection, then install the matching MCP instances:
-
-| Adapter | Use for |
-|---------|---------|
-| `gmail` | Send, search, and reply to email |
-| `google-drive` | Files and folders |
-| `google-sheets` | Spreadsheets read/write |
-| `google-calendar` | Events and calendars |
-| `google-docs` | Documents |
-| `google-slides` | Presentations |
-| `google-tasks` | Task lists |
-| `google-form` | Form responses |
-| `google-search` | Programmable search |
-| `google-search-console` | Search analytics |
-
-Each adapter is a separate MCP instance bound to the same Google connection.
-
-## Setup
-
-<Steps>
-  <Step title="Connect your Google account">
-    Go to **Connections → Google** and click **Connect account**. Sign in and grant the requested OAuth scopes.
-  </Step>
-  <Step title="Enable services">
-    Select which Workspace services this account exposes — Gmail, Drive, Sheets, Calendar, and others. You can add services later without re-creating the connection.
-  </Step>
-  <Step title="Install MCP instances">
-    For each service you need, go to **MCP → Catalog**, install the adapter (for example, `google-sheets`), and bind your Google connection.
-  </Step>
-  <Step title="Validate each instance">
-    Run **Validate bindings** on every installed instance before adding it to production workflows.
-  </Step>
-</Steps>
-
-<Note>
-  [Gmail](/connectors/gmail) has a dedicated setup guide with tool details and search syntax. The steps above apply to all Google Workspace adapters.
-</Note>
-
-## One connection, many workflows
+One Google connection can power many connectors. You add one **MCP instance** per connector, and each instance uses the same Google connection.
 
 ```mermaid
 flowchart LR
-  Google[Google OAuth connection] --> Gmail[gmail instance]
+  Google[Google connection] --> Gmail[gmail instance]
   Google --> Sheets[google-sheets instance]
   Google --> Drive[google-drive instance]
-  Gmail --> WF1[Notification workflow]
-  Sheets --> WF2[Report workflow]
-  Drive --> WF3[File archive workflow]
 ```
 
-Workflow **mcp_call** steps target the specific instance for each tool — not the connection directly.
+## Services you can pick
 
-## Common patterns
+When you sign in, the services checklist offers these Google services. A green **· MCP** next to a name means its connector is ready.
 
-### Read a Sheet, process rows, send email
+| Service | Connector slug |
+|---------|----------------|
+| Gmail | `gmail` |
+| Google Drive | `google-drive` |
+| Google Sheets | `google-sheets` |
+| Google Docs | `google-docs` |
+| Google Slides | `google-slides` |
+| Google Forms | `google-form` |
+| Google Contacts | `google-contacts` |
+| Google Chat | `google-chat` |
+| Google Calendar | `google-calendar` |
+| Google Tasks | `google-tasks` |
+| Google Meet | `google-meet` |
+| YouTube | `youtube` |
+| Google Search Console | `google-search-console` |
+| Google Business Profile | `google-business-profile` |
+| Google Analytics | `google-analytics-4` |
+| Google Ads | `google-ads` |
 
-1. `google-sheets` — read range
-2. `lua_script` or `for_each` — transform rows
-3. `gmail` — `send_email` with summary
+Connectors with their own guide are linked from the [connector catalog](/integrations/connector-catalog).
 
-### Create a Calendar event after approval
+## Before you begin
 
-1. `human_task` — approve meeting details
-2. `google-calendar` — create event with approved payload
+- The **project_contributor** role or higher in your project.
+- A Google account that can approve the permissions you request.
+- A workspace selected in the Console header.
 
-### Archive Drive files on schedule
-
-1. Inbound webhook or manual trigger with folder ID
-2. `google-drive` — list and copy/move files
-3. `gmail` — send completion summary
-
-See [Workflow patterns](/workflows/patterns) for approve-then-send and webhook triggers.
-
-## Token refresh and reconnect
-
-Google OAuth tokens refresh automatically. If a user revokes access or changes their Google password, the connection shows **Reconnect**.
+## Set it up
 
 <Steps>
-  <Step title="Reconnect">
-    Open **Connections → Google**, click **Reconnect**, and re-authorize.
+  <Step title="Sign in with Google">
+    Open **Connections** and click **Sign in with Google**. Enter a **Display name** (for example `Work Google`).
   </Step>
-  <Step title="Re-validate instances">
-    Run **Validate bindings** on all Google MCP instances bound to that connection.
+  <Step title="Pick the services">
+    Tick the services you need. **Select all** and **Clear all** are available. You must pick at least one.
   </Step>
-  <Step title="Re-run failed workflows">
-    Runs that failed with `MCP_TOOL_FAILED` during the outage need a new run after reconnect.
+  <Step title="Continue to Google">
+    Click **Continue to Google**, choose your account, and approve the permissions. You return to the Console, and the account appears under **Accounts**.
+  </Step>
+  <Step title="Add a connector instance">
+    Open **MCP**, click **Add connectors**, pick a connector such as `google-sheets`, and click **Add to workspace**.
+  </Step>
+  <Step title="Attach the Google connection">
+    Open the instance. On **Instance config**, click **New profile**, choose your Google account in the credentials section, set **Status** to **Active**, click **Save**, then click **Use this profile for workflows**.
+  </Step>
+  <Step title="Check it">
+    Run **MCP validation** for the connector, or run a small workflow that calls one read-only tool.
   </Step>
 </Steps>
 
-## Scopes
+If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace. Contact [support@agentruntime.io](mailto:support@agentruntime.io).
 
-Each adapter requests the minimum Google API scopes it needs. Enabling a service on the connection grants the scopes for that adapter. If you add a new service later, the Console may prompt for additional consent.
+[Gmail](/connectors/gmail) has its own guide with tool details.
 
-## Troubleshooting
+## Use your own Google app (optional)
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** banner | Re-authorize OAuth; check Google Admin policy allows the app |
-| `403` insufficient scopes | Enable the service on the connection; reconnect to grant new scopes |
-| `404` not found | Verify file ID, calendar ID, or spreadsheet ID in `tool_args` |
-| Works in dev, fails in prod | Use a separate MCP instance wired to the prod connection, or duplicate the workflow with the correct `instance_id` on MCP steps |
+By default, Google's consent screen shows AgentRuntime's app. To show your own app name instead, you can register your own Google Cloud OAuth client:
 
-See [Troubleshooting](/platform/troubleshooting) for binding and auth errors.
+1. In the Console, open **Settings**, then **MCP & Integrations**.
+2. Find **Google OAuth application**. Copy the authorized redirect URI shown there into your OAuth client in Google Cloud Console.
+3. Turn on **Use workspace OAuth app**, enter a **Display name**, your **OAuth client ID**, and **OAuth client secret**, and save.
 
-## Related docs
+The client secret is stored in the Vault only.
 
-- [Gmail connector](/connectors/gmail) — email tools and search syntax
-- [Connections](/integrations/connections) — credential management
-- [Connector catalog](/integrations/connector-catalog) — full adapter list
+## Add services or fix a broken connection
+
+- **Add a service later:** open the Google account on **Connections** and click **Update permissions**. Google asks you to approve the new permissions.
+- **Reconnect:** if access stops working (for example, someone revoked it), open the account and click **Reconnect** and approve again. Start a new run for any run that failed in the meantime.
+
+## Example workflows
+
+**Read a Sheet and email a summary**
+
+1. `google-sheets` step: read a range.
+2. A `lua` or `for_each` step: process the rows.
+3. `gmail` step: `gmail_send_email` with the summary.
+
+**Create a calendar event after approval**
+
+1. `human` step: someone approves the meeting details.
+2. `google-calendar` step: create the event.
+
+See [Workflow patterns](/workflows/patterns) for approve-then-send and webhook triggers.
+
+## Common problems
+
+| Problem | What to do |
+|---------|------------|
+| A `403` mentions permissions or scopes | Open the account, click **Update permissions**, tick the service, and approve. |
+| A `404` not found | Check the file, calendar, or spreadsheet ID in the tool arguments. |
+| Google access stopped working | Click **Reconnect** on the account. |
+| Works in testing but not in production | Use a separate instance and profile that point to the production Google account, and select the right instance on each step. |
+
+See [Troubleshooting](/platform/troubleshooting) for more.
+
+## Related
+
+- [Connections](/integrations/connections)
+- [MCP instances](/integrations/mcp-instances)
+- [Connector catalog](/integrations/connector-catalog)

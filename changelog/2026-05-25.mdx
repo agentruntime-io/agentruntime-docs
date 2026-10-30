@@ -1,5 +1,5 @@
 ---
-title: Parallel workflow steps, memory kernel, and chat integration
+title: Parallel workflow steps, workflow memory, and run summaries
 date: 2026-05-25
 version: "0.1.2"
 areas:
@@ -7,42 +7,42 @@ areas:
   - platform
   - ai
   - billing
-summary: for_each parallel steps and workflow memory, tenant-scoped billing profiles, chat microservice BFF wiring, and run summary APIs for Operate.
+summary: for_each parallel steps and workflow memory, workspace billing profiles, Workspace Chat foundations, and run summary APIs for Operate.
 added:
   - "**for_each steps** — iterate over a collection and fan out parallel child branches inside a workflow graph **GA**"
-  - "**Memory kernel** — attach durable, workflow-scoped memory so agent episodes retain context across steps **Preview**"
+  - "**Workflow memory** — attach durable, workflow-scoped memory so agent episodes retain context across steps **Preview**"
   - "**Run summaries API** — aggregate step outcomes per run without loading full execution logs **API only**"
-  - "**Tenant run listing** — paginated run list and timeseries endpoints for dashboard widgets **API only**"
-  - "**Chat integration foundations** — routing and config for Workspace Chat ahead of Space launch **API only**"
+  - "**Workspace run listing** — paginated run list and timeseries endpoints for dashboard widgets **API only**"
+  - "**Workspace Chat foundations** — groundwork for Workspace Chat ahead of its launch **API only**"
 changed:
-  - "**Billing profiles** — tenant-scoped billing profiles with usage-dimension aggregation for multi-meter plans"
-  - "Console and platform **referral configuration** — chat and cross-product deep links between Console and Space"
-  - "Workflow **validation endpoint** — stricter step execution handling and pre-publish checks in Studio"
+  - "**Billing profiles** — workspace-scoped billing profiles with usage-dimension aggregation for multi-meter plans"
+  - "Console and chat **deep links** between Console and Space"
+  - "Workflow **validation** — stricter step handling and pre-publish checks in Studio"
   - "**Autopilot** response and intent validation improvements for multi-turn canvas editing"
 ---
 
-Platform **v0.1.2** — a workflow-engine and billing increment shipped May 25.
+Platform **v0.1.2** — a workflow and billing increment shipped May 25.
 
 ## Workflows
 
-Authors could fan out work with **`for_each`** — pass an array into a step and run downstream nodes in parallel for each item. Combined with the new **memory kernel**, agent episodes could carry state forward across steps — foundational pieces for unified execution in v0.2.0.
+Authors could fan out work with **`for_each`** — pass an array into a step and run downstream nodes in parallel for each item. Combined with the new **workflow memory**, agent episodes could carry state forward across steps.
 
 Command Center and early Operate APIs gained **run summary aggregation**: see pass/fail counts and step rollups without opening every log line.
 
 ## Console and billing
 
-Billing moved toward **tenant-scoped profiles** with clearer usage-dimension rollups — the model later used for multi-product Stripe plans in v0.1.5.
+Billing moved toward **workspace-scoped profiles** with clearer usage-dimension rollups — the model later used for multi-product Stripe plans in v0.1.5.
 
-Console config picked up **chat and platform referral** URLs so Console and Space could deep-link to each other once Workspace Chat shipped in v0.1.3.
+Console and Space gained links to each other, ready for Workspace Chat in v0.1.3.
 
 ## API
 
-The public API gained session header injection for chat — Console auth tokens and workspace context flow through to Workspace Chat APIs in the next release wave.
+Console sign-in and workspace context now carry through to Workspace Chat APIs, ready for the next release.
 
 ## Related docs
 
 - [Workflow patterns](/workflows/patterns)
 - [Step types](/workflows/step-types)
 - [Runs and Command Center](/workflows/runs-and-command-center)
-- [Multi-product billing](/platform/multi-product-billing)
+- [Billing and credits](/platform/billing-and-credits)
 - [Autopilot and chat](/ai/autopilot-and-chat)

@@ -1,75 +1,73 @@
 ---
 title: Firestore connector
-description: Query, update, and manage Google Cloud Firestore documents from AgentRuntime workflow steps.
+description: Read, write, and query Cloud Firestore documents and check security rules from AgentRuntime workflows.
 ---
 
-The **firestore** MCP adapter connects to Google Cloud Firestore with a project ID, optional database ID, and Google service account credentials. It provides document reads, writes, collection queries, and security-rules tooling (`get_rules`, `validate_rules`). Use it for app backends, event logs, configuration stores, user profile sync, and rules validation in workflows — authenticated with a service account JSON key or Application Default Credentials (ADC).
+The **firestore** connector lets workflows work with a Google Cloud Firestore database: fetch documents, query collections, add and update documents, list collections, and read or validate security rules.
 
 ## Prerequisites
 
-- A Google Cloud project with Firestore enabled (Native mode)
-- A Google service account with Firestore permissions:
-  - **Cloud Datastore User** — read-only workflows (`firestore_get_documents`, `firestore_query_collection`, `firestore_list_collections`)
-  - **Cloud Datastore Owner** or a scoped custom role — workflows that write or delete documents
-- `ProjectID` and optional `Database` ID (default `(default)`)
-- Google credentials via one of:
-  - **Service account JSON key (`CredsJSON`)** — paste the full key JSON into the connection, or provide the key file path on the connector host
-  - **Application Default Credentials (ADC)** — workload identity on GCE/GKE/Cloud Run, or `gcloud auth application-default login` on the connector host for local development
-- **project_contributor** access
+- A Google Cloud project with a Firestore database.
+- A Google Cloud service account that can read (and, for write tools, write) that database.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Create a Google service account">
-    In [Google Cloud Console](https://console.cloud.google.com/), create a service account with Firestore access. Grant **Cloud Datastore User** for read workflows or **Cloud Datastore Owner** for read/write. Download the JSON key file, or configure workload identity on the connector host so ADC resolves automatically.
+  <Step title="Prepare Google Cloud access">
+    In the [Google Cloud console](https://console.cloud.google.com/), note your **project ID** and the Firestore **database ID** (it is `(default)` unless you created a named database). Create a service account with the Firestore permissions you need.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create a connection with:
-
-    - `ProjectID` — your Google Cloud project ID
-    - `Database` — Firestore database ID (omit for `(default)`)
-    - `CredsJSON` — paste the full service account JSON key contents, or provide the key file path
-
-    Omit `CredsJSON` only when the connector host provides Application Default Credentials (e.g. GCE workload identity or `gcloud auth application-default login` on the runtime host).
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Firestore** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add firestore MCP instance">
-    Go to **MCP**, click **Add instance** for **firestore**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `firestore_project_id` and, if you use a named database, `firestore_database`. See the warning below about `firestore_credentials_json`. Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Test with a collection listing">
-    Add a workflow with **mcp_call** → `firestore_list_collections`. Run it to confirm project, credentials, and database access.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `firestore_list_collections` tool from your **Firestore** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. With no `parent_path` it lists the top-level collections.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Warning>
+  `firestore_credentials_json` takes the **path to a service account key file** that the connector can read. It does not accept the key's JSON contents. If you leave it empty, the connector uses the default Google credentials available to the connector. Check with AgentRuntime support before relying on this connector for your own Firebase project.
+</Warning>
+
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **Webhook to Firestore** — Inbound event → `firestore_add_documents` append audit log → branch on document fields.
-- **User profile sync** — Auth provider webhook → `firestore_update_document` merge profile fields with `update_mask`.
-- **Rules CI check** — PR webhook delivers rules source → `firestore_validate_rules` → fail build when `valid` is false.
-- **Ops dashboard** — `firestore_query_collection` filtered by status → LLM summary → scheduled email digest.
+- **Event log.** An inbound webhook starts a workflow that stores each event with `firestore_add_documents`.
+- **Profile sync.** After a sign-up, `firestore_update_document` merges profile fields into an existing document, limited by `update_mask`.
+- **Ops dashboard.** `firestore_query_collection` finds open items, and an LLM step turns them into a daily summary.
+- **Rules check.** `firestore_validate_rules` checks a proposed rules file, and the workflow stops if `valid` is `false`.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `firestore_get_documents` | Fetch Firestore documents by path |
-| `firestore_query_collection` | Query a Firestore collection with optional filters and ordering |
-| `firestore_add_documents` | Add a document with an auto-generated ID to a Firestore collection |
-| `firestore_update_document` | Update or merge fields on a Firestore document |
-| `firestore_delete_documents` | Delete Firestore documents by path |
-| `firestore_get_rules` | Get the active Firestore security rules for the configured project and database |
-| `firestore_validate_rules` | Validate Firestore security rules source without deploying it |
-| `firestore_list_collections` | List root Firestore collections or subcollections under a document path |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+Tools marked **Delete** remove documents permanently.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `firestore_add_documents` | Write | Add a document with an auto-generated ID to a Firestore collection. | `collection_path`, `document_data`, `return_data` |
+| `firestore_delete_documents` | Delete | Delete Firestore documents by path. | `document_paths` |
+| `firestore_get_documents` | Read | Fetch Firestore documents by path. | `document_paths` |
+| `firestore_get_rules` | Read | Get the active Firestore security rules for the configured project and database. | — |
+| `firestore_list_collections` | Read | List root Firestore collections or subcollections under a document path. | — |
+| `firestore_query_collection` | Read | Query a Firestore collection with optional filters and ordering. | `collection_path`, `filters`, `limit`, `analyze_query` |
+| `firestore_update_document` | Write | Update or merge fields on a Firestore document. | `document_path`, `document_data`, `update_mask`, `return_data` |
+| `firestore_validate_rules` | Read | Validate Firestore security rules source without deploying it. | `source` |
 
 ## Example
 
-Query open support tickets:
+Query open support tickets. All four required arguments are included: `filters`, `limit`, and `analyze_query` can be an empty list, a number, and `false`.
 
 ```json
 {
   "id": "open-tickets",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Fetch open tickets",
   "tool_name": "firestore_query_collection",
   "tool_args": {
@@ -81,7 +79,8 @@ Query open support tickets:
         "value": "open"
       }
     ],
-    "limit": 50
+    "limit": 50,
+    "analyze_query": false
   },
   "timeout_s": 30
 }
@@ -89,27 +88,26 @@ Query open support tickets:
 
 ## Configuration
 
-| Key | Required | Default | Description |
-|-----|----------|---------|-------------|
-| `firestore_project_id` | Yes | — | Google Cloud project ID that owns the Firestore database |
-| `firestore_database` | No | `(default)` | Firestore database ID |
-| `firestore_credentials_json` | No | — | Service account JSON key contents or file path (`CredsJSON`); omit to use Application Default Credentials |
+| Key | Required | Description |
+|-----|----------|-------------|
+| `firestore_project_id` | Yes | Google Cloud project ID that owns the database. |
+| `firestore_database` | No | Firestore database ID. Default `(default)`. |
+| `firestore_credentials_json` | No | Path to a service account key file. When empty, default Google credentials are used. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `Permission denied` | Grant the service account Firestore roles on the project; confirm `ProjectID` |
-| Invalid credentials | Re-upload `CredsJSON`; ensure the JSON is valid and the key is not disabled |
-| ADC not found | Set `CredsJSON` explicitly, or configure workload identity / ADC on the connector host |
-| Document not found | Verify `document_path` and `collection_path` are relative to the configured database |
-| Query requires index | Create the composite index Firestore suggests in the error message |
-| Rules validation fails | Read `issues` output; fix syntax and type errors before deploying |
+| Problem | What to do |
+|---------|------------|
+| Permission denied | Give the service account the Firestore roles it needs on the project, and check `firestore_project_id`. |
+| "missing firestore project_id" | The active profile has no `firestore_project_id`. Add it on **Instance config**. |
+| A document is not found | `document_path` and `collection_path` are relative to the configured database. Check the path and the database ID. |
+| A query needs an index | Create the composite index that Firestore suggests in the error message. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [MongoDB connector](/connectors/mongodb) — document database alternative
-- [Postgres connector](/connectors/postgres) — relational reporting alongside Firestore app data
+- [MongoDB connector](/connectors/mongodb) for another document database
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

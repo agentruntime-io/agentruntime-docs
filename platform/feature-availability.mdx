@@ -1,43 +1,44 @@
 ---
 title: Feature availability
-description: Preview, beta, API-only, and catalog-placeholder features in AgentRuntime.
+description: Which AgentRuntime features are generally available, in preview, or still rolling out.
 ---
 
-Some capabilities are fully supported in the Console; others are API-only, feature-flagged, or catalog placeholders. This page is the single reference — individual guides link here instead of repeating status notes.
+This page is for anyone who cannot find a feature mentioned in the docs. It lists what is available in the Console today and what is still limited. Other guides link here instead of repeating status notes.
 
-## Status legend
+## Status labels
 
 | Label | Meaning |
 |-------|---------|
-| **GA** | Generally available in production Console for standard workspaces |
-| **Preview** | Backend implemented; Console UI limited or off in production |
-| **API only** | Supported via REST / Platform MCP; no dedicated Console screen yet |
-| **Placeholder** | Listed in catalog; tools not shipped |
+| **Available** | Part of the Console for standard workspaces |
+| **Preview** | Works but is limited, or may change. Not shown in the Console for every workspace. |
+| **Rolling out** | Being turned on step by step. You may not see it yet. |
+| **Demo only** | Works with sample data only. Not for real data. |
 
-## Feature matrix
+## What is available
 
-| Feature | Status | Console path | Notes |
-|---------|--------|--------------|-------|
-| Workflows & Command Center | **GA** | Workflow Studio, Command Center | — |
-| Connections & MCP instances | **GA** | Connections, MCP | Wire connections on instance config profiles |
-| Inbound webhooks | **GA** | Workflow config → **Inbound** tab; Settings → **Inbound webhooks** | Disable per environment via `inbound_webhooks.ENABLED` |
-| LLM Providers | **GA** | Providers | Tenant API keys |
-| Billing & credits | **GA** | Settings → **Billing Overview**, **Plans**, **Usage & History** | Plan catalog syncs from Stripe; scoped to `product_code = agentruntime` on this Console |
-| Analytics | **Flagged** | `/analytics` when `enableAnalyticsNav` is on | KPIs + timeseries from runs and billing events |
-| Memory (search, index, extract) | **Preview** | No dedicated Memory nav in prod (`enableMemory` off) | Use [Memory API](/ai/memory) and Autopilot tools where enabled |
-| Slack connector | **Placeholder** | MCP catalog | Install + token OK; **no messaging tools** yet — see [slack](/connectors/slack) |
-| Healthcare connector | **Preview** | MCP catalog | **Mock APIs only** — not for production PHI |
-| Referrals (promoter program) | **Flagged** | `/referrals` when `enablePlatformReferrals` is on | Cash commissions + signup link |
-| Settings → Affiliates | **Flagged** | Settings tab when `enableSettingsAffiliates` is on | Maintainer payout ops — not promoter self-service |
-| Agents / Marketplace / Tools nav | **Flagged** | Sidebar when `enableAgents`, etc. | Marketplace **Bundles** tab lists Workspace Copilot; Autopilot session graph is platform-managed — optional **editable copy** in Workflow Studio |
+| Feature | Status | Where to find it | Notes |
+|---------|--------|------------------|-------|
+| Workflows and Command Center | **Available** | **Workflow Studio**, **Command Center** | |
+| Connections and MCP instances | **Available** | **Connections**, **MCP** | |
+| Inbound webhooks | **Available** | A workflow's **Inbound** tab, and **Settings → Inbound webhooks** | |
+| LLM providers | **Available** | **Providers** | |
+| Billing and credits | **Available** | **Settings → Billing Overview**, **Plans**, **Usage & History** | See [Billing and credits](/platform/billing-and-credits). |
+| Analytics | **Available** | **Analytics** under **Workspace** | See [Analytics](/platform/analytics). |
+| Agents, Apps, Marketplace and Tools | **Available** | **Agents**, **Apps**, **Marketplace**, **Tools** in the sidebar | |
+| Operate, Databases and Storage | **Available** | **Operate**, **Databases**, **Storage** in the sidebar | |
+| Chat and Autopilot | **Available** | **Chat** | See [Autopilot and chat](/ai/autopilot-and-chat). |
+| Slack connector | **Available** | **MCP** catalog | See [slack](/connectors/slack). |
+| Memory | **Preview** | No **Memory** page in the sidebar yet | See [Memory](/ai/memory). |
+| Referrals | **Rolling out** | **Referrals** in the sidebar, when turned on | See [Referrals and affiliates](/platform/referrals-and-affiliates). |
+| Healthcare connector | **Demo only** | **MCP** catalog | Sample data only. Never use real patient data. |
 
 ## How to check your workspace
 
-- **Console flags** — Some nav items (Chat, Analytics, Memory) depend on deployment feature flags.
-- **Settings → Feature Flags** — Visible to tenant admins when the settings tab is enabled.
-- **API** — If an endpoint returns `404` or `feature disabled`, the capability is off for your environment.
+- Look at the Console sidebar. Features that are not turned on for you do not appear.
+- Some pages and tabs depend on your role. See [Roles and permissions](/platform/roles-permissions).
+- If an API call says a feature is disabled, it is not turned on for your workspace. Contact [support](mailto:support@agentruntime.io).
 
-## Related
+## Next steps
 
 - [Troubleshooting](/platform/troubleshooting)
 - [Billing and credits](/platform/billing-and-credits)

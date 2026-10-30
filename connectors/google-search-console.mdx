@@ -1,87 +1,107 @@
 ---
 title: Google Search Console connector
-description: Pull search analytics, inspect URLs, and manage sitemaps from AgentRuntime workflows.
+description: Pull search performance data, inspect URLs, and manage sitemaps in Google Search Console from AgentRuntime workflows.
 ---
 
-The **google-search-console** MCP adapter wraps the [Search Console APIs](https://developers.google.com/webmaster-tools/v1/api_reference_index) for analytics, URL inspection, and sitemap management. Use it in workflow **mcp_call** steps to report on query performance, diagnose indexing issues, and submit sitemaps after content publishes — feeding SEO dashboards and LLM-written summaries.
+The **google-search-console** connector uses the Google Search Console APIs. Workflows can report on search clicks and impressions, check whether a page is indexed, and submit or review sitemaps for your verified sites.
 
 ## Prerequisites
 
-- A Google account with verified Search Console properties for the sites you query
-- A **Google Workspace connection** in AgentRuntime (OAuth via the **Google account** card on **Connections**)
-- **project_contributor** access in your workspace
+- A Google account that can use Google Search Console, with the sites you want to query verified there.
+- A Google account connection in AgentRuntime with the **Google Search Console** service ticked. See [Google Workspace](/integrations/google-workspace).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Connect Google">
-    On **Connections**, use the **Google account** card and complete OAuth. See [Google Workspace setup](/integrations/google-workspace) and [Connections](/integrations/connections).
+  <Step title="Sign in with Google">
+    Go to **Connections**. In the **Accounts** section, click **Sign in with Google**. Enter a display name, tick **Google Search Console** (and any other Google services you plan to use), click **Continue to Google**, and approve the permissions. If you already connected a Google account with this service ticked, skip this step. If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace: [contact support](mailto:support@agentruntime.io). See [Connections](/integrations/connections).
   </Step>
-  <Step title="Enable Search Console">
-    On your Google connection, enable the **Search Console** service so the account exposes webmasters and URL Inspection scopes.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Google Search Console** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add google-search-console MCP instance">
-    Go to **MCP**, click **Add instance** for **google-search-console**. Open **Instance config**, wire your Google connection, and set the profile **active**.
+  <Step title="Attach your Google account to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Use a saved connection** tab choose your Google account under **Which connection?**. Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**. You do not enter tokens yourself.
   </Step>
-  <Step title="Test in a workflow">
-    Smoke-test with **mcp_call** in Workflow Studio. Test with `list_sites` before production workflows.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `google_search_console_list_sites` tool from your **Google Search Console** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. It lists the sites your account can use.
   </Step>
 </Steps>
 
 ## What you can build
 
-- **Weekly SEO digest** — Schedule → `search_analytics` for top queries and pages last 7 days → LLM narrative → **gmail** to marketing.
-- **Post-publish index check** — CMS webhook with new URL → `url_inspection` → if not indexed, **slack** alert with `coverage_state` and canonical details.
-- **Sitemap after deploy** — Release workflow completes → `submit_sitemap` for `sitemap.xml` → `list_sitemaps` to confirm pending status.
-- **Landing page regression** — Compare two date ranges via `search_analytics` with `page` dimension → flag pages with a large click drop → **google-sheets** tracker row.
+- **Weekly SEO digest.** `google_search_console_search_analytics_query` pulls top queries and pages for the week, and an LLM writes the narrative.
+- **Index check after publishing.** A new URL goes to `google_search_console_inspect_url`, and the workflow alerts you if it is not indexed.
+- **Sitemap after a deploy.** `google_search_console_submit_sitemap` sends the sitemap, and `google_search_console_list_sitemaps` confirms its status.
+- **Page drop alerts.** Compare two date ranges grouped by `page` and flag large drops.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `search_analytics` | Query Search Console analytics data with optional dimensions and filters. |
-| `url_inspection` | Inspect the index status of a URL within a verified Search Console property. |
-| `list_sites` | List Search Console sites available to the authenticated user. |
-| `add_site` | Add a site to Search Console properties. |
-| `delete_site` | Remove a site from Search Console properties. |
-| `list_sitemaps` | List sitemaps registered for a Search Console site. |
-| `submit_sitemap` | Submit or resubmit a sitemap for a Search Console site. |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+`google_search_console_delete_site` and `google_search_console_delete_sitemap` remove the site or sitemap from your Search Console.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `google_search_console_add_site` | Write | Adds a site to the set of the user's sites in Google Search Console. | `site_url` |
+| `google_search_console_delete_site` | Delete | Removes a site from the user's Google Search Console sites. | `site_url` |
+| `google_search_console_delete_sitemap` | Delete | Deletes a sitemap from a Search Console site. | `site_url`, `feedpath` |
+| `google_search_console_get_site` | Read | Retrieves information about a specific Search Console site including permission level. | `site_url` |
+| `google_search_console_get_sitemap` | Read | Retrieves sitemap metadata (submitted/indexed counts, errors, warnings) for a specific sitemap. | `site_url`, `feedpath` |
+| `google_search_console_inspect_url` | Read | Inspects a URL for indexing issues and status in Google Search Console. | `site_url`, `inspection_url` |
+| `google_search_console_list_sitemaps` | Read | Lists all sitemaps for a site in Google Search Console. | `site_url` |
+| `google_search_console_list_sites` | Read | Lists all verified sites (properties) owned by the authenticated user in Google Search Console. | — |
+| `google_search_console_search_analytics_query` | Read | Queries Google Search Console for search analytics data including clicks, impressions, CTR, and position. | `site_url`, `start_date`, `end_date` |
+| `google_search_console_submit_sitemap` | Write | Submits a sitemap to Google Search Console for indexing. | `site_url`, `feedpath` |
 
 ## Example
 
-Fetch top queries for a weekly SEO report:
+Fetch top queries and pages for a week. Dates are `YYYY-MM-DD`.
 
 ```json
 {
   "id": "seo-analytics",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Top search queries",
-  "tool_name": "search_analytics",
+  "tool_name": "google_search_console_search_analytics_query",
   "tool_args": {
     "site_url": "https://example.com/",
     "start_date": "{{input.week_start}}",
     "end_date": "{{input.week_end}}",
-    "dimensions": ["query", "page"],
+    "dimensions": [
+      "query",
+      "page"
+    ],
     "search_type": "web",
     "row_limit": 500
   },
-  "depends_on": [],
   "timeout_s": 60
 }
 ```
 
+## Configuration
+
+Google connectors take no keys from you: the permissions come from your Google account connection.
+
+**Google permissions (scopes) requested when you tick this service:**
+
+- `https://www.googleapis.com/auth/webmasters`
+
+Signing in also requests `openid` and `https://www.googleapis.com/auth/userinfo.email` so AgentRuntime can tell which Google account signed in.
+
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| **Reconnect** prompt on Google connection | Re-authorize OAuth; Search Console scopes may have been revoked |
-| `403` on `search_analytics` | Confirm the signed-in user has access to `site_url`; use exact property URL format (`https://` or `sc-domain:`) |
-| `url_inspection` property mismatch | URL must belong to the verified property passed as `site_url` |
-| Empty analytics rows | Data lag is typically 2–3 days; widen the date range and check `search_type` filter |
+| Problem | What to do |
+|---------|------------|
+| `403` for a site | The signed-in Google account must have access to that site in Search Console. Use the exact property URL, such as `https://example.com/` or `sc-domain:example.com`. |
+| URL inspection says the URL is not in the property | `inspection_url` must belong to the property you pass as `site_url`. |
+| Empty analytics rows | Check the date range and `search_type`. Search Console data is not available for dates that are too recent. |
+| Google access stopped working | Open **Connections**, open the Google account, and click **Reconnect**. If you removed a permission, click **Update permissions** and tick the service again. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Google Workspace setup](/integrations/google-workspace)
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

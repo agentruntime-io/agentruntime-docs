@@ -1,5 +1,5 @@
 ---
-title: Workflow stability, billing guards, and production tag alignment
+title: Workflow stability and billing safeguards
 date: 2026-07-04
 version: "0.2.2"
 areas:
@@ -7,13 +7,13 @@ areas:
   - workflows
   - api
   - billing
-summary: Platform v0.2.2 — tags production deployments; workflow template panic fix, billing rate limits, chat payload patches, and MCP authorization hardening.
+summary: Platform v0.2.2 — fix for runs stuck on empty template inputs, billing rate limits, chat starter message patches, and stronger authorization for connector tool execution.
 added:
   - "**Billing rate limits** — throttles abusive billing API traffic **GA**"
-  - "**Starter message payload merge** — patch operations shallow-merge JSON payloads on chat starter messages **GA**"
+  - "**Starter message payload merge** — partial updates to a starter message now merge into its existing JSON payload **GA**"
 changed:
   - "**Workflow template resolution** — optional empty template fields fail the step with a clear error instead of stalling the run **GA**"
-  - "MCP execute paths use improved service-name extraction and stronger authorization checks"
+  - "Stronger authorization checks when executing connector (MCP) tools"
   - "Discount validation and membership backfill hardening on billing checkout paths"
   - "Work document patch API returns consistent partial-update semantics **API only**"
 fixed:
@@ -25,11 +25,11 @@ fixed:
 
 ## Workflows and runs
 
-**Template resolver hardening** — if a workflow step uses a text template with an optional input left empty, the step now **fails with an explicit error** instead of interrupting run processing. Runs should no longer remain stuck in **Running** for this condition. See [Troubleshooting](/platform/troubleshooting) if you observed stuck runs before this deploy.
+**Template hardening** — if a workflow step uses a text template with an optional input left empty, the step now **fails with an explicit error** instead of interrupting run processing. Runs should no longer remain stuck in **Running** for this condition. See [Troubleshooting](/platform/troubleshooting) if you observed stuck runs before this fix.
 
 ## Workspace Chat
 
-**Starter payload patches** — updating a starter message can merge a partial `payload` object without replacing the entire JSON blob. Copilot DM session filtering is more reliable when listing conversations bound to workflow starters.
+**Starter payload patches** — updating a starter message can merge a partial `payload` object without replacing the entire JSON blob. Listing Autopilot DM conversations is more reliable.
 
 Session and preferences APIs return clearer validation errors when required fields are missing or malformed.
 
@@ -37,11 +37,11 @@ Session and preferences APIs return clearer validation errors when required fiel
 
 **Billing rate limits** protect checkout and entitlement endpoints from burst traffic. If your integration receives repeated `429` responses, back off and retry rather than hammering the endpoint.
 
-Discount code validation and membership backfill were tightened to reduce inconsistent tenant billing state after signup edge cases.
+Discount code validation and membership backfill were tightened to reduce inconsistent workspace billing state after signup edge cases.
 
 ## API and integrations
 
-MCP catalog execute routes benefit from improved authorization checks and service-name extraction — integrations using PATs should verify scopes if they suddenly receive `403` after deploy.
+Connector tool execution now has stronger authorization checks — integrations using PATs should verify scopes if they suddenly receive `403` after this release.
 
 **Work files** document patch semantics are more consistent for partial field updates (**API only** — no dedicated Console UI yet).
 

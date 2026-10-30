@@ -1,54 +1,101 @@
 ---
 title: User management
-description: Invite members, assign roles, and manage access across your AgentRuntime workspace.
+description: Invite people, set their roles, and remove access in your AgentRuntime workspace.
 ---
 
-Workspace admins manage the member lifecycle from **Settings → Members** in the [Console](https://console.agentruntime.io): invite new users, adjust roles, and deactivate accounts.
+This page is for workspace admins and owners. You will learn how to invite teammates, give them the right access, and remove them when they leave.
 
-## Invite by email
+## Before you begin
+
+- You need the **Admin** or **Owner** workspace role. Other members do not see **Team & Members** in Settings.
+- Read [Roles and permissions](/platform/roles-permissions) first if the words **workspace role** and **project role** are new to you.
+
+## Invite someone by email
 
 <Steps>
-  <Step title="Open the members page">
-    Go to **Settings → Members** and click **Invite**.
+  <Step title="Open Team & Members">
+    Go to **Settings → Team & Members**.
   </Step>
-  <Step title="Enter email addresses">
-    Add one or more email addresses. Each invitee receives a link to join your workspace.
+  <Step title="Enter the email address">
+    Find the **Pending invites** card on the tab. Type the address in **Teammate email**. **Invite to workspace** stays greyed out until you do.
+
+    <Frame caption="The invite form, with the email field empty">
+      <img src="/images/platform/user-management-invite-form.png" alt="The Pending invites card with an empty Teammate email field, Workspace role set to Member, an Invite to workspace button, a Project role list set to Project admin with a Create user button, and the text No invites yet" />
+    </Frame>
   </Step>
-  <Step title="Assign a role">
-    Choose a tenant-level role. Most builders need access to at least one project as a **project contributor**.
+  <Step title="Choose a workspace role">
+    Pick **Workspace role**: **Member**, **Admin** or **Owner**. Most people should be **Member**. If you pick **Admin** or **Owner**, the Console asks you to confirm before it sends the invite.
   </Step>
-  <Step title="Add to projects">
-    After the member accepts, add them to relevant projects with the appropriate project role — **project_viewer**, **project_contributor**, or **project_admin**.
+  <Step title="Send the invite">
+    Click **Invite to workspace**. The Console creates an invite link and tries to copy it to your clipboard. The link only works for the invited email address.
+
+    **You should see:** an "Invite created" message and the invite in the invites list on the same tab. Send the link to your teammate yourself. If your browser blocked the copy, click **Copy link** on the invite. Click **Delete** to cancel an invite.
   </Step>
 </Steps>
 
-<Info>
-  Project roles control day-to-day workflow and integration access. A member can be a **project viewer** in a production project and a **project contributor** in a sandbox project.
-</Info>
+An email invite sets the workspace role only. When the person accepts, they get **Contributor** access to every **public** project. To give access to a **private** project, add them to it as described below.
 
-## Role guidelines
+## Set a project role
 
-| If they need to… | Assign |
-|------------------|--------|
-| View runs and analytics only | **project_viewer** |
-| Build workflows, connect tools, run agents | **project_contributor** |
-| Manage project members | **project_admin** |
-| Manage billing, workspace settings, all projects | **tenant_admin** |
+1. Select the project in the project switcher.
+2. On **Settings → Team & Members**, find the person under **Current members**.
+3. Use the project role menu on their row to choose **Project admin**, **Contributor** or **Project viewer**.
 
-## Deactivating accounts
+Use **Remove from project** on the same row to take back their project access. You can also manage a project's members from **Project settings** (the **⋮** menu next to the project).
 
-Deactivating a member revokes their access immediately without deleting content they created. Workflows, runs, and connections they set up remain available to other members.
+## Create a user directly
 
-To deactivate:
+If your workspace has a DNS-verified email domain, **Create user** sets up an account for someone and can attach the **Project role** you choose in the selected project. If no domain is verified yet, the button is disabled. Verify a domain under **Verify ownership via DNS TXT** on the same tab.
 
-1. Find the member in **Settings → Members**
-2. Open their profile and select **Deactivate**
-3. Confirm the action
+## Who should get which role
 
-Reactivate at any time to restore their previous memberships.
+| If they need to… | Give them |
+|------------------|-----------|
+| Look at workflows, runs and analytics only | **Project viewer** |
+| Build workflows, connect tools and start runs | **Contributor** |
+| Manage who is in a project | **Project admin** |
+| Manage billing, team and workspace policy | Workspace **Admin** or **Owner** |
 
-## Invites and onboarding
+## Change a workspace role
 
-New members complete email verification on first sign-in. If your workspace uses domain verification, only addresses from approved domains can join.
+On **Current members**, use the workspace role menu on the member's row. Promoting someone to **Admin** or **Owner** shows a confirmation that explains what they will be able to do. Only promote people who need that control.
 
-After onboarding, direct new builders to the [Quickstart](/platform/quickstart) and [Workflow Studio](/workflows/studio) guides.
+## Remove someone from the workspace
+
+1. Go to **Settings → Team & Members → Current members**.
+2. Click **Remove from workspace** on their row. You cannot remove yourself.
+3. Read the prompt and confirm.
+
+The person loses access to the workspace and their account is disabled until you invite them again. This does not permanently delete data.
+
+## Control how people join
+
+Under **Self-serve vs invite-only** on **Team & Members**, set:
+
+- **Allow self-serve signups** — whether people can start onboarding without an invite
+- **Require invites** — force everyone to use an invite
+- **Auto-join matching domains** — people with a verified company email domain skip approval after verifying their email
+- **Full access on private projects** — see [Roles and permissions](/platform/roles-permissions)
+
+Click **Save policy** to apply.
+
+<Frame caption="The Self-serve vs invite-only settings">
+  <img src="/images/platform/user-management-join-policy.png" alt="The Self-serve vs invite-only card with switches for Allow self-serve signups, Require invites, Auto-join matching domains and Full access on private projects, an Allowed email domains box, and Refresh and Save policy buttons" />
+</Frame>
+
+People who match your domain but need approval appear under **Access requests**, where you can approve or deny them.
+
+## Common problems
+
+| Problem | What to try |
+|---------|-------------|
+| **Team & Members** is missing | You need the workspace **Admin** or **Owner** role. |
+| An invitee cannot accept | The link is tied to the invited email address. They must sign in with that address. |
+| **Create user** is disabled | Verify a workspace domain first. |
+| A new member cannot see a project | The project is private. Add them to it. |
+
+## Next steps
+
+- [Roles and permissions](/platform/roles-permissions)
+- [Quickstart](/platform/quickstart) for new members
+- [Workspace settings](/platform/settings)

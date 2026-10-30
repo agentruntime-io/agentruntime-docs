@@ -1,90 +1,104 @@
 ---
 title: RSS connector
-description: Fetch and parse RSS and Atom feeds from public URLs in AgentRuntime workflows.
+description: Read RSS and Atom feeds from public URLs, such as blogs, news sites, and changelogs, in AgentRuntime workflows.
 ---
 
-The **rss** MCP adapter fetches and parses **RSS 2.0** and **Atom** feeds from public URLs. No OAuth or API keys are required for typical public feeds — pass feed URLs directly in workflow steps for news monitoring, content pipelines, and aggregation.
+RSS and Atom are standard formats that websites use to publish a list of their latest posts. The **rss** connector reads those feeds from a public URL and returns the posts as structured items (title, link, date, summary, and more), newest first. It needs no account and no API key.
+
+Typical uses: build a morning news digest, watch a competitor's blog or a product changelog for new posts, and feed fresh articles into a content workflow.
 
 ## Prerequisites
 
-- Publicly reachable RSS or Atom feed URLs (HTTPS recommended)
-- **project_contributor** access in AgentRuntime
-- No API credentials required for standard public feeds
+- One or more feed URLs that anyone on the internet can open. Many blogs offer one at an address such as `/feed` or `/rss`; the site's "Subscribe" or RSS link shows the exact URL.
+- The **project_contributor** role or higher in your workspace.
+- No credentials are needed.
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Identify feed URLs">
-    Collect RSS or Atom URLs from blogs, YouTube channels, podcasts, or product changelogs. Most sites expose `/feed`, `/rss`, or `<link rel="alternate">` in HTML.
+  <Step title="Find your feed URL">
+    Open the feed address in a browser. You should see XML, or your browser may offer to subscribe. If you see a normal web page, that is not the feed URL.
   </Step>
-  <Step title="Create a connection (optional)">
-    On **Connections**, click **New custom connection** only if you want to customize `user_agent` or `request_timeout_seconds`. Many teams install the adapter with default settings and no secrets.
+  <Step title="Add the rss MCP instance">
+    Open **MCP**, click **Add connectors**, find **rss**, and add it to your workspace. Open the instance and, on **Instance config**, make sure a profile is set to **Active** and saved. The optional settings below can stay empty.
   </Step>
-  <Step title="Add rss MCP instance">
-    Go to **MCP**, click **Add instance** for **rss**, wire a connection on **Instance config** if you created one, then set the profile **active**.
-  </Step>
-  <Step title="Test a feed">
-    Run **mcp_call** → `rss_fetch_items` with a known feed URL and `limit: 5`.
+  <Step title="Smoke test">
+    In **Workflow Studio**, add a connector tools step that calls `rss_fetch_items` with your feed URL and a `limit` of `5` (see the example below) and run it. You should get `feed_title`, `items`, and a `count`.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+See [Authentication](/integrations/authentication) for how connections and profiles work on MCP instances. You only need a connection for this connector if you want to override the optional settings.
 
 <Note>
-  Feeds behind login walls or IP allowlists may fail unless you expose a public URL or proxy. This adapter does not store feed credentials.
+  The connector fetches the URL you give it with no sign-in. Feeds behind a login or an IP allowlist will fail.
 </Note>
 
 ## What you can build
 
-- **Morning digest** — `rss_fetch_items_multi` on industry feeds → LLM summary → email or Slack (when available).
-- **Content pipeline** — New blog item → LLM rewrite → **human_task** → publish via LinkedIn or Google Docs connectors.
-- **Competitive monitoring** — Daily fetch → diff titles against Postgres history → alert on new product posts.
-- **Podcast/show notes** — Parse episode feeds → extract links → add to ClickUp content calendar.
+- **Morning digest.** Call `rss_fetch_items_multi` on several industry feeds, let an LLM step summarize the newest items, and email the result with the [Resend connector](/connectors/resend).
+- **Content pipeline.** When a new item appears in a source feed, have an LLM step draft a rewrite, add a **human** approval step, then publish.
+- **Competitor and release monitoring.** Fetch a feed on a schedule, compare item links with ones you stored earlier, and alert on new ones.
+- **Show notes.** Read a podcast feed, extract the links in each episode description, and file them in your task tool.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `rss_fetch_items` | Fetch one feed URL; return normalized items sorted newest first |
-| `rss_fetch_items_multi` | Fetch multiple feeds in parallel; merge and sort newest first |
+| Tool | What it does |
+|------|--------------|
+| `rss_fetch_items` | Read one feed and return its items, newest first. |
+| `rss_fetch_items_multi` | Read several feeds at once, merge the items, and return them newest first. A feed that fails is skipped. |
+
+Both tools only read data.
+
+Parameters:
+
+- `rss_fetch_items`: `rss_feed_url` (required) and `limit` (optional; `0` or omitted returns all items). Returns `feed_title`, `feed_link`, `items`, and `count`.
+- `rss_fetch_items_multi`: `rss_feed_urls` (required, a list with at least one URL) and `limit` (optional; `0` or omitted returns all merged items). Returns `items` and `count`.
+
+Each item has `id`, `title`, `link`, `pubDate` (RFC 3339 format), `description`, `summary`, `author`, and `guid`.
 
 ## Example
 
-Fetch the five latest items from a blog feed:
+Fetch the five latest posts from a blog feed:
 
 ```json
 {
   "id": "rss-fetch",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Latest blog posts",
+  "instance_id": "YOUR_RSS_INSTANCE_ID",
   "tool_name": "rss_fetch_items",
   "tool_args": {
     "rss_feed_url": "https://example.com/blog/feed.xml",
     "limit": 5
   },
-  "timeout_s": 30
+  "timeout_s": 60
 }
 ```
 
+In Studio you pick the instance and tool from lists, and Studio fills in `instance_id`. A later step can read the list as `{{steps.rss-fetch.result.items}}`.
+
 ## Configuration
+
+Both settings are optional. Their published key names carry the `rss_` prefix.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `user_agent` | No | HTTP User-Agent for feed requests |
-| `request_timeout_seconds` | No | Per-feed HTTP timeout in seconds |
+| `rss_user_agent` | No | The User-Agent the connector sends when it fetches a feed. Default `agentruntime-mcp-rss-go/1.0 (+https://agentruntime.io)`. |
+| `rss_request_timeout_seconds` | No | Time limit for each feed request, in seconds. Default `45`. |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Parse errors | Confirm URL returns XML, not HTML error page; validate feed in a reader |
-| Empty items | Feed may be valid but stale; set `limit` to 0 to return all parsed entries |
-| Timeout | Increase `request_timeout_seconds` or workflow `timeout_s` for slow hosts |
-| SSL or redirect failures | Use canonical HTTPS feed URL; some sites redirect HTTP → HTTPS |
+| `parse feed` error | The URL did not return a valid RSS or Atom feed. Open it in a browser and check you see XML, not an HTML page. |
+| `items` is empty | The feed may simply have no entries yet. Open it in a browser to check. |
+| A feed is missing from `rss_fetch_items_multi` results | A feed that fails to load is skipped without an error. Test that URL on its own with `rss_fetch_items`. |
+| Timeouts | Raise `rss_request_timeout_seconds` and the step's `timeout_s`. |
+| Site returns `429` (too many requests) | The connector waits and retries a few times. Fetch less often. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [YouTube connector](/connectors/youtube) — channel RSS via `youtube_list_channel_videos_rss`
+- [YouTube connector](/connectors/youtube) for video channels
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

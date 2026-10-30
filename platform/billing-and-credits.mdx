@@ -1,176 +1,118 @@
 ---
 title: Billing and credits
-description: Plans, trials, credit buckets, usage metering, and PAYG top-ups in AgentRuntime.
+description: How plans, trials, credits and pay-as-you-go top-ups work in AgentRuntime, and where to manage them in the Console.
 ---
 
-AgentRuntime meters usage in **credits**. Workflows, memory indexing, and other billable actions debit your workspace balance. Manage billing from **Settings** (`/settings`) in the [Console](https://console.agentruntime.io):
+This page is for people who pay for AgentRuntime or want to understand what uses credits. You will learn what credits are, how to see your balance, and how to add more.
 
-- **Billing Overview** — subscription status, payment method, top-up entry points
-- **Plans** — plan catalog and checkout
-- **Usage & History** — credit balances, metered usage, payment history
+<Note>
+  Billing is in early access. Plans, prices and how usage is counted in credits are still being finalised and may change. The **Plans** tab in the Console always shows what applies to your workspace today.
+</Note>
+
+## Credits in one minute
+
+AgentRuntime measures usage in **credits**. When your workflows run, they use credits from your workspace balance. If the balance reaches zero, new runs are refused until you add credits or change your plan.
+
+Your balance is made of three pools. AgentRuntime always uses them in this order:
+
+1. **Trial** — credits granted during a free trial
+2. **Included** — credits that come with your subscription
+3. **Pay-as-you-go (PAYG)** — credits you bought with a top-up
+
+Pay-as-you-go credits stay with you when you change plans, when a trial ends, and when you cancel a subscription. Unused trial and included credits end when the trial or subscription ends.
+
+## Where to manage billing
+
+Open **Settings** in the [Console](https://console.agentruntime.io). Billing has three tabs:
+
+| Tab | What you can do |
+|-----|-----------------|
+| **Billing Overview** | See your subscription, add or manage your payment card, and click **Add credits** |
+| **Plans** | Compare plans, start a trial, upgrade, downgrade or cancel. Enter a **Promo or referral code** here. |
+| **Usage & History** | See **Credits remaining** and the **Usage history** list |
+
+<Frame caption="Billing Overview: your plan, payment card and invoices">
+  <img src="/images/platform/billing-overview.png" alt="The Billing Overview tab with a Trial active banner and an Add payment method button, the current plan Pro with a trial end date and a View plans button, Payment showing No card on file with Add card and Add credits buttons, and an Invoices list" />
+</Frame>
+
+Billing Overview also has a **More billing options** section (billing contact, who pays, and payer overrides).
+
+Everyone with project access can look at plans and usage. Only workspace **Admins** and **Owners** can change plans, manage the card, add credits or apply codes. If the buttons are disabled, ask an admin.
 
 ## Plans
 
-Self-serve plan codes (monthly and annual variants):
+The **Plans** tab lists the plans you can choose. Each plan card shows its price, what it includes and whether it has a free trial. Paid plans show **Add a card before changing plans** until a card is on file.
 
-| Plan | Best for | Trial | Notes |
-|------|----------|-------|-------|
-| **free** | PAYG-only usage | No | Buy credits as needed; up to 3 members |
-| **pro** | Teams getting started | **14 days, 5 credits** | Default plan in onboarding; card optional for trial |
-| **plus** | Higher-volume teams | No | Paid subscription required |
-| **max** | Power users | No | Paid subscription required |
-| **enterprise** | Custom contracts | Sales-provisioned | Contact sales — not self-serve checkout |
+A card that says **Paid subscription only — no trial on this plan** has no trial. For a custom contract, [contact us](https://agentruntime.io/contact).
 
-Annual plans (`pro_annual`, `plus_annual`, etc.) follow the same tier rules with yearly Stripe billing.
-
-View live plan details and prices in the Console **Plans** tab — catalog syncs from Stripe.
-
-Plans are scoped to the **AgentRuntime** product (`product_code = agentruntime`). The Console shows tier names (`pro`, `plus`, …) only. See [Multi-product billing](/platform/multi-product-billing) for how AgentRuntime keeps product catalogs separate.
-
-## How credits work
-
-**1 credit = 1,000,000 microcredits.** The Console displays credits; APIs and ledgers often use microcredits internally.
-
-### Credit buckets
-
-Usage draws from buckets in this order:
-
-1. **Trial** — Granted during an active trial (for example, 5 credits on **pro**)
-2. **Included** — Credits bundled with your subscription
-3. **PAYG** — Pay-as-you-go balance from top-ups
-
-PAYG balance **persists** across plan changes, trial expiry, and subscription cancellation.
-
-### When credits are required
-
-Most platform actions require a positive balance. Workflows fail to start when credits are exhausted unless your plan allows overdraft (disabled by default).
-
-Check balance and breakdown at **Settings → Usage & History** or `GET /v1/billing/usage`:
-
-```json
-{
-  "trial_remaining": 2000000,
-  "included_remaining": 0,
-  "payg_remaining": 15000000
-}
-```
-
-(values in microcredits)
-
-## What consumes credits
-
-| Action | Typical cost | Notes |
-|--------|--------------|-------|
-| `workflow.step.execute` | ~5 credits per step | Charged when a workflow run executes steps |
-| `memory_extract_interactive` | ~10 credits per job | Interactive memory extraction |
-| `memory_extract_bulk` | ~2 credits per job | Bulk memory indexing |
-| `memory_index_file_mb` | ~1 credit per MiB | File indexing |
-
-Resolved prices for your tenant are at `GET /v1/billing/action-pricing`. Enterprise tenants may have custom pricing overrides.
-
-<Note>
-  LLM token and per-MCP-call metering are on the roadmap. Today, LLM costs may also flow through your provider API keys directly.
-</Note>
-
-## Trials
-
-New workspaces on **pro** can receive an automatic 14-day trial with 5 credits. Card is optional during trial signup.
-
-**Tenant admins** can also start trials via the API:
-
-```
-POST /v1/billing/trial
-```
-
-Convert trial to paid early:
-
-```
-POST /v1/billing/subscription/convert-trial-now
-```
-
-When a trial ends, unused trial credits are revoked per plan policy. PAYG balance is preserved.
-
-## Subscriptions
-
-**Tenant admins** manage subscriptions:
-
-| Action | Endpoint |
-|--------|----------|
-| Activate paid plan | `POST /v1/billing/subscription` |
-| Change plan | `POST /v1/billing/subscription/change-plan` |
-| Cancel | `POST /v1/billing/subscription/cancel` |
-
-Cancellation defaults to **period end** — you keep access until the billing period closes. Upgrades apply **immediately**; downgrades apply at period end.
-
-## PAYG top-ups
-
-When included or trial credits run low, buy more credits without changing plans.
+## Start a trial or subscribe
 
 <Steps>
-  <Step title="Open billing">
-    Go to **Settings → Billing Overview** and select **Top up** (or use the PAYG flow on **Usage & History**).
+  <Step title="Open Plans">
+    Go to **Settings → Plans**. You need the workspace **Admin** or **Owner** role.
   </Step>
-  <Step title="Choose amount">
-    Select a credit package. Payment processes through Stripe.
+  <Step title="Pick a plan">
+    Use the button on the plan card. It reads **Start trial**, **Upgrade**, **Downgrade** or **Switch**, depending on your current plan.
   </Step>
-  <Step title="Confirm balance">
-    PAYG credits appear in your usage breakdown immediately after payment succeeds.
+  <Step title="Add a card if asked">
+    Follow the prompts to add a payment card. Payments are processed by Stripe.
+
+    **You should see:** your new plan marked as current, and your credit balance updated.
   </Step>
 </Steps>
 
-API alternative for automation:
+When a trial is active, a banner shows when it ends. The banner has an **Add payment method** button: add a card before the trial ends to keep your plan. Otherwise you move to pay-as-you-go and the trial credits expire.
 
-```
-POST /v1/billing/topups/payg/intent
-```
+## Change or cancel a plan
 
-Body includes `amount_cents`, `microcredits`, `currency`, and an `idempotency_key`.
+- **Upgrades** apply immediately.
+- **Downgrades** apply at the end of the billing period.
+- **Cancel subscription** ends your plan at the end of the period by default, so you keep access until then. The cancel dialog shows the options.
 
-## Usage history
+## Add credits (pay-as-you-go)
 
-Review metered events at **Settings → Usage & History** or:
+<Steps>
+  <Step title="Open Billing Overview">
+    Go to **Settings → Billing Overview**. Make sure a card is saved (**Add card** or **Manage card**).
+  </Step>
+  <Step title="Click Add credits">
+    The **Add PAYG credits** dialog opens.
+  </Step>
+  <Step title="Choose an amount">
+    Pick a **Quick amount** ($10, $25 or $50) or type an **Amount (USD)**. The dialog shows how many credits you get.
+  </Step>
+  <Step title="Confirm">
+    Confirm the payment.
 
-```
-GET /v1/billing/usage-history
-GET /v1/billing/payment-history
-```
+    **You should see:** "Top-up submitted" and, within a moment, a higher balance under **Settings → Usage & History → Credits remaining**.
+  </Step>
+</Steps>
 
-**Analytics** (`/analytics`) also shows credits consumed alongside run metrics.
+## See what you used
 
-## Discount codes
+Open **Settings → Usage & History**. **Credits remaining** shows your balance. **Usage history** lists each charge with its date.
 
-Tenant admins can apply billing or discount codes:
+ **Analytics** also shows credits used over time, next to your run counts. See [Analytics](/platform/analytics).
 
-```
-POST /v1/billing/codes/apply
-POST /v1/billing/discounts/validate
-```
+## Promo and referral codes
 
-## Roles
+Workspace admins can open **Have a code?** on **Settings → Plans**, enter a **Promo or referral code**, and click **Apply**. The Console shows a preview of the discount or referral benefit. See [Referrals and affiliates](/platform/referrals-and-affiliates).
 
-| Action | Required role |
-|--------|---------------|
-| View usage and plans | **project_contributor** |
-| View usage dimensions | **project_viewer** |
-| Change plan, top up, apply codes | **tenant_admin** |
+## Common problems
 
-## Multi-product billing
+| Problem | What to try |
+|---------|-------------|
+| Runs fail with **Insufficient credits** | Add credits under **Billing Overview** or move to a bigger plan. |
+| **Add credits** or **Add card** is disabled | You need the workspace **Admin** or **Owner** role. |
+| Payment fails | Open **Manage card** and update your card. A banner appears when a payment is past due. |
+| Balance did not change after a top-up | Wait a moment and refresh **Usage & History**. If it is still wrong, contact [support](mailto:support@agentruntime.io) with the time of the payment. |
 
-AgentRuntime's plan catalog is scoped by **`(product_code, plan_code)`**. The AgentRuntime Console (`console.agentruntime.io`) is scoped to **`product_code = agentruntime`** — you see only AgentRuntime tiers in **Settings → Plans**.
+## For developers
 
-| What | Scope |
-|------|-------|
-| Plan catalog | Per `product_code` — this Console only ever shows AgentRuntime plans |
-| Workspace subscription & credits | Per workspace — one plan and ledger per workspace |
-| Stripe sync | Each price carries `product_code` + `plan_code` metadata |
+You can read billing data from the [API](/api/reference#billing-endpoints), for example `GET /v1/billing/usage` for your balance and `GET /v1/billing/usage-history` for charges. Changing plans and adding credits should be done in the Console.
 
-Plan codes and balances for existing workspaces are unchanged. Full details: [Multi-product billing](/platform/multi-product-billing).
+## Next steps
 
-## Related resources
-
-- [Multi-product billing](/platform/multi-product-billing) — product_code, catalog keys, API scope, future products
-- [Pricing](https://agentruntime.io/pricing) — marketing overview (plan names in Console are authoritative)
-- [Analytics](/platform/analytics) — run volume and credits consumed over time
-- [Referrals and affiliates](/platform/referrals-and-affiliates) — promoter codes and commissions
-- [API billing reference](/api/reference#billing-endpoints) — REST endpoints
-- Legal policy: [Billing and Credits Policy](https://agentruntime.io/legal/billing)
+- [Analytics](/platform/analytics)
+- [Troubleshooting](/platform/troubleshooting)
+- Legal terms: [Billing and Credits Policy](https://agentruntime.io/legal/billing)

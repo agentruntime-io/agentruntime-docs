@@ -1,135 +1,134 @@
 ---
-title: External triggers and Run setup
-description: How cron and inbound webhooks start workflows — explicit start params, not saved default merge.
+title: External triggers
+description: Start workflows on a schedule, from a webhook, from a platform event, or from the API, and what each trigger sends to the run.
 ---
 
-External systems start workflows **without** Workflow Studio. They use **explicit start params** on the trigger or request — the same shape as Manual Run.
+A **trigger** starts a workflow without anyone clicking **Run** in Studio. This page covers the four kinds of trigger and what start values each one sends.
 
-## Current model (2026-06-28)
+**Who this is for:** people who want a workflow to run on its own: every morning, when a form is submitted, when a customer connects an account, or when your own code calls it.
 
-**Saved defaults (`run_setup_json`) pre-fill Studio forms only.** They are **not** merged at fire time.
+**What you will do:** pick a trigger, set it up in **Workflow setup**, and check that it started a run.
 
-At runtime the engine resolves:
+## Pick a trigger
 
-1. **Canvas step config** (graph)
-2. **Start params** sent with the command or stored on the trigger (`trigger_payload`, `trigger_steps`, `excluded_step_ids`)
+| You want | Use | Set up in |
+|---|---|---|
+| A run every hour, day, or week | **Cron** schedule | **Setup → Cron** |
+| A run when another system sends you data | **Inbound** webhook | **Setup → Inbound** |
+| A run when something happens in AgentRuntime (a customer connects or disconnects an account) | **Platform event** | **Setup → Events** |
+| A run from your own code | **API** | **Setup → API** |
+| A run for each message in a chat | [Conversation sessions](/workflows/conversation-sessions) | **Setup → Sessions** |
 
-```text
-Studio Cron tab  →  prefill from canvas + saved defaults (UI only)
-Save schedule    →  store start params on workflow_triggers.config
-Cron fire        →  engine uses trigger.config + graph only
+Every trigger sends its own **start values**: the starting input (`trigger_payload`, read as `{{input.*}}`), optional per-step values (`trigger_steps`), and optionally steps to leave out (`excluded_step_ids`). The workflow's saved **Save defaults** are not added at run time. See [Run setup](/workflows/run-setup).
+
+Each trigger also chooses **which version** to run: **Live**, **Last published**, or a fixed version. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+
+## Cron schedules
+
+<Frame caption="The Cron tab: pick a preset or type a cron expression">
+  <img src="/images/workflows/external-triggers-cron-form.png" alt="The Cron tab of Workflow setup with the New cron schedule form: Preset, Cron (5-field) set to 0 9 * * *, Timezone UTC, Run as Workspace, the Entry step and the Starting input" />
+</Frame>
+
+<Steps>
+  <Step title="Open the Cron tab">
+    In Workflow Studio, click **Setup**, then **Cron**.
+  </Step>
+  <Step title="Set the time">
+    Pick a **Preset** (**Every hour**, **Daily 09:00**, **Weekdays 09:00**, **Weekly Mon 09:00**) or type a **Cron (5-field)** expression such as `0 9 * * *`. Choose a **Timezone**.
+  </Step>
+  <Step title="Set the start values">
+    Under **Entry step** and **Starting input**, choose the start step and type the starting input, the same as on the **Manual** tab. Leave **Run as** on **Workspace** unless you are running for Embedded Connect end users.
+  </Step>
+  <Step title="Choose the version and the key">
+    Under **Runs**, choose **Live** or **Last published**. Under **Automation API key**, pick the key the run starts under, or create one with the **Create API key** button (the **+** beside the list).
+  </Step>
+  <Step title="Add the schedule">
+    Click **Add schedule**.
+
+    You should see the schedule under **Active schedules** with the cron expression, the timezone, and the time of the next run.
+  </Step>
+</Steps>
+
+Cron example, every weekday at 09:00 UTC:
+
+```json
+{
+  "cron": "0 9 * * 1-5",
+  "timezone": "UTC",
+  "trigger_steps": {
+    "<start-step-id>": { "limit": 30 }
+  },
+  "excluded_step_ids": []
+}
 ```
 
-See [Run setup](/workflows/run-setup) for Save defaults, Manual Run, and field overrides.
-
-## ~~Legacy merge rule (deprecated)~~
-
-~~External triggers previously used:~~
-
-```text
-~~effective params = merge(saved run_setup_json, caller override)~~
-```
-
-~~Default: merge **on** unless `use_run_setup_defaults: false`.~~
-
-**Deprecated 2026-06-28.** New schedules and integrations should send **full start params** explicitly. Existing deployments may still merge until migrated — contact [support](mailto:support@agentruntime.io) if you're unsure whether your integration is affected.
+For workflows that serve many Embedded Connect customers, choose a **Principal segment** (or a Console team) so that each tick starts one run per member. See [Triggers and run identity](/workflows/trigger-run-identity).
 
 ## Inbound webhooks
 
-1. Sender POSTs to `/v1/inbound-webhooks/{subscription_id}` with HMAC + idempotency key.
-2. BFF maps JSON body → `trigger_payload` and applies subscription `extras`.
-3. Engine starts with **POST body + extras + graph** — ~~not merged from saved `run_setup_json`~~.
+<Frame caption="The Inbound tab: the New webhook form">
+  <img src="/images/workflows/external-triggers-inbound-form.png" alt="The Inbound tab of Workflow setup with the New webhook form: Label, Webhook purpose set to Start workflow run, Vendor adapter set to Direct caller only, the Entry step and the Starting input" />
+</Frame>
 
-**Subscription `extras` (start params at fire time):**
+**Webhook purpose** is **Start workflow run** or **Append to agent inbox (mid-turn)**. **Vendor adapter** is **Direct caller only** for your own code, or a connector webhook such as **github**, **telegram** or **whatsapp**.
 
-```json
-{
-  "trigger_payload": { "source": "shopify" },
-  "trigger_steps": { "uuid-root": { "limit": 10 } },
-  "excluded_step_ids": []
-}
-```
+An outside system sends a signed HTTP request to your webhook URL, and AgentRuntime starts a run with the request body as the starting input.
 
-Studio pre-fills the Inbound editor from saved defaults; **fire time** uses what is stored on the subscription and in the POST body.
+1. Open **Setup → Inbound**, fill in the **New webhook** form (**Label**, **Webhook purpose**, **Vendor adapter**, the entry step and starting input, **Runs**, **Automation API key**), and click **Create subscription**. The Console shows the **Ingress URL (start run)** and the **Signing secret**.
+2. Configure the sender to `POST` JSON to that URL with the signature and an idempotency key.
+3. The JSON body becomes `{{input.*}}`.
 
-## Platform events (`workflow_triggers.type = platform_event`)
+If you save fixed start values on the webhook, they are merged with the request body, and the request wins when both set the same value. Senders may retry, so make the workflow safe to run twice for the same event. Full setup, signing, and vendor options are in [Inbound webhooks](/integrations/inbound-webhooks).
 
-AgentRuntime starts workflows when tenant platform events fire — no partner `execute` call. Configure in Workflow Studio → **Run setup → Events**.
+## Platform events
 
-Each event carries **run identity** (`external_user_id`, `connection_id`, …) — there is no Manual **Run as** on this tab. Optional **`segment_id`** limits runs to principals in that segment. See [Triggers and run identity](/workflows/trigger-run-identity).
+A platform event starts a workflow when something happens to a customer in your workspace. Set it up under **Setup → Events**:
 
-REST: same trigger CRUD as cron — `GET/POST/PATCH/DELETE /workflows/{id}/triggers` with `"type": "platform_event"`.
+<Frame caption="The Events tab: the New platform event trigger form">
+  <img src="/images/workflows/external-triggers-events-form.png" alt="The Events tab of Workflow setup with the New platform event trigger form: Platform event set to Connection created, Connection provider, Principal segment filter, Runs and Automation API key" />
+</Frame>
 
-**Example config** (Embedded Connect bootstrap on connect — Composio link uses `composio_account`):
+| Event | When it fires | Credentials on the run? |
+|---|---|---|
+| **Principal created** (`principal.created`) | A new end user appears, before they have connected anything | No |
+| **Connection created** (`connection.created`) | A customer finished connecting an account | Yes |
+| **Connection revoked** (`connection.revoked`) | A customer's connection was removed | Yes |
+| **Principal suspended** (`principal.suspended`) | An end user was suspended | Yes |
+| **Principal deleted** (`principal.deleted`) | An end user was deleted | Yes |
 
-```json
-{
-  "event_type": "connection.created",
-  "provider_filter": "composio_account",
-  "segment_id": "optional-segment-uuid",
-  "automation_pat_id": "...",
-  "trigger_payload": {
-    "backfill_after": "2026/01/01"
-  },
-  "trigger_steps": {},
-  "excluded_step_ids": []
-}
-```
+Optional filters: **Connection provider** (only for the two connection events: **Any provider (recommended)**, `google_account`, `composio_account`, or `whatsapp`) and **Principal segment filter**. Each event starts one run for the principal it is about, so there is no **Run as** choice here. The run receives the event's details, such as the connection and provider, as start values.
 
-At fire time the platform sets `run.external_user_id` from the event and exposes connection fields under `platform_event` / start params. MCP steps with `connection_resolution: principal` resolve automatically.
+## Start from the API
 
-**Supported events (v1):** `principal.created`, `connection.created`, `connection.revoked`, `principal.suspended`, `principal.deleted`.
-
-## Cron (`workflow_triggers`)
-
-AgentRuntime runs the schedule and dispatches the trigger automatically. REST: `GET/POST/PATCH/DELETE /workflows/{id}/triggers`.
-
-**Target schedule config** (same Start steps model as Manual):
+Send complete start values in the request:
 
 ```json
-{
-  "cron": "0 9 * * *",
-  "timezone": "UTC",
-  "segment_id": "optional-for-embedded-per-principal-fan-out",
-  "trigger_steps": {
-    "uuid-mcp-root": { "limit": 30, "rss_feed_url": "https://hnrss.org/frontpage" }
-  },
-  "excluded_step_ids": ["uuid-agent-root"]
-}
-```
-
-For Embedded Connect graphs, set **Run as → Segment** in Studio so `segment_id` is stored — one run per principal per tick. See [Triggers and run identity](/workflows/trigger-run-identity).
-
-~~Legacy shape (do not use for new schedules):~~
-
-```json
-{
-  "use_run_setup_defaults": true,
-  "body": { "topic": "weekly-digest" }
-}
-```
-
-Studio Cron tab exposes schedule wiring and start inputs prefilled from workflow saved defaults.
-
-## API / command start
-
-Send complete start params — no reliance on saved defaults at runtime:
-
-```json
+POST /v1/workflows/{id}/command
 {
   "command": "start",
   "params": {
     "trigger_type": "api",
     "trigger_payload": { "topic": "api-only" },
-    "trigger_steps": { "uuid-root": { "limit": 5 } },
+    "trigger_steps": { "<start-step-id>": { "limit": 5 } },
     "excluded_step_ids": []
   }
 }
 ```
 
-## Related
+The **API** tab in **Workflow setup** gives you a ready-made request for your language.
 
-- [Triggers and run identity](/workflows/trigger-run-identity)
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| A schedule did not run | Check **Active schedules** for the next run time and timezone. Check that the **Automation API key** is still active. |
+| The run uses old behaviour | The trigger runs **Last published** or a fixed version. Change **Runs** to **Live**, or publish and switch it. |
+| A webhook request was rejected | Check the signature secret, and that the sender includes the idempotency key. See [Inbound webhooks](/integrations/inbound-webhooks). |
+| An input is empty in the run | The trigger did not send it. Look at the run's **Events** and **Context** tabs to see the input it received. |
+
+## Next steps
+
 - [Run setup](/workflows/run-setup)
+- [Triggers and run identity](/workflows/trigger-run-identity)
 - [Inbound webhooks](/integrations/inbound-webhooks)
-- [API reference — workflows](/api/reference)
+- [API reference](/api/reference)

@@ -1,100 +1,64 @@
 ---
 title: Referrals and affiliates
-description: Share referral codes, earn commissions, and understand workspace vs platform referral programs.
+description: Share a referral code, see your earnings, and understand how referral credits and commissions work.
 ---
 
-AgentRuntime runs **two related programs**:
-
-1. **Referrals** (`/referrals`) — Self-service for promoters who share codes with friends
-2. **Friend referral credits** — Bonus workspace credits when a new workspace is created with a code at signup
-3. **Affiliates (Settings)** — Maintainer-only ops for platform operators (feature-flagged)
+This page is for people who want to refer friends to AgentRuntime. You will learn how to get your referral code, what friends need to do, and where to see what you earned.
 
 <Note>
-  **Referrals** nav requires `enablePlatformReferrals`. **Settings → Affiliates** requires `enableSettingsAffiliates`. If you do not see these items, the program is off for your deployment — see [Feature availability](/platform/feature-availability).
+  **Referrals** is being rolled out and is not turned on for every workspace yet. If you do not see **Referrals** in the Console sidebar, the program is not available to you yet. See [Feature availability](/platform/feature-availability).
 </Note>
 
-## Referrals (promoter self-service)
+## How it works
 
-Open **Referrals** in the Console sidebar (`/referrals`).
-
-### Join the program
-
-If you are not registered yet, click **Get my referral code**. This creates your promoter profile once.
-
-### Share your code
-
-After joining you receive:
-
-| Asset | Usage |
-|-------|-------|
-| **Referral code** | Friends enter at **checkout** when paying for AgentRuntime |
-| **Signup link** | Optional `…/auth?referral_code=YOUR_CODE` — stores code for onboarding when supported |
+- You share your personal **referral code**.
+- Your friend signs up and creates **their own new workspace** with your code. Bonus workspace credits can go to both of you. The Console does not list the amounts, so check with support for the current offer.
+- If your friend later pays for AgentRuntime with your code, you can earn a cash **commission**.
 
 <Warning>
-  Referral codes are for **new workspaces**, not team invites. Friends must sign up and create their **own** workspace — not accept an invite to yours.
+  Referral codes are for **new workspaces**. A friend who accepts an invite to your workspace does not count as a referral.
 </Warning>
 
-Copy hint shown in the Console: *Friends enter referral code "YOUR_CODE" at checkout when paying for AgentRuntime.*
+## Get your referral code
 
-### Earnings dashboard
+<Steps>
+  <Step title="Open Referrals">
+    Click **Referrals** in the Console sidebar.
+  </Step>
+  <Step title="Join the program">
+    The first time, click **Get my referral code**. This creates your promoter profile once.
+
+    **You should see:** **Your referral code** with a **Copy code** button.
+  </Step>
+  <Step title="Share it">
+    Send your code to friends. Tell them to enter it at checkout when they pay for AgentRuntime. You can also share the optional signup link shown on the page, which stores the code for them when they sign up.
+  </Step>
+</Steps>
+
+## How a friend uses your code
+
+A friend can either use your signup link, or paste the code into the **Promo or referral code** field on **Settings → Plans** and click **Apply**. Only workspace admins see that field. See [Billing and credits](/platform/billing-and-credits).
+
+## Track your earnings
 
 The **Referrals** page shows:
 
-- **Pending** and **total earned** (USD minor units / cents until payout)
-- **Confirmed commissions** and **paid out** totals
-- **Recent commissions** table — filter by `pending`, `confirmed`, `paid`, `cancelled`
+- **Pending** and **Total earned**, in US dollars
+- **Confirmed commissions** and **Paid out**
+- **Recent commissions**, which you can filter by **pending**, **confirmed**, **paid** or **cancelled**
 
-Cash commissions apply when referred customers complete **qualifying Stripe payments** with your code on the payment intent.
+Commissions are earned when a referred customer completes a qualifying payment with your code. Until then the list shows **No commissions yet**.
 
-## Friend referral credits (workspace creation)
+## Common problems
 
-Separate from cash commissions, a referral code can grant **bonus credits** to both parties when a friend creates a new workspace:
+| Problem | What to try |
+|---------|-------------|
+| No **Referrals** in the sidebar | The program is not turned on for you yet. |
+| **Get my referral code** fails | Try again later or contact [support](mailto:support@agentruntime.io). |
+| A friend did not get bonus credits | They must create a new workspace after signing up with your code, not join an existing one. |
+| No commissions yet | Your friend has not completed a qualifying payment with your code. |
 
-1. Friend opens signup with your code (link or manual entry during onboarding)
-2. After workspace creation, the platform redeems the friend referral
-3. Both referee and referrer receive bonus workspace credits (amounts depend on current program policy)
-
-If redemption fails, workspace creation still succeeds — only the bonus credits are skipped.
-
-## Affiliates (Settings — operators)
-
-**Settings → Affiliates** is for **platform maintainers**, not everyday promoters:
-
-- Review affiliate status, commission rates, and payout policy
-- Set affiliate status (`active`, `suspended`, `revoked`)
-- Create **payout batches** and view batch history
-
-Promoters should use **Referrals** in the sidebar. Platform-wide ledger operations live in sysadmin tooling.
-
-<Note>
-  This tab is labeled maintainer-only in the Console. Tenant admins see it only when `enableSettingsAffiliates` is on.
-</Note>
-
-## Billing integration
-
-| Event | What happens |
-|-------|--------------|
-| Friend creates workspace with code | Credit redemption via friend-referral API |
-| Referred customer pays with code at checkout | Commission row created; appears on **Referrals** dashboard |
-| Payout batch run (operators) | Commissions move to paid per platform policy |
-
-Referral bonuses and commissions are independent — a friend can receive signup credits while your cash commission accrues only on their later payments.
-
-## API (automation)
-
-Affiliate endpoints are primarily for Console and sysadmin clients. Promoters interact through `/referrals`. For custom integrations, contact support for current API access.
-
-## Troubleshooting
-
-| Symptom | Likely cause |
-|---------|--------------|
-| No **Referrals** in sidebar | `enablePlatformReferrals` off |
-| **Get my referral code** fails | Program not enabled for your account or region |
-| Friend did not get credits | Code not applied at signup, or redeem failed after workspace create |
-| No commissions yet | Referred user has not completed a qualifying payment with your code on the payment intent |
-| **Affiliates** tab missing | `enableSettingsAffiliates` off, or you are not a maintainer |
-
-## Related
+## Next steps
 
 - [Billing and credits](/platform/billing-and-credits)
 - [Workspace settings](/platform/settings)

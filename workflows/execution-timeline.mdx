@@ -1,50 +1,62 @@
 ---
-title: Execution Timeline (Console)
-description: How the workflow run Timeline tab visualizes step durations, agent activity, and loop iterations.
+title: Execution timeline
+description: Use the Timeline and Context tabs to see how long each step took, what an agent did, and the order the steps ran in.
 ---
 
-# Execution Timeline
+The **Timeline** tab shows a run as bars on a time axis: one bar per step, in the order the steps ran. It answers "where did the time go?". The **Events** tab shows the same activity as a log.
 
-The **Timeline** tab in the workflow execution panel (Workflow Studio → open a run → **Execution panel** → **Timeline**) shows a Gantt-style view of step durations in execution order. It's a duration-first companion to the **Events** tab — the same run activity, laid out on a timeline instead of a log.
+**Who this is for:** anyone checking why a run was slow, or what an agent did during a step.
 
-## What Timeline shows
+## Open the Timeline
 
-### One row per step
+<Steps>
+  <Step title="Open a run">
+    In [Workflow Studio](/workflows/studio), open the workflow and expand **Run logs and metrics** at the bottom. Pick a run from the list.
+  </Step>
+  <Step title="Click Timeline">
+    Click the **Timeline** tab next to **Events** and **Context**.
 
-Every step in the run gets a row: its name as the label, and a bar spanning from start to end (or to "now" while it's still running). Bar color matches the step's status, using the same colors as the Events tab.
+    You should see a row for each step. A step that is still running has a bar that grows to "now".
 
-### Agent activity sub-rows
+    <Frame caption="The Timeline tab of a finished run: a long bar for Approve the refund, the step that waited for a person">
+      <img src="/images/workflows/execution-timeline-tab.png" alt="The Timeline tab of the run panel, headed Execution order with 3 rows. Draft the summary and Record the decision are short green bars, and Approve the refund is a long green bar spanning the time the run waited for a person" />
+    </Frame>
+  </Step>
+</Steps>
 
-Steps of type `agent_call` show nested child rows for what happened during that agent's turn:
+## What the Timeline shows
 
-| Activity | What it shows |
-|----------|----------------|
-| Tool round | Each round of tool calls, labeled `Round N · tool` with a summary on hover |
-| Status change | Phase transitions during the turn |
-| Limit reached | A marker when the turn hits its configured tool-round limit |
+**One row per step.** The step's name is the label. The bar runs from the step's start to its end. Its colour matches the step's status, the same colours as in **Events**.
 
-### Composite loop segments (`for_each` / `while`)
+**Agent activity.** A step that runs an agent has small rows below it for what happened during the turn. Click the row's chevron to expand it.
 
-For loop steps, Timeline shows estimated iteration segments once the loop completes — collapsed by default, expandable with the chevron on the parent row. Segments are marked as **estimated** until precise per-iteration timing is available, at which point they become exact.
+| Row | What it shows |
+|---|---|
+| **Round N · tool** | One round of tool calls. Hover for a summary. |
+| Status change | A change of phase during the turn |
+| **Tool round limit reached** | A marker when the turn used up its tool-round limit |
 
-### Run state markers
+**Loops (`for_each` and `while`).** Once a loop has finished, the Timeline can show one segment for each item or round. These start collapsed; use the chevron on the loop's row. Segments are labelled **estimated** until exact timing is available.
 
-Vertical colored lines mark run-level state transitions (paused, resumed, failed, stopped) so you can see at a glance where in the timeline the run's state changed. Hover a marker for the transition and timestamp.
+**Run state markers.** Vertical lines mark changes of the run's state, such as paused, resumed, failed, or stopped. Hover a line for the change and its time.
 
-### What's not shown
+The Timeline does not show events that are not about a step; those stay in **Events**. A step with no agent activity is a single bar with nothing to expand.
 
-- Generic, non-step platform events (these stay on the Events tab)
-- Steps with no agent activity just show as a single bar — there's nothing to expand
+## The Context tab
 
-## Context tab — execution graph
+The **Context** tab shows the run's details (run ID, version, start input) and a small graph of the steps in the order they ran. To see what each step returned, use the **Events** tab: expand a step and look at its **Output**. Click **Open graph** to open a larger view where you can pan and zoom, and click a step to select it on the canvas.
 
-The **Context** tab includes a static preview of the run's step graph. Click **Open graph** for an interactive modal where you can pan, zoom, and click a step to focus it on the Workflow Studio canvas.
+The lines between steps look different depending on what they mean: your own wiring, the order steps actually ran in, or a step inside a loop.
 
-Edges are styled to distinguish workflow wiring from execution-order fallbacks and from loop-body steps, so you can tell at a glance whether an edge reflects your graph design or the actual order steps ran in.
+## Common problems
 
-## Related docs
+| Problem | What to try |
+|---|---|
+| The Timeline is empty | The run has no step events yet, or the events are still loading. Try **Events**. |
+| A loop shows no segments | The loop has not finished. Segments appear when it completes. |
 
-- [Runs and Command Center](/workflows/runs-and-command-center)
-- [Workflow Studio](/workflows/studio)
+## Next steps
+
+- [Runs and observability](/workflows/runs-and-command-center)
 - [Step types](/workflows/step-types)
 - [Run recovery](/workflows/run-recovery)

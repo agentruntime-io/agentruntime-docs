@@ -1,132 +1,85 @@
-# Embed AgentRuntime in your product
-
-Connect your customers' apps (Gmail, Slack, API keys, and more), run scheduled workflows, and store results — **inside your product**, without your customers signing up for AgentRuntime.
-
-This guide is for **platform and SaaS teams** building B2B2C integrations: you are the AgentRuntime **workspace**; your users are **end users** who connect accounts and consume automation you provide.
-
+---
+title: Embedded Connect
+description: Let your own customers connect their Google accounts inside your product, then run AgentRuntime workflows on their behalf.
 ---
 
-## At a glance
+**Embedded Connect** is for software teams that want their customers to connect an account (for example Gmail) inside **their own product**, without those customers signing up for AgentRuntime. You are the AgentRuntime **workspace**. Your customers are **end users** that you identify with your own ID. AgentRuntime hosts the sign-in page, stores the credentials, and runs your workflows for each end user.
 
-| | |
-|--|--|
-| **You (partner)** | One AgentRuntime workspace; you pay AgentRuntime for usage |
-| **Your customer** | Identified by **your** stable user ID (`external_user_id`) |
-| **Your customer's end user** | Connects Gmail (or other apps) in **your** UI via a hosted popup |
-| **AgentRuntime handles** | OAuth, API keys, token refresh, Vault storage, workflows, scheduling, metering |
-| **You handle** | One server API call, open popup, receive webhook, bill your users |
+This guide assumes you can write a small backend (any language) and a web page that opens a popup.
 
-Your end users **do not** need AgentRuntime accounts unless you later invite them to the Console.
+<Note>
+  Embedded Connect is offered to partners. To get set up or to ask a question, email [support@agentruntime.io](mailto:support@agentruntime.io).
+</Note>
 
----
+## What you will build
+
+1. A backend call that asks AgentRuntime for a **connect link** for one of your users.
+2. A popup in your web page that opens that link, where your user signs in to Google.
+3. A **webhook** on your server that tells you the connection is ready.
+4. A workflow run for that user, started with the same user ID.
+
+| Who | Role |
+|-----|------|
+| **You** | Own one AgentRuntime workspace and pay for the runs |
+| **Your customer (end user)** | Identified by your stable ID, called `external_user_id` |
+| **AgentRuntime** | Hosts the connect page, stores tokens, runs workflows, and records usage per end user |
 
 ## How it works
 
 ```mermaid
 sequenceDiagram
-  participant YourApp as Your app
-  participant YourServer as Your backend
+  participant Backend as Your backend
   participant AR as AgentRuntime
+  participant Page as Your web page
   participant User as Your end user
 
-  YourServer->>AR: Create connect link (your user ID)
-  AR-->>YourServer: Hosted connect URL
-  YourApp->>User: Open popup
-  User->>AR: Connect Gmail / API key / etc.
-  AR->>YourServer: Webhook: connection ready
-  AR->>AR: Workflows run on schedule or via API
-  YourServer->>YourServer: Store connection_id for billing
+  Backend->>AR: Create connect link (external_user_id)
+  AR-->>Backend: connect_url
+  Backend-->>Page: connect_url
+  Page->>User: Open popup
+  User->>AR: Sign in to Google
+  AR->>Backend: Webhook: connection.created
+  Backend->>AR: Run workflow (external_user_id)
 ```
 
-**In plain terms:**
+## Before you begin
 
-1. Your backend tells AgentRuntime: *"User `cust_9182` wants to connect."*
-2. Your frontend opens our hosted connect page in a popup (AgentRuntime shows a **Google × AgentRuntime** intro screen first; the user clicks **Continue to Google** before OAuth).
-3. The end user completes OAuth (or enters an API key on our form).
-4. We send **your server** a webhook when the connection is ready (optional: cache `connection_id` for support).
-5. When you want to sync or automate, call **execute with the same `external_user_id`** — we resolve their Gmail. Your cron can loop customer IDs; we meter usage per user so you can bill them.
+- An AgentRuntime workspace with billing set up, so runs can execute.
+- A workflow that uses the end user's account. Its MCP steps must be set to use the end user's connection (see [Run a workflow for an end user](#run-a-workflow-for-an-end-user)).
+- A server where you can keep a secret API key, and an internet-reachable HTTPS address for the webhook.
 
----
+## Set up once
 
-## Two setup choices (independent)
+<Steps>
+  <Step title="Create an API key">
+    In the Console, open **Settings → API keys** and create a key from the **Embedded Connect** template. Keep it **only on your server**, for example in an environment variable. Never put it in a browser or mobile app. See [API authentication](/api/authentication).
+  </Step>
+  <Step title="Optional: show your own name on Google's consent screen">
+    By default Google's consent screen shows AgentRuntime. To show your own app instead, create an OAuth client in Google Cloud Console. Then open **Settings → MCP & Integrations**, find **Google OAuth application**, and enter the **OAuth client ID** and **OAuth client secret**. Add the redirect URI shown on that page to your Google OAuth client.
+  </Step>
+  <Step title="Register your webhook">
+    Set your webhook address and a signing secret of your choice with the API (shown below). There is no Console screen for this.
+  </Step>
+</Steps>
 
-### 1. Integration style (how much code you write)
+Register the webhook:
 
-We recommend **standard integration** for most partners:
+```http
+PUT https://api.agentruntime.io/v1/embedded-connect/settings
+Authorization: Bearer pat_xxxxxxxx
+Content-Type: application/json
 
-| | Standard (recommended) | Enterprise (optional) |
-|--|------------------------|------------------------|
-| **Your backend** | One API token (PAT) on the server | Signed JWT + your public keys |
-| **Your frontend** | Open a popup URL | Same popup |
-| **Complexity** | Afternoon to integrate | For large ISV security reviews |
+{
+  "webhook_url": "https://api.yourproduct.com/agentruntime/webhook",
+  "webhook_secret": "choose-a-long-random-secret"
+}
+```
 
-You do **not** need to implement OAuth, token refresh, or Vault.
+`GET /v1/embedded-connect/settings` shows the saved address and whether a secret is set. It never returns the secret. Webhooks are sent only when the address and secret are both set and `enabled` is not `false`.
 
-### 2. Google consent branding (whose name appears on Google)
+## Step 1: create a connect link
 
-If you use Gmail or Google Workspace:
-
-| | AgentRuntime OAuth (pilot) | **Your Google app (recommended for production)** |
-|--|----------------------------|--------------------------------------------------|
-| **Consent screen** | "AgentRuntime wants access…" | **"Your Company" wants access…** |
-| **One-time setup** | None | Paste Google Client ID + Secret in Console (**Settings → MCP → Google OAuth**) |
-| **Best for** | Dev / pilot | Production embed |
-
-This is **not** extra engineering — you register one OAuth app in Google Cloud Console once, then paste credentials in AgentRuntime. We still host the connect flow and store tokens.
-
-Other connectors (Notion, Slack, API keys, WhatsApp, etc.) follow the same connect popup; Google is the most common white-label case.
-
----
-
-## One-time setup in AgentRuntime Console
-
-Complete these steps once per workspace:
-
-### 1. Workspace and billing
-
-- Create your AgentRuntime workspace at [console.agentruntime.io](https://console.agentruntime.io).
-- Ensure billing/credits are active for workflow runs.
-
-### 2. Google white-label (recommended for Gmail)
-
-If end users connect Gmail and should see **your** brand on Google's consent screen:
-
-1. Create an OAuth 2.0 Web client in [Google Cloud Console](https://console.cloud.google.com/).
-2. In AgentRuntime: **Settings → MCP → Google OAuth application**.
-3. Enter your **Client ID** and **Client Secret**.
-4. Use the redirect URI shown in Console when configuring Google.
-
-See also: [Google Workspace integrations](/integrations/google-workspace).
-
-### 3. Server API token (PAT)
-
-1. In Console, create a **Personal access token** with automation scopes.
-2. Store it **only on your server** (environment variable) — never in a browser or mobile app.
-
-See: [API authentication](/api/authentication).
-
-### 4. Webhook URL
-
-1. Register your webhook URL in Console (or workspace settings when available).
-2. Verify the HMAC signature on incoming events (same pattern as [inbound webhooks](/integrations/inbound-webhooks)).
-
-You will receive events such as `connection.created` with your user ID and our `connection_id`.
-
-### 5. Workflows
-
-- Deploy your workflow template (for example: scheduled Gmail sync → your database).
-- Start runs via API with **`external_user_id`** when a user connects or on your schedule.
-- **Your cron** loops customer IDs and calls execute — we resolve each user's connection (no per-step wiring in the graph).
-
-See: [Workflows](/workflows/studio), [External triggers](/workflows/external-triggers).
-
----
-
-## What your backend implements
-
-### Step 1 — Create a connect link
-
-Call AgentRuntime from **your server** when an end user clicks "Connect Gmail" (or similar):
+Call this from your **server** when a user clicks something like "Connect Gmail":
 
 ```http
 POST https://api.agentruntime.io/v1/connect/link
@@ -140,42 +93,81 @@ Content-Type: application/json
 }
 ```
 
-Use **your database primary key** (or stable customer ID) as `external_user_id`. It must be **unique per customer in your product** and must not change over time.
+| Field | Notes |
+|-------|-------|
+| `external_user_id` | Required. Your own stable ID for this customer. Letters, digits, `_` and `-` only, up to 256 characters. It only needs to be unique inside your workspace. |
+| `provider` | Optional. Defaults to Google. `gmail`, `google`, and `google_account` all mean Google. |
+| `services` | Optional list of Google services. Defaults to `["gmail"]`. |
+| `metadata` | Optional object saved with the end user. |
 
-**Response:**
+The response has status `201`:
 
 ```json
 {
-  "connect_url": "https://connect.agentruntime.io/s/cs_abc123",
+  "connect_url": "https://…/connect/s/cs_abc123",
   "connect_session_id": "cs_abc123",
-  "expires_at": "2026-08-13T10:05:00Z"
+  "expires_at": "2026-08-13T10:05:00Z",
+  "principal_id": "prin_…",
+  "external_user_id": "cust_9182"
 }
 ```
 
-The connect link expires in a few minutes and is single-use.
+The link expires after **5 minutes**. Create a new one each time. If you suspended this end user, the call returns `403` with `principal_suspended`.
 
-### Step 2 — Receive the webhook
+The first time you use an `external_user_id`, AgentRuntime creates the end user record for you (it appears under **Principals**, described below).
 
-When the end user finishes connecting, AgentRuntime POSTs to your webhook:
+To check on a link, call `GET /v1/connect/sessions/{connect_session_id}`. The response includes its `status` and `expires_at`.
+
+## Step 2: open the popup
+
+Your server returns `connect_url` to your page, and your page opens it:
+
+```javascript
+async function connectGmail() {
+  const res = await fetch("/api/connect-link", { method: "POST" }); // your backend
+  const { connect_url } = await res.json();
+  window.open(connect_url, "agentruntime-connect", "width=520,height=720");
+}
+```
+
+The user sees an AgentRuntime page first and clicks to continue to Google. After they approve, they see a "Connected" page.
+
+When the popup finishes, it also tries to send a browser message of the form `{ "type": "agentruntime-connect", "ok": true, "message": "…", "data": { … } }` to the window that opened it. Treat this only as a convenience for updating your page. Rely on the webhook, or on `GET /v1/connect/sessions/{id}`, to know the result.
+
+One Google account can be linked to only one end user in your workspace. A second attempt with another `external_user_id` is refused.
+
+## Step 3: receive the webhook
+
+When an end user finishes connecting, AgentRuntime sends a `POST` to your webhook address:
 
 ```json
 {
   "event": "connection.created",
+  "tenant_id": "…",
   "external_user_id": "cust_9182",
-  "connection_id": "conn_xxxxxxxx",
+  "principal_id": "prin_…",
+  "connection_id": "conn_…",
   "provider": "google_account",
   "provider_account_key": "alice@gmail.com",
   "occurred_at": "2026-08-13T10:04:00Z"
 }
 ```
 
-Store `connection_id` keyed by your `external_user_id` if useful for support — **optional**. Running workflows only requires `external_user_id` at execute time.
+Each request has an `X-Agentruntime-Signature` header of the form `t=<unix seconds>,v1=<hex>`. Compute HMAC-SHA256 of `"<t>." + raw body` with your `webhook_secret` and compare it with `v1`. This is the same scheme as [inbound webhooks](/integrations/inbound-webhooks#verify-signatures). Reject requests whose timestamp is far from the current time.
 
-Verify the `X-Agentruntime-Signature` header before trusting the payload.
+Saving `connection_id` is optional. If your own record disagrees with the webhook about whether a user is connected, trust the webhook.
 
-### Step 3 — Run workflows
+## Run a workflow for an end user
 
-Start a workflow for that user with **the same ID you used at connect**:
+First, in **Workflow Studio**, open each MCP step that should use the end user's account. In the step's **Connection at run time** setting, choose:
+
+| Option | Meaning |
+|--------|---------|
+| **End user (principal)** | Use the end user's own connection, for example their Gmail. Choose this for per-user steps. |
+| **Workspace (shared)** | Use the workspace's shared connection. |
+| **Automatic (workspace default)** | Uses the workspace connection unless the step's connection is end-user scoped. Do not rely on this for per-user Gmail. |
+
+Then start a run from your server with the same ID you used for the connect link:
 
 ```http
 POST https://api.agentruntime.io/v1/workflows/{workflow_id}/command
@@ -184,451 +176,85 @@ Content-Type: application/json
 
 {
   "command": "execute",
-  "params": {
-    "external_user_id": "cust_9182"
-  }
+  "params": { "external_user_id": "cust_9182" }
 }
 ```
 
-AgentRuntime resolves the principal and Gmail connection — you do not pass OAuth tokens or per-step connection overrides.
+You never pass OAuth tokens. If the end user has not connected an account a step needs, the call fails with `principal_not_connected`. Show "Connect Gmail" in your product until you receive `connection.created`.
 
-Each MCP step in the workflow graph may declare **`connection_resolution`**:
+For scheduled work, loop over your customers and make this call for each one.
 
-| Value | When execute includes `external_user_id` |
-|-------|------------------------------------------|
-| `principal` | Use the end user's OAuth connection (e.g. their Gmail inbox) |
-| `workspace` | Use the tenant template connection (e.g. shared tenant-data) |
-| `inherit` / omitted | **Workspace by default.** Principal only if the step's template connection is principal-scoped (`connection_scope=principal`). |
+## Optional: end user records and groups
 
-For embedded Gmail sync, set Gmail MCP steps to **`principal`** explicitly. Automatic will not assume Gmail is per-end-user.
+You can use the API to store details about your end users and pick groups of them.
 
-Workflow Studio shows this on MCP steps and in the workflow **API** tab under **Embedded Connect**. If the user hasn't connected the account a principal-scoped step needs, the run still starts, and that step fails with `principal_not_connected` (`details.step_name`, `details.provider`). Segment batches and Console schedules skip such users instead.
+| Method | Path | What it does |
+|--------|------|--------------|
+| `GET` | `/v1/principals` | List end users. Filters: `external_user_id`, `team`, `tag`, `provider`, `has_connection`, `status` |
+| `GET` | `/v1/principals/{external_id}` | One end user and their connections |
+| `PUT` | `/v1/principals/{external_id}` | Create or update details for one end user |
+| `POST` | `/v1/principals/sync` | Create or update many end users: `{ "principals": [ … ] }` |
+| `POST` | `/v1/principals/{external_id}/suspend` | Exclude the end user from runs |
+| `DELETE` | `/v1/principals/{external_id}` | Delete the end user |
+| `POST` / `DELETE` | `/v1/principals/{external_id}/link` | Link or unlink an end user to a workspace member |
 
-**Scheduled sync (typical):** your backend cron or job queue loops customers and calls the same execute API:
+A **segment** is a saved filter over your end users:
 
-```python
-for user in customers.where(sync_enabled=True):
-    execute_workflow(WF_ID, external_user_id=user.id)
-```
+| Method | Path | What it does |
+|--------|------|--------------|
+| `GET` / `POST` | `/v1/principal-segments` | List or create segments: `{ "name": "…", "filter": { … } }` |
+| `GET` | `/v1/principal-segments/{id}` | Get a segment |
+| `GET` | `/v1/principal-segments/{id}/expand` | See who matches now |
 
-Optional: call `GET /v1/principals?provider=google_account&has_connection=true` to list only users who finished connect (results are paged: follow `next_cursor`). In Console, open **Settings → Principals** for the same view with connection badges.
+A filter can use `include_tags`, `exclude_tags`, `team`, and `require_connection` (for example `"google_account"`). To run a workflow for everyone in a segment, send `"params": { "segment_id": "…" }` in the execute call.
 
----
+In the Console, open **Principals** in the sidebar (or **Settings → Principals**) to see who has connected, edit their details, suspend or delete them, and work with segments. In **Workflow Studio → Schedule** you can pick a **Principal segment** so each scheduled run covers every matching end user.
 
-## Two ways to run for many users (same Gmail resolution)
+## Usage and billing
 
-Both paths end with **one execute per `external_user_id`** — we resolve Gmail each time.
-
-### Minimal (default)
-
-Your cron loops customer IDs from **your database**:
-
-```python
-for user in customers.where(sync_enabled=True):
-    execute_workflow(WF_ID, external_user_id=user.id)
-```
-
-Best for: small backends, full control, no extra AgentRuntime APIs.
-
-### Richer (optional — P2.5 / P3)
-
-**Sync** customer metadata to AgentRuntime, then **pick a group** when scheduling:
-
-```http
-POST /v1/principals/sync
-Authorization: Bearer pat_xxxxxxxx
-
-{
-  "principals": [
-    {
-      "external_user_id": "cust_9182",
-      "email": "alice@example.com",
-      "name": "Alice",
-      "team": "sales",
-      "tags": ["paid", "eu"]
-    }
-  ]
-}
-```
-
-Create a **segment** (filter) via **API**, then attach it to a workflow cron schedule in **Workflow Studio → Schedule** (or **Operate → Schedules**). Each fire expands the segment and starts one run per matched end user.
-
-```json
-{
-  "name": "paid-eu-gmail",
-  "filter": {
-    "include_tags": ["paid"],
-    "exclude_tags": ["churned"],
-    "team": "eu",
-    "require_connection": "google_account"
-  }
-}
-```
-
-Run the workflow for everyone in that segment:
-
-```http
-POST /v1/workflows/{workflow_id}/command
-
-{
-  "command": "execute",
-  "params": { "segment_id": "seg_abc123" }
-}
-```
-
-Best for: Console scheduling with include/exclude, one place to see who connected Gmail, no cron loop in your backend.
-
-| | Minimal | Richer |
-|--|---------|--------|
-| Sync metadata to us | Optional | Recommended |
-| Who builds the run list | Your cron | Segment filter (or Console) |
-| Connect + execute | Same | Same |
-
-New principals that match a segment are included on the next run automatically. Suspended or deleted users are excluded.
-
----
-
-## Which path should I use?
-
-**Default: start minimal.** Most partners only need connect, webhook, and a cron that loops customer IDs.
-
-```text
-Do your end users need AgentRuntime login?
-  No → Embedded Connect (this guide)
-
-Who builds the list of users to run?
-  Our backend cron + our customer IDs  → Minimal (recommended)
-  Console filters (team, tags, connected) → Richer (P2.5 / P3 — optional)
-
-Gmail shows our company on Google's screen?
-  Yes → One-time BYO Google OAuth in Console (not extra code)
-```
-
-| Question | Minimal (default) | Richer (optional) |
-|----------|-------------------|-------------------|
-| APIs beyond connect + execute | None | `principals/sync`, segments |
-| When to choose | You have customer IDs and a scheduler | You want Console scheduling or tag filters |
-| Can I add richer later? | **Yes** — same connect + execute underneath |
-
----
-
-## Operational notes
-
-### Sync vs connect — what to trust
-
-| Data | Source of truth |
-|------|-----------------|
-| Gmail connected? OAuth tokens? | **AgentRuntime** (connect + webhook) |
-| Email, team, tags for filtering | **Your CRM** (optional sync via `POST /v1/principals/sync`) |
-
-You do not need sync to connect users. Sync does not grant credentials — it only copies metadata for Console and segments. If your local "connected" flag disagrees with our webhook, **trust the webhook**.
-
-### Users who have not connected yet
-
-- **Execute**: the run starts and is charged like any run; each step that needs the missing account fails with `principal_not_connected`. Check `has_connection` first, or run through a segment with `require_connection`.
-- **Segments**: skipped in batch results with reason `principal_not_connected`, not charged and not treated as a failure.
-- **Your UI**: show "Connect Gmail" until you receive `connection.created`.
-
-Sync-before-connect is supported: we can hold a principal row with metadata before OAuth, but automation waits until connect completes.
-
-### Console cron vs your cron
-
-| | Console workflow cron (no segment) | Segment cron or your backend cron |
-|--|-----------------------------------|-----------------------------------|
-| **Runs as** | Your workspace automation identity (API key owner) | Each **end user** (`external_user_id`) when using a **segment** or your execute loop |
-| **Gmail** | One shared workspace connection | Each customer's own account (embedded) |
-| **Use for** | Internal ops, demos, tenant-wide jobs | B2B2C product automation |
-
-**Embedded per-customer Gmail:** use **your cron** that loops `external_user_id`, **`execute { segment_id }`**, or a **Console cron schedule with a principal segment** attached (Workflow Studio → Schedule, or Operate → Schedules). A plain Console cron without `segment_id` does **not** fan out to end users.
-
-### Recommended rollout order
-
-1. **P1** — Connect link + hosted popup + webhook
-2. **P2** — Execute with `external_user_id` (no connection wiring in the graph)
-3. **Minimal at scale** — Your cron loops customer IDs, or export usage with `GET /v1/usage-history?group_by=principal`
-4. **Richer (optional)** — Sync metadata, segments, Console Principals list, segment-based schedules
-
----
-
-## Partner API reference
-
-All routes use your server-side **PAT** (`Authorization: Bearer pat_…`). Base URL: your workspace API host (e.g. `https://api.agentruntime.io`).
-
-### Connect
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/v1/connect/link` | Create hosted connect session |
-| `GET` | `/v1/connect/sessions/{id}` | Poll session status |
-| `PUT` | `/v1/embedded-connect/settings` | Webhook URL + secret for `connection.created` |
-
-### Execute
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/v1/workflows/{workflow_id}/command` | Start run; `command: execute` with `params.external_user_id` or `params.segment_id` |
-
-### Principals (P2 / P2.5)
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET` | `/v1/principals` | List/filter (`external_user_id`, `team`, `tag`, `provider`, `has_connection`, `status`, `q` for a text search), paged: `limit` (up to 200) and `cursor` from the previous page's `next_cursor` |
-| `GET` | `/v1/principals/{external_id}` | One principal + connections |
-| `PUT` | `/v1/principals/{external_id}` | Upsert metadata for one principal |
-| `POST` | `/v1/principals/sync` | Batch metadata upsert |
-| `POST` | `/v1/principals/{external_id}/suspend` | Exclude from future runs and cancel the user's unfinished connect links |
-| `POST` | `/v1/principals/{external_id}/activate` | Reactivate a suspended principal |
-| `DELETE` | `/v1/principals/{external_id}` | Delete; removes the user's connections, revokes access at Google or Composio and erases stored credentials. Answers `409 principal_connection_in_use` when one of those connections is the template connection of an MCP tool; add `?force=true` to delete anyway. The same `external_id` can be registered again later |
-| `POST` | `/v1/principals/{external_id}/link` | Link principal to a workspace member (`{ "user_id": "…" }`); the user must be a member. Informational only |
-| `DELETE` | `/v1/principals/{external_id}/link` | Remove Console user link |
-
-**List query example:**
-
-```http
-GET /v1/principals?provider=google_account&has_connection=true&status=active
-```
-
-### Segments (P3)
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET` | `/v1/principal-segments` | List segments |
-| `POST` | `/v1/principal-segments` | Create segment `{ "name", "filter" }` |
-| `GET` | `/v1/principal-segments/{id}` | Get segment definition |
-| `PATCH` | `/v1/principal-segments/{id}` | Rename or change the filter |
-| `DELETE` | `/v1/principal-segments/{id}` | Delete (`409 segment_in_use` while a schedule or trigger uses it) |
-| `GET` | `/v1/principal-segments/{id}/expand` | Who matches now, paged (`limit` up to 500, `cursor`); `matched` is the total |
-
-**Create segment:**
-
-```http
-POST /v1/principal-segments
-Content-Type: application/json
-
-{
-  "name": "paid-eu-gmail",
-  "filter": {
-    "include_tags": ["paid"],
-    "exclude_tags": ["churned"],
-    "team": "eu",
-    "require_connection": "google_account"
-  }
-}
-```
-
-**Batch execute by segment** returns `matched`, `started`, `skipped`, `failed`, and per-principal `results`. Empty segments return HTTP 200 with `error: segment_empty` (not 404).
-
-### Usage export (P2)
+You pay AgentRuntime for workflow runs from your workspace credits. AgentRuntime does not bill your end users; that is up to you. To pass costs on, export usage per end user:
 
 ```http
 GET /v1/usage-history?group_by=principal&from=2026-08-01T00:00:00Z&to=2026-08-31T23:59:59Z
 ```
 
-Aggregates workflow usage by `principal_id` / `external_user_id` from run metadata for pass-through billing.
+Each item includes `external_user_id`, `run_count`, and `total_delta_microcredits`.
 
----
-
-## Console features (embedded partners)
-
-| Console surface | Path | Purpose |
-|-----------------|------|---------|
-| **Principals** | Settings → **Principals** (`/principals`) | Who connected; metadata tags; suspend, reactivate, delete; optional link to a workspace member; create, edit and delete segments. Workspace admins only |
-| **Segment schedule** | Workflow Studio → **Schedule** | Pick a **Principal segment** on cron — expands to one run per matched end user each fire. Workspace admins only |
-| **Operate schedules** | Operate → **Schedules** | Same segment picker when creating tenant cron schedules |
-| **Google OAuth** | Settings → MCP → Google OAuth | BYO consent branding (recommended for production Gmail) |
-| **Embedded connect settings** | Settings (webhook URL, allowed origins, brand name) | Event delivery to your backend (https on a public host); the origins your connect popup may report to; the name shown on the connect page |
-
----
-
-## What your frontend implements
-
-Minimal pattern — open a popup:
-
-```javascript
-async function connectIntegration() {
-  const res = await fetch("/api/your-backend/connect-link", { method: "POST" });
-  const { connect_url } = await res.json();
-  window.open(
-    connect_url,
-    "agentruntime-connect",
-    "width=520,height=720,noopener"
-  );
-}
-```
-
-Your backend creates the link; the frontend only opens the URL. **Never** put your AgentRuntime PAT in frontend code.
-
-Optional: get the result in your page instead of waiting for the webhook. Two ways:
-
-- **`postMessage`:** add your frontend's origin (for example `https://app.yourproduct.com`, or `http://localhost:5173` while developing) under **Settings → Embedded Connect → Allowed origins**, and open the popup **without** `noopener`, or the popup can't reach your window. The connect page posts `{ "type": "agentruntime-connect", "ok", "message", "data" }` to those origins only.
-- **Redirect:** pass `callback_url` when you create the link (it must be under one of your allowed origins). After connecting, the end user is sent there with `connect_session_id` and `status=success` or `status=error`.
-
-The connect link only works in the browser that clicked **Continue**: if someone else opens a copied link, finishing the sign-in is refused. Links expire after 5 minutes and stop working when you suspend or delete the end user.
-
-Only workspace admins can manage end users, so create the AgentRuntime API key you use for Embedded Connect from a workspace admin's account.
-
----
-
-## Supported connection types
-
-AgentRuntime uses the same connect infrastructure as the Console. End users may connect via:
-
-| Type | Examples | What the end user sees |
-|------|----------|-------------------------|
-| **OAuth** | Gmail, Google Drive, Notion, GitHub | Provider consent screen (your brand if you BYO OAuth) |
-| **API key** | Resend, many catalog connectors | Secure form on our hosted page; keys go to Vault |
-| **Embedded signup** | WhatsApp | Meta business signup flow |
-
-You call the **same** connect-link API; we route to the correct flow for each provider.
-
----
-
-## Identity and privacy
-
-### Your user ID
-
-- Pass your own stable ID as `external_user_id`.
-- It only needs to be unique **within your workspace**, not globally across all AgentRuntime customers.
-- Two different companies can both use `"user_42"` — they are isolated by workspace.
-
-### Same person, two of your competitors' platforms
-
-If Alice uses **Company A's product** and **Company B's product**, both powered by AgentRuntime:
-
-- She has **separate connections and data** in each workspace.
-- Data is **not shared** between Company A and Company B.
-- If Alice later creates one AgentRuntime login, she can optionally link both — without merging business data.
-
-### Same Gmail twice in **your** product
-
-One Google account can only be linked to **one** of your end users at a time within your workspace. A second connect attempt for the same Gmail under a different user ID is rejected to prevent accidental data sharing.
-
----
-
-## Billing
-
-| Who pays whom | |
-|---------------|--|
-| **You → AgentRuntime** | Workflow runs and platform usage (your workspace credit pool) |
-| **Your customer → You** | Your product pricing (AgentRuntime does not bill your end users) |
-
-AgentRuntime records usage tagged with your `external_user_id` (and `principal_id` on each run) so you can export reports and pass costs through to your customers.
-
-**Export by end user:**
-
-```http
-GET /v1/usage-history?group_by=principal&from=2026-08-01T00:00:00Z&to=2026-08-31T23:59:59Z
-```
-
-Response items include `external_user_id`, `run_count`, and `total_delta_microcredits` per principal.
-
----
-
-## What you store vs what we store
+## What each side stores
 
 | You store | AgentRuntime stores |
 |-----------|---------------------|
-| `external_user_id` (your customer ID — **required**, stable) | OAuth refresh tokens, API keys (Vault) |
-| Optional: `connection_id` from webhook (support/UI) | Principal row, connection binding, workflow definitions, run history |
-| Your PAT (server env only) | Usage metering per end user |
+| `external_user_id` (required) | OAuth tokens (never sent to you) |
+| Optionally the `connection_id` from the webhook | The end user record, connections, workflows, and run history |
+| Your API key, on your server only | Usage per end user |
 
-You **never** receive or manage OAuth refresh tokens. You **do not** need to wire connections into the workflow graph per customer — pass `external_user_id` at execute time.
+Two different workspaces can both use `"user_42"`. They do not see each other's data.
 
----
+## Common problems
 
-## FAQ
+| Problem | What to do |
+|---------|------------|
+| `400` when creating a link | Check `external_user_id` (allowed characters, length) and `provider`. |
+| `403` `principal_suspended` | The end user is suspended, so they cannot connect or run until that changes. Email [support@agentruntime.io](mailto:support@agentruntime.io) if you need help. |
+| The popup says the link expired | Links last 5 minutes. Create a new one. |
+| `409` `provider_account_already_linked` | That Google account is already linked to another of your end users. |
+| `principal_not_connected` on a run | The end user has not connected the account the step needs. |
+| No webhook arrives | Check that the address is reachable from the internet (use HTTPS), that a secret is set, and that `enabled` is not `false`. |
 
-### Do my end users need AgentRuntime accounts?
+## Go-live checklist
 
-**No** for embedded connect. They only see your UI and our hosted connect popup.
+- [ ] API key stored on your server only
+- [ ] Webhook registered, and signature check tested
+- [ ] Workflow MCP steps set to **End user (principal)** where needed
+- [ ] Popup flow tested with a real Google account
+- [ ] `external_user_id` is a stable ID from your own database
+- [ ] Usage export tested, if you pass costs on
 
-You may optionally invite someone to the Console later (for example your internal admins or a power user who wants to inspect runs).
+## Related
 
-### Do I have to build OAuth?
-
-**No.** For standard integration, you make one server-side API call and open a popup. For Google production branding, you paste OAuth credentials in Console once (Model B) — you still do not write OAuth code.
-
-### Can I use this for API-key connectors (not just Google)?
-
-**Yes.** The same connect-link flow hosts API key forms where applicable. Keys are submitted directly to AgentRuntime Vault, not to your backend.
-
-### What if I only have a simple backend (Node, Python, PHP)?
-
-That is the expected case. PAT on the server, one route to create a link, one webhook route, one execute call per user with `external_user_id`. No JWT, no OAuth code, no connection overrides per workflow step.
-
-### How do scheduled / batch runs work?
-
-**Your scheduler** loops customer IDs and calls execute with each `external_user_id`. AgentRuntime resolves credentials per run. You can also list connected users via `GET /v1/principals` instead of maintaining connect state twice.
-
-Export per-user usage for pass-through billing:
-
-```http
-GET /v1/usage-history?group_by=principal&from=2026-08-01T00:00:00Z&to=2026-08-31T23:59:59Z
-```
-
-### How is this different from Zapier or Composio?
-
-Similar **identity model** (your user ID, our hosted connect, we hold tokens). AgentRuntime adds **workflows, scheduling, tenant data, and agents** under your workspace — not just tool calls.
-
-### Is Embedded Connect available?
-
-Embedded Connect is **generally available** in phases. Most partners ship **P1 + P2** first (connect + execute-by-user-ID).
-
-| Phase | Capabilities |
-|-------|----------------|
-| **P1** | `POST /v1/connect/link`, hosted connect page (`/connect/s/{id}` interstitial + OAuth), `connection.created` webhook |
-| **P2** | Execute with `external_user_id` / `principal_id`; usage export `group_by=principal`; suspend/delete principal |
-| **P2.5** | `POST /v1/principals/sync`, `GET /v1/principals`, Console **Principals** list, admin user link |
-| **P3** | `POST /v1/principal-segments`, execute or cron with `segment_id`, segment picker on workflow schedules |
-| **Console (always)** | BYO Google OAuth, workflows, tenant cron, tenant data, PAT API |
-| **Legacy pilot** | Invite end users as workspace members; they connect on `/connections` (not recommended for B2B2C) |
-
-Apply database migrations `000034`–`000036` on control-service before using principals, segments, and principal-scoped runs in self-hosted environments.
-
-Contact [support@agentruntime.io](mailto:support@agentruntime.io) for pilot onboarding or integration review.
-
-## Reference demo
-
-A runnable **FastAPI + React** partner app lives in the monorepo:
-
-`dev_tools/embedded-connect-demo/`
-
-It implements Tier A (PAT + popup + webhook) against a real localprod BFF and is suitable to share with customers evaluating the integration.
-
----
-
-## Checklist before go-live
-
-- [ ] Workspace created; billing active
-- [ ] Google OAuth app configured in Console (if using Gmail with your brand)
-- [ ] PAT created and stored server-side only
-- [ ] Webhook URL registered and signature verification tested
-- [ ] Workflow template deployed
-- [ ] **Start minimal:** partner cron + execute (add sync/segments when Console filtering helps)
-- [ ] Scheduled runs: your cron, `segment_id` execute, or Console cron **with segment** (optional)
-- [ ] `external_user_id` documented for your team (stable per customer)
-- [ ] Popup connect flow tested end-to-end
-- [ ] Console **Principals** reviewed for support / "who connected" visibility (optional)
-- [ ] Usage export tested (`group_by=principal`) if billing pass-through to customers
-
----
-
-## Related documentation
-
-- [Integrations quickstart](/integrations/quickstart) — connections, MCP instances, workflows
-- [Connections](/integrations/connections) — Console connection management
-- [Google Workspace](/integrations/google-workspace) — OAuth and services
-- [API authentication](/api/authentication) — PATs for automation
-- [Inbound webhooks](/integrations/inbound-webhooks) — webhook signature verification
-- [Billing and credits](/platform/billing-and-credits) — workspace usage
-
----
-
-## Support
-
-Questions about embedded integrations or early access:
-
-- Email: [support@agentruntime.io](mailto:support@agentruntime.io)
-- Console: [console.agentruntime.io](https://console.agentruntime.io)
-
-When contacting support, include your workspace name and whether you need Gmail white-label (BYO Google OAuth) or other connectors.
+- [Integrations quickstart](/integrations/quickstart)
+- [Connections](/integrations/connections)
+- [Google Workspace](/integrations/google-workspace)
+- [API authentication](/api/authentication)
+- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Billing and credits](/platform/billing-and-credits)

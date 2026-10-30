@@ -25,8 +25,7 @@ Platform MCP clients: call **`ar_get_started` first** — it returns skill URLs 
 | [connectors-and-data.md](references/connectors-and-data.md) | MCP + Tenant Data writes |
 | [llm-step-results.md](references/llm-step-results.md) | `llm` step → `result.text`, JSON parse in Lua |
 | [deployment-inputs.md](references/deployment-inputs.md) | Bindings, tenant export, run setup |
-| **GET `/api/v1/workflows/schema`** (agentruntime) — canonical step JSON Schema (`workflow/schema.go`) | Always before authoring step bodies |
-| **`workflows_graph_schema`** (Platform MCP) — same schema + `schema_hash` via BFF | Prefer on Platform MCP instead of raw agentruntime URL |
+| **`workflows_graph_schema`** (Platform MCP) — canonical step JSON Schema + `schema_hash` | Always before authoring step bodies |
 | **`workflows_authoring_contract`** (Platform MCP) | Call when tempted to use nodes/edges JSON — runtime uses `graph.steps[]` only |
 | [schemas/studio-workflow-import.schema.json](schemas/studio-workflow-import.schema.json) | Import envelope + curated subset |
 | [examples/patterns.md](examples/patterns.md) | Portable patterns |

@@ -1,10 +1,17 @@
-# Platform MCP authoring skills (public)
+# AgentRuntime Platform MCP authoring skills
 
-**Single source of truth** for external-agent skill markdown. Edit here only; do not maintain duplicate trees in the private platform-mcp repo or `.cursor/skills/`.
+Plain Markdown skills that guide an AI agent through designing and building on AgentRuntime with the Platform MCP server: workspace data, workflows and apps.
 
-## Raw fetch (no auth)
+| Skill | What it covers |
+|-------|----------------|
+| `agentruntime-platform-design` | Phased delivery: data, then workflows, then apps |
+| `agentruntime-tenant-data-authoring` | Tenant Data schemas, migrations, history and upsert patterns |
+| `agentruntime-workflow-authoring` | Workflow step JSON, validation and dry-run |
+| `agentruntime-surfaces-authoring` | Surfaces v1 app, view and query JSON |
 
-Base: `https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/`
+## Fetch (no auth)
+
+Base URL: `https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/`
 
 | Skill | SKILL.md |
 |-------|----------|
@@ -13,10 +20,10 @@ Base: `https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/
 | Workflows | [agentruntime-workflow-authoring/SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-workflow-authoring/SKILL.md) |
 | Surfaces | [agentruntime-surfaces-authoring/SKILL.md](https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/agentruntime-surfaces-authoring/SKILL.md) |
 
-Human index: https://docs.agentruntime.io/api/platform-mcp-authoring-skills
+Index page: https://docs.agentruntime.io/api/platform-mcp-authoring-skills
 
-Platform MCP **`ar_get_started`** returns the same raw URLs (`public_skill_urls.go` in agentruntime-platform-mcp).
+The Platform MCP tool **`ar_get_started`** returns the same URLs.
 
 ## JSON schemas
 
-Under `schemas/` — also returned by MCP `tenantdata_logical_schema` and `surfaces_schema_catalog`. When you change a schema file here, update matching **go:embed** copies in private `agentruntime-platform-mcp/tools/` before the next platform-mcp release.
+Under `schemas/`. The Platform MCP tools `tenantdata_logical_schema` and `surfaces_schema_catalog` return them too.

@@ -1,96 +1,117 @@
 ---
 title: API authentication
-description: Sign in with email, Google OAuth, or personal access tokens for AgentRuntime APIs.
+description: How to sign in to the Console, create a personal access token for scripts, and connect AI assistants such as Claude and ChatGPT.
 ---
 
-AgentRuntime supports multiple authentication methods depending on whether you use the Console, call the REST API, or connect an IDE through Platform MCP.
+AgentRuntime has three ways to prove who you are. Which one you use depends on what you are doing.
 
-## Console session (browser)
+| I want to… | Use | Section |
+|------------|-----|---------|
+| Use the Console in my browser | Email and password, or Google | [Sign in to the Console](#sign-in-to-the-console) |
+| Call the REST API from a script, CI job, or app | A personal access token (PAT) | [Personal access tokens](#personal-access-tokens-pats) |
+| Connect Claude, ChatGPT, or another AI assistant | Sign in with your AgentRuntime account, or a PAT | [Connect an AI assistant](#connect-an-ai-assistant) |
 
-Sign in at [console.agentruntime.io](https://console.agentruntime.io) with:
+## Sign in to the Console
 
-- **Email and password** — Requires email verification for new accounts
-- **Google OAuth** — Sign in with Google or Google One Tap
+Go to [console.agentruntime.io](https://console.agentruntime.io) and choose one of:
 
-The BFF issues a session cookie scoped to `.agentruntime.io`. The Console refreshes tokens automatically.
+- **Email and password.** New accounts must verify their email address before they can continue.
+- **Google.** Sign in with your Google account.
 
-Password reset and change-password flows are at `/auth/forgot-password` and account settings.
+If you forget your password, use the forgot-password link on the sign-in page. The Console keeps you signed in and refreshes your session automatically.
+<Note>
+  A workspace admin can set sign-in rules for members. If a sign-in option is missing, ask your workspace admin.
+</Note>
 
 ## Personal access tokens (PATs)
 
-PATs are the recommended method for scripts, CI pipelines, and Platform MCP.
+A **personal access token** is a secret string, starting with `pat_`, that lets a script act as you with only the permissions you choose. It is the recommended way to call the REST API. The Console calls them **API keys**.
+
+A token can never do more than you can. If your role is `project_viewer`, a token you create cannot start runs, even if you give it the `workflow:run` scope.
+
+### Create a token
 
 <Steps>
-  <Step title="Create a token">
-    In the Console, go to **Settings → API keys** (`/settings?tab=apiKeys`). Click **Create API key** and give the token a descriptive name.
+  <Step title="Open API keys">
+    In the [Console](https://console.agentruntime.io), open **Settings**, then the **API keys** tab. Click **Create API key**.
   </Step>
-  <Step title="Select scopes">
-    Choose the minimum scopes needed:
+  <Step title="Name it">
+    Enter a **Name** that says what the key is for, for example `CI deploy`. You can add an optional **Description**.
+  </Step>
+  <Step title="Choose scopes">
+    A **scope** is one permission the token has. Pick only what the script needs. Common choices:
 
-    | Scope | Grants |
-    |-------|--------|
-    | `workflow:read` | List workflows, runs, events |
-    | `workflow:run` | Start and control runs |
-    | `mcp:execute` | Execute MCP tools in workflow runs |
+    | Scope | Lets the token… |
+    |-------|-----------------|
+    | `workflow:read` | List workflows, runs, events, and pending tasks |
+    | `workflow:run` | Start, pause, resume, and stop runs, and validate workflows |
+    | `workflow:edit` | Create, change, and archive workflows |
+    | `mcp:execute` | Run MCP tools. Needed together with `workflow:run` for workflows that have MCP steps |
+    | `mcp:read` / `mcp:write` | Read, or change, connections, MCP servers, and instances |
+    | `task:complete:agent_review` | Approve or reject a task as a designated approver agent |
+    | `task:complete:on_behalf` | Approve or reject a task for a person who delegated it |
+    | `webhook:manage` | Manage inbound webhooks |
+    | `agent:read` / `agent:write` | Read, or change, agents |
+    | `analytics:read` | Read analytics |
+    | `billing:read` | Read usage and billing |
+
+    The dialog shows the full list with a short description for each.
   </Step>
-  <Step title="Copy the token">
-    The token value is shown once. Store it in a secrets manager.
-  </Step>
-  <Step title="Call the API">
-    Send `Authorization: Bearer YOUR_PAT` on every request, plus `X-Tenant-Id` and `X-Project-Id` for scoped operations.
+  <Step title="Create and copy the token">
+    Click **Create key**. The token is shown **once**. Copy it into a secrets manager. If you lose it, revoke the key and create a new one.
   </Step>
 </Steps>
 
+**What you should see:** the new key appears in the **API keys** list with its name and scopes. The secret itself is never shown in the list.
+
+### Use the token
+
+Send the token in the `Authorization` header. The token already belongs to one workspace (and project, if you chose one), so you do not need to send a workspace header.
+
 ```bash
 curl "https://api.agentruntime.io/v1/workflows" \
-  -H "Authorization: Bearer ar_pat_..." \
-  -H "X-Tenant-Id: acme" \
-  -H "X-Project-Id: prod"
+  -H "Authorization: Bearer pat_YOUR_TOKEN"
 ```
 
-PATs are validated against your user identity and project role. A PAT with `workflow:run` still requires **project_contributor** on the target project.
+A `200` response with a list of workflows means the token works. A `401` means the token is wrong or revoked. A `403` means the token's scopes, or your role, do not allow that call.
 
-## Console Bearer JWT (mobile and IDE clients)
+### Look after your tokens
 
-Native clients (mobile app, VS Code workbench) sign in with Keycloak OAuth and send the access token as:
+- Give each script its own token so you can revoke one without breaking the others.
+- Choose the narrowest scopes that work.
+- Never put a token in git or in code that runs in a browser.
+- To revoke a token, open **Settings → API keys** and click **Revoke key**. It stops working immediately.
 
-```http
-Authorization: Bearer <keycloak_access_token>
-X-Tenant-Id: <workspace_uuid>
-X-Project-Id: <optional_project_uuid>
-```
+<Warning>
+  If a token is exposed, revoke it straight away, create a new one, and check your recent runs for activity you do not recognize.
+</Warning>
 
-The BFF resolves the user from the JWT via Wheelhouse `token-session`. **`X-Tenant-Id` overrides the default workspace** so one login can act in different tenants (for example, separate VS Code windows). Membership is validated on every request.
+## Connect an AI assistant
 
-When `X-Tenant-Id` is omitted, the BFF falls back to the user's default workspace (same behavior as mobile). If no workspace can be resolved, protected routes return `400 X-Tenant-Id required` (except `/v1/me` during onboarding).
+[Platform MCP](/api/platform-mcp) lets an AI assistant work with your workspace. You can connect in two ways:
 
-Platform MCP forwards `X-Tenant-Id` and `X-Project-Id` from the MCP HTTP request to the BFF when present.
+**Sign in with your AgentRuntime account (recommended for Claude and ChatGPT).** Add AgentRuntime as a custom connector with the URL `https://mcp.agentruntime.io/mcp`. The assistant opens a sign-in page. Sign in as you normally do, and choose a workspace if you belong to more than one. You do not need to create or paste a token. Claude and ChatGPT both support this.
 
-## Platform MCP
+**Use a PAT.** Any MCP client that can send an HTTP header can connect with `Authorization: Bearer pat_...`. Use this for scripts, CI jobs, and tools that do not support sign-in. See [Platform MCP](/api/platform-mcp) for setup steps.
 
-Connect Cursor or other MCP clients to:
-
-```
-https://mcp.agentruntime.io/mcp
-```
-
-Authenticate with the same PAT used for REST. Platform MCP tools wrap BFF operations — list workflows, trigger runs, manage resources — without crafting raw HTTP.
-
-## Google OAuth (API)
-
-Google OAuth for **user login** uses `/v1/auth/oauth/google/*`. This is separate from **Google connections** for Workspace MCP adapters (`/v1/connections/google/*`).
+When you connect by signing in, the connection works in one workspace at a time. To change it, ask the assistant to switch workspace. See [Platform MCP](/api/platform-mcp#work-in-more-than-one-workspace).
 
 ## Inbound webhook signatures
 
-External systems triggering runs via [inbound webhooks](/integrations/inbound-webhooks) authenticate with HMAC signatures on the subscription secret — not PATs.
+Systems that start runs through an [inbound webhook](/integrations/inbound-webhooks) do not use a PAT. They sign each request with the subscription's signing secret.
 
-## Security practices
+## Common problems
 
-- Rotate PATs on a schedule and revoke unused tokens
-- Use the narrowest scopes that satisfy your automation
-- Never commit tokens to git or embed them in client-side code
-- Tenant admins can enforce domain verification and auth policy for workspace members
+| Problem | What to check |
+|---------|---------------|
+| `401` on every call | The token is mistyped, revoked, or missing the `Bearer ` prefix |
+| `403` on a call that should work | The token is missing a scope, or your role is too low. Compare against the [API reference](/api/reference) |
+| Runs start but MCP steps fail | Add `mcp:execute` to the token |
+| I cannot create a key | Only members who are allowed to create API keys can. Ask a workspace admin |
+| The AI assistant shows the wrong workspace | Ask it to list your workspaces and switch, or reconnect |
 
-<Warning>
-  If a PAT is exposed, revoke it immediately in the Console and create a new one. Audit recent runs and API activity for unauthorized use.
-</Warning>
+## Next steps
+
+- [API examples](/api/examples): your first request
+- [API reference](/api/reference): all endpoints and the role each needs
+- [Roles and permissions](/platform/roles-permissions)

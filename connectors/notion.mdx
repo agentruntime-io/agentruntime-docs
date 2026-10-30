@@ -1,104 +1,151 @@
 ---
 title: Notion connector
-description: Read and write Notion pages, databases, and comments from AgentRuntime workflows.
+description: Search, create, update, and comment on Notion pages and database rows from AgentRuntime workflows.
 ---
 
-The **notion** MCP adapter uses the [Notion API](https://developers.notion.com) to search workspaces, update database rows, append page content, and manage comments. Ideal for run logs, CRM-style databases, and agent-generated documentation.
+The **notion** connector lets your workflows read and write Notion through an internal integration token. Use it to keep a Notion database in step with what your workflows do: log runs, track tickets, publish drafts, or look up reference data.
+
+Typical uses:
+
+- Add a row to a "Run log" database every time a workflow finishes.
+- Create a draft page from model output, then append approved text after a person signs off.
+- Look up rows in a database and hand them to a model as grounded context.
 
 ## Prerequisites
 
-- A Notion workspace where you can create integrations
-- An **internal integration** with token (`secret_...`)
-- Target pages and databases **shared with the integration** (⋯ → Connect to → your integration)
-- For comments: enable **Read comments** and **Insert comments** on the integration
-- **project_contributor** access
+- A Notion workspace where you can create an integration.
+- An **internal integration** and its secret token, created in Notion's integration settings.
+- Each page or database you want to use **shared with that integration**. The integration only sees pages you explicitly share.
+- For the comment tools, the integration needs the **Read comments** and **Insert comments** capabilities in its Notion settings.
+- The `project_contributor` role or higher in AgentRuntime.
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Create a Notion integration">
-    Go to [notion.so/my-integrations](https://www.notion.so/my-integrations), create an integration, and copy the **Internal Integration Token**.
+    Open Notion's integrations page ([notion.so/my-integrations](https://www.notion.so/my-integrations)), create a new internal integration for your workspace, and copy its secret token. If the screens have changed, follow Notion's own documentation on creating an integration.
   </Step>
   <Step title="Share pages with the integration">
-    Open each database or parent page → **⋯** → **Connect to** → select your integration.
+    In Notion, open each database or parent page you want workflows to use, open its **...** menu, choose **Connect to**, and select your integration. Pages you do not share are invisible to the connector.
   </Step>
   <Step title="Create a connection">
-    Go to **Connections**, click **New custom connection**, and paste the integration token as an API key connection.
+    In the Console, go to **Connections** and click **New custom connection**. Enter a display name, then under **Credentials** set **Key** to `notion_access_token` and **Value** to your integration token. Click **Save**.
   </Step>
-  <Step title="Add notion MCP instance">
-    Go to **MCP**, click **Add instance** for **notion**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add the MCP instance">
+    Go to **MCP**, click **Add connectors**, click the **notion** connector and then **Add to workspace**, then open **Instance config**. Pick your connection, set the profile to **active**, and save.
   </Step>
-  <Step title="Discover IDs">
-    Run **mcp_call** → `notion_search` to list accessible databases and pages before hard-coding IDs in workflows.
+  <Step title="Smoke test">
+    In **Workflow Studio**, add a connector step (type `mcp`) with `tool_name` `notion_search` and an empty `tool_args` object, then run it. A list of the pages and databases you shared means the connection works. Copy a database ID from the result for the steps below.
   </Step>
 </Steps>
 
 <Note>
-  Tool arguments accept bare UUIDs, 32-character hex IDs, or pasted Notion URLs (query strings are stripped automatically).
+  Any argument that takes a Notion ID accepts a plain UUID, a 32-character ID without dashes, or a pasted Notion page URL. Query strings on a URL are ignored.
 </Note>
 
 ## What you can build
 
-- **Run log database** — On workflow complete: `notion_create_database_item` with run ID, status, duration, and link to Command Center.
-- **Content pipeline** — LLM draft → `notion_create_page` under a parent → **human_task** review → `notion_append_to_page` with approved blocks.
-- **Ticket sync** — GitHub `create_issue` → `notion_create_database_item` with issue URL and assignee property.
-- **Knowledge lookup** — `notion_find_database_item` with filter JSON → pass rows to LLM for grounded answers in Chat Autopilot.
+- **Run log database.** At the end of a workflow, `notion_create_database_item` adds a row with the run ID and status.
+- **Content pipeline.** A model drafts text, `notion_create_page` creates it under a parent page, a **human** step asks for review, and `notion_append_to_page` adds the approved text.
+- **Ticket sync.** After you create an issue in another tool, `notion_create_database_item` records its URL and owner in a Notion tracker.
+- **Knowledge lookup.** `notion_find_database_item` returns matching rows that you pass to a model so its answer is grounded in your Notion data.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `notion_search` | List shared pages and databases |
-| `notion_retrieve_database` | Get database schema |
-| `notion_find_database_item` | Query database with Notion `filter` JSON |
-| `notion_create_database_item` | Create a row in a database |
-| `notion_update_database_item` | Update database row properties |
-| `notion_archive_database_item` | Archive a page (row) |
-| `notion_restore_database_item` | Unarchive a page |
-| `notion_find_page` | Search pages by title |
-| `notion_create_page` | Create a sub-page |
-| `notion_append_to_page` | Append blocks to a page |
-| `notion_get_page_or_block_children` | List block children |
-| `notion_add_comment` | Add a comment to a page |
-| `notion_get_page_comments` | List page comments |
-| `notion_custom_api_call` | Raw REST call |
+Tools marked **Writes** change data in Notion. The rest only read.
+
+| Tool | Description | Access |
+|------|-------------|--------|
+| `notion_search` | Search pages and databases shared with the integration | Read |
+| `notion_find_page` | Find pages by title (substring by default, or exact match) | Read |
+| `notion_retrieve_database` | Get a database's schema and property definitions | Read |
+| `notion_find_database_item` | Query database rows with a Notion `filter` object | Read |
+| `notion_get_page_or_block_children` | List the child blocks of a page or block | Read |
+| `notion_get_page_comments` | List comments on a page | Read |
+| `notion_get_users` | List workspace users, or fetch one user (`user_id` `self` returns the token's own user) | Read |
+| `notion_get_async_task` | Check the status of an async task returned by a Notion operation | Read |
+| `notion_create_database_item` | Create a row in a database | Writes |
+| `notion_update_database_item` | Update properties on a database row | Writes |
+| `notion_archive_database_item` | Archive a database row | Writes |
+| `notion_restore_database_item` | Restore an archived database row | Writes |
+| `notion_create_page` | Create a page under a parent page | Writes |
+| `notion_move_page` | Move a page under a new parent page or data source | Writes |
+| `notion_duplicate_page` | Copy a page's properties and blocks to a new page | Writes |
+| `notion_append_to_page` | Append content blocks to a page or block | Writes |
+| `notion_add_comment` | Add a comment to a page | Writes |
+| `notion_custom_api_call` | Send any request to the Notion REST API | Writes (can do anything the token allows) |
+
+Arguments, required ones first:
+
+| Tool | Arguments |
+|------|-----------|
+| `notion_search` | All optional: `query`, `object_type` (`page` or `database`), `page_size` (default 20, max 100) |
+| `notion_find_page` | `title` (required), `exact_match`, `limit` (default 10, max 100) |
+| `notion_retrieve_database` | `database_id` (required) |
+| `notion_find_database_item` | `database_id`, `filter` (both required), `page_size`, `start_cursor` |
+| `notion_create_database_item` | `database_id`, `properties` (both required), `content` (plain-text body) |
+| `notion_update_database_item` | `page_id`, `properties` (both required) |
+| `notion_archive_database_item`, `notion_restore_database_item` | `page_id` (required) |
+| `notion_create_page` | `parent_page_id` (required), `title`, `content`, `properties`, `children` |
+| `notion_move_page` | `page_id`, `parent_type` (`page_id` or `data_source_id`), `parent_id` (all required) |
+| `notion_duplicate_page` | `page_id` (required), `parent_page_id`, `parent_data_source_id`, `title_suffix` (default `Copy`), `depth` (default 1, max 3) |
+| `notion_append_to_page` | `block_id` (required), then `content` (plain text) or `children` (Notion block objects) |
+| `notion_get_page_or_block_children` | `block_id` (required), `start_cursor`, `depth` (default 1) |
+| `notion_add_comment` | `page_id`, `comment_text` (both required) |
+| `notion_get_page_comments` | `page_id` (required) |
+| `notion_get_users` | All optional: `user_id`, `query`, `page_size` (default 100, max 100), `start_cursor` |
+| `notion_get_async_task` | `task_id` (required) |
+| `notion_custom_api_call` | `method` and `path` (starts with `/`) required; `query`, `body` |
+
+`properties` and `filter` use Notion's own JSON shapes. Run `notion_retrieve_database` first to see the exact property names and types.
 
 ## Example
 
-Create a row when a workflow run finishes:
+Add a row to a database when a run finishes. The database needs a title property named `Name` and a select property named `Status`:
 
 ```json
 {
   "id": "log-run",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Log run in Notion",
   "tool_name": "notion_create_database_item",
   "tool_args": {
-    "database_id": "your-database-uuid",
-    "properties_json": "{\"Name\":{\"title\":[{\"text\":{\"content\":\"Run {{input.run_id}}\"}}]},\"Status\":{\"select\":{\"name\":\"Complete\"}}}"
+    "database_id": "11111111-2222-3333-4444-555555555555",
+    "properties": {
+      "Name": { "title": [{ "text": { "content": "Run {{input.run_id}}" } }] },
+      "Status": { "select": { "name": "Complete" } }
+    }
   },
   "timeout_s": 30
 }
 ```
 
+In Workflow Studio you pick the MCP instance on the step, and Studio fills in the instance reference for you.
+
 ## Configuration
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `notion_access_token` | Yes | Internal integration token |
-| `notion_api_base` | No | API base (default `https://api.notion.com/v1`) |
-| `notion_notion_version` | No | Notion-Version header (default `2022-02-22`) |
+These are the keys the connector reads. A custom connection whose field names match these keys is wired automatically on **Instance config**.
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `notion_access_token` | Yes | none | Notion internal integration token |
+| `notion_api_base` | No | `https://api.notion.com/v1` | Notion API base URL |
+| `notion_notion_version` | No | `2025-09-03` | Value sent in the `Notion-Version` header |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| `object_not_found` | Page or database not shared with the integration |
-| Invalid property JSON | Match property names and types from `notion_retrieve_database` |
-| Search returns empty | Integration only sees explicitly connected pages |
+| `Notion API 404` or `object_not_found` | The page or database is not shared with your integration. In Notion, use **Connect to** on the page, then retry. |
+| Search returns nothing | The integration sees only pages you shared. Share at least one page and try again. |
+| Property or filter error from Notion | Names and types must match the database. Run `notion_retrieve_database` and copy them exactly. |
+| `invalid Notion id` | The value is not a UUID or a Notion URL containing one. Copy the ID again from the page URL. |
+| `Notion API 403` on a comment tool | Enable **Read comments** and **Insert comments** on the integration in Notion. |
+| Rate limiting (`429`) | The connector waits and retries. Space out bulk writes if it keeps happening. |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
 - [Connector catalog](/integrations/connector-catalog)
+- [Human tasks](/workflows/human-tasks): add a review step before writing to Notion
 - [Troubleshooting](/platform/troubleshooting)

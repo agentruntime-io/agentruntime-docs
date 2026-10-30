@@ -1,63 +1,100 @@
 ---
 title: Vapi connector
-description: List and inspect Vapi voice assistants from AgentRuntime workflows.
+description: Manage Vapi voice assistants and function-calling tools, and read call history, from AgentRuntime workflows.
 ---
 
-The **vapi** MCP adapter connects to the [Vapi API](https://docs.vapi.ai/). Discover voice assistants configured in your Vapi account and retrieve full assistant configurations — useful for auditing prompts, syncing assistant metadata into internal docs, and orchestrating voice workflows alongside other connectors.
+[Vapi](https://vapi.ai/) is a platform for building voice AI assistants that talk on the phone. The **vapi** connector lets a workflow list, read, create, update, and delete your Vapi assistants and function-calling tools, and read your call history and phone numbers. Use it to keep assistant prompts under version control, audit what is live, and report on calls.
 
 ## Prerequisites
 
-- A Vapi account with at least one configured assistant
-- A Vapi **private API key** (Bearer token)
-- **project_contributor** access in AgentRuntime
+- A Vapi account.
+- A Vapi **private API key**. The connector sends it as a Bearer token.
+- The **project_contributor** role or higher in your project.
+
+### Get your Vapi API key
+
+1. Sign in to the Vapi dashboard.
+2. Open the section where Vapi lists your API keys.
+3. Copy your **private** key. Do not use a public key.
+
+Vapi's own documentation describes where API keys live in the dashboard and how to create new ones.
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Get a Vapi API key">
-    Sign in to the [Vapi dashboard](https://dashboard.vapi.ai/) and copy your private API key from settings.
+  <Step title="Add the connector">
+    Click **MCP** in the sidebar, click **Add connectors**, find **vapi**, select it, and click **Add to workspace**.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  <Step title="Open Instance config">
+    Open the new instance. On **Instance config**, under **Profiles for this connector**, click **New profile** and enter a **Display name**.
   </Step>
-  <Step title="Add vapi MCP instance">
-    Go to **MCP**, click **Add instance** for **vapi**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Enter the API key">
+    In the credentials section, choose **Type secrets on this screen** and paste your key into `api_key`. Leave `api_base` empty to use `https://api.vapi.ai`.
   </Step>
-  <Step title="List assistants">
-    Run **mcp_call** → `list_assistants` to confirm the key and see assistant IDs.
+  <Step title="Make the profile active">
+    Set **Status** to **Active — can be used in workflows**, click **Save**, then click **Use this profile for workflows**.
+  </Step>
+  <Step title="Test it in a workflow">
+    In **Workflow Studio**, add a connector tool step for this instance and choose `vapi_list_assistants`. Run it. The result lists your assistants with their `id` and `name`.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+To reuse the same key on several instances, create a connection first: on **Connections**, click **New custom connection**, give it a **Display name**, click **Add field**, and enter `api_key` as the **Key** and your private key as the **Value**. Then on **Instance config** choose **Use a saved connection**. The connection's key names must match the keys in [Configuration](#configuration).
+
+See [Connections](/integrations/connections) and [MCP instances](/integrations/mcp-instances) for more.
 
 <Note>
-  This adapter currently exposes read-only assistant discovery tools. Outbound call creation and live call control are configured in Vapi directly or via future adapter tools.
+  This connector does not start outbound calls or manage phone numbers. Do those in Vapi. The tools below cover assistants, function-calling tools, call history, and listing phone numbers.
 </Note>
 
 ## What you can build
 
-- **Assistant inventory** — Scheduled `list_assistants` → diff against expected list → alert on drift.
-- **Config documentation** — `get_assistant` → LLM summarizes model, voice, and tool settings → save to Notion.
-- **Pre-call validation** — Before a campaign, verify assistant ID and prompt version match release notes.
-- **Cross-system sync** — Export `raw_json` to internal config store for compliance review.
+- **Assistant inventory.** Run `vapi_list_assistants` on a schedule, compare it with the list you expect, and alert on any difference.
+- **Prompt backup.** Fetch each assistant with `vapi_get_assistant`, store `raw_json` in your own system, and keep a history of changes.
+- **Prompt rollout.** After a release is approved, apply the new wording with `vapi_update_assistant`.
+- **Call reporting.** Run `vapi_list_calls`, then use an LLM step to summarize recent activity for your team.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `list_assistants` | List voice assistants visible to the API key |
-| `get_assistant` | Full assistant configuration by ID (includes pretty-printed JSON) |
+### Assistants
+
+| Tool | What it does |
+|------|--------------|
+| `vapi_list_assistants` | Lists assistants (`limit`, default 50, up to 100). Returns `count` and `items` with `id` and `name` |
+| `vapi_get_assistant` | Returns one assistant by `assistant_id`, with `id`, `name`, and the full configuration in `raw_json` |
+| `vapi_create_assistant` | Creates an assistant (`name` required; optional `instructions`, `first_message`, `extra_json`). Writes data |
+| `vapi_update_assistant` | Updates an assistant (`assistant_id` required, plus at least one field to change). Writes data |
+| `vapi_delete_assistant` | Deletes an assistant by `assistant_id`. Permanent |
+
+### Function-calling tools
+
+| Tool | What it does |
+|------|--------------|
+| `vapi_list_tools` | Lists your Vapi function-calling tool definitions |
+| `vapi_get_tool` | Returns one tool by `tool_id` |
+| `vapi_create_tool` | Creates a tool from a JSON object in `body_json`. Writes data |
+| `vapi_update_tool` | Updates a tool (`tool_id` and a JSON object of fields in `body_json`). Writes data |
+| `vapi_delete_tool` | Deletes a tool by `tool_id`. Permanent |
+
+### Calls and phone numbers
+
+| Tool | What it does |
+|------|--------------|
+| `vapi_list_calls` | Lists recent calls (`limit`, default 10, up to 100). Returns `count` and `raw_json` |
+| `vapi_list_phone_numbers` | Lists the phone numbers in your Vapi account |
+
+`extra_json` and `body_json` take a JSON object as text. For `vapi_create_assistant` and `vapi_update_assistant`, `extra_json` is merged into the request, so you can set fields such as the voice or `toolIds`. When you pass `instructions`, the assistant's model is set to OpenAI `gpt-4o`. To use a different model, put a `model` object in `extra_json`.
 
 ## Example
 
-Fetch assistant configuration for audit logging:
+Fetch an assistant's configuration for an audit trail:
 
 ```json
 {
-  "id": "vapi-audit",
-  "type": "mcp_call",
+  "id": "vapi_audit",
+  "type": "mcp",
   "name": "Get Vapi assistant config",
-  "tool_name": "get_assistant",
+  "tool_name": "vapi_get_assistant",
   "tool_args": {
     "assistant_id": "{{input.assistant_id}}"
   },
@@ -65,25 +102,30 @@ Fetch assistant configuration for audit logging:
 }
 ```
 
+Studio fills in `instance_id` when you pick the instance. Later steps read `{{steps.vapi_audit.result.raw_json}}`.
+
 ## Configuration
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `APIKey` | Yes | Vapi private API key (Bearer token) |
-| `APIBase` | No | Vapi API base URL |
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `api_key` | Yes | none | Your Vapi private API key |
+| `api_base` | No | `https://api.vapi.ai` | The Vapi API address |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| `401 Unauthorized` | Verify private key, not a publishable or webhook-only key |
-| Assistant not in list | Key may be scoped to a different Vapi org or project |
-| Empty `raw_json` | Check HTTP status in tool output; assistant ID may be invalid |
-| Timeout on get | Large assistant configs with many tools may need higher `timeout_s` |
+| `resolved config is missing api_key` | The active profile has no key. Add `api_key`, save, and click **Use this profile for workflows** |
+| `Vapi API error 401` | Vapi rejected the key. Copy your private key again and check it belongs to the right Vapi account |
+| `Vapi API error 404` on a get, update, or delete | The ID does not exist in this Vapi account. Run `vapi_list_assistants` or `vapi_list_tools` to find the right one |
+| `provide at least one field to update` | `vapi_update_assistant` needs `name`, `instructions`, `first_message`, or `extra_json` besides the ID |
+| `extra_json must be valid JSON` | Send a JSON object, for example `{"voice": {...}}`, as a string |
+| Slow runs or rate-limit errors | The connector retries a few times when Vapi asks it to slow down. Space out scheduled runs |
 
 ## Related
 
 - [Integrations quickstart](/integrations/quickstart)
-- [ElevenLabs connector](/connectors/elevenlabs) — text-to-speech synthesis
+- [MCP instances](/integrations/mcp-instances)
+- [ElevenLabs connector](/connectors/elevenlabs) for text-to-speech
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

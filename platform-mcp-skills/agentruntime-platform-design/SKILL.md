@@ -59,7 +59,7 @@ Read tenant-data **`storage-stack.md`** before column design:
 
 - Rows → Tenant Data
 - Blobs → Work files + reference column
-- UI metadata → Surfaces JSONB
+- UI metadata → Surfaces JSON documents
 - Secrets → Vault / connections
 
 ## Evidence bar

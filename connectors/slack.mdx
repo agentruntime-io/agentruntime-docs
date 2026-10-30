@@ -1,108 +1,132 @@
 ---
 title: Slack connector
-description: Slack integration for AgentRuntime — catalog placeholder with bot token setup guidance.
+description: Post messages and thread replies, add reactions, and read channels, history, and users in Slack from AgentRuntime workflows.
 ---
 
-The **slack** MCP adapter is listed in the AgentRuntime connector catalog to reserve Slack messaging integration. The adapter shell accepts a bot token connection, but **no tools are registered yet** — install it to prepare connections; messaging tools will ship in a future release.
+[Slack](https://slack.com) is a team messaging app. The **slack** connector lets workflow steps post to channels, reply in threads, add emoji reactions, and read channel history, thread replies, and user profiles, using a Slack app (bot) that you create and install in your Slack workspace.
 
-<Warning>
-**Catalog placeholder** — See [Feature availability](/platform/feature-availability). The `slack` adapter has **zero registered tools** today. You can create a connection and MCP instance now, but workflows cannot call Slack APIs until messaging tools (e.g. post message, list channels) ship.
-</Warning>
+Typical uses: post an alert when a workflow fails, send a daily digest to a team channel, and pull recent channel messages into an LLM step for a summary.
 
 ## Prerequisites
 
-- A Slack workspace where you can create apps
-- **project_contributor** access in AgentRuntime
-- Patience for upcoming tool releases — bind credentials now if you want early validation only
+- A Slack workspace where you can create and install an app (or an admin who can do it for you).
+- A Slack app with a **Bot User OAuth Token** (it starts with `xoxb-`). The steps below show how to get one.
+- Your Slack workspace (team) ID, which starts with `T`. The connector needs it for `slack_get_users`, and for `slack_list_channels` unless you set a channel list.
+- The **project_contributor** role or higher in your AgentRuntime workspace.
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Create a Slack app">
-    Go to [api.slack.com/apps](https://api.slack.com/apps) and create an app **From scratch**. Choose your workspace.
+  <Step title="Create a Slack app and get a bot token">
+    Go to [api.slack.com/apps](https://api.slack.com/apps), click **Create New App**, choose **From scratch**, name it, and pick your workspace. Open **OAuth & Permissions** and add **Bot Token Scopes** for what you plan to do. Slack documents these scopes for the Web API methods the connector calls:
+
+    - `chat:write` to post messages and thread replies.
+    - `reactions:write` to add reactions.
+    - `channels:read` and `groups:read` to list public and private channels.
+    - `channels:history` and `groups:history` to read channel history and thread replies.
+    - `users:read` to list users and read profiles.
+
+    Then click **Install to Workspace**, approve, and copy the **Bot User OAuth Token**. If you change scopes later, reinstall the app.
   </Step>
-  <Step title="Add bot scopes">
-    Under **OAuth & Permissions**, add Bot Token Scopes you expect to need for future tools, for example:
-    - `chat:write` — post messages as the bot
-    - `channels:read` — list public channels
-    - `channels:history` — read public channel history (if read tools ship)
-    - `users:read` — resolve user IDs for mentions
-  </Step>
-  <Step title="Install to workspace">
-    Click **Install to Workspace** and copy the **Bot User OAuth Token** (`xoxb-...`). Store it securely.
+  <Step title="Find your team ID">
+    The team ID looks like `T0123456789`. One way to get it is to call Slack's `auth.test` method with your token; the response includes `team_id`. Slack's documentation explains the call.
   </Step>
   <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create a connection with `APIToken` set to your `xoxb-` bot token.
+    Open **Connections** in the [Console](https://console.agentruntime.io) and click **New custom connection**. Enter a **Display name** (for example `Slack`). Under **Credentials**, add one row per setting, using **Add field** for more rows:
+
+    - **Key** `slack_api_token`, **Value** your `xoxb-` token.
+    - **Key** `slack_team_id`, **Value** your team ID.
+
+    Click **Save**. The dialog also asks who can use the connection; choose the option that fits your team. See [Authentication](/integrations/authentication).
   </Step>
-  <Step title="Add slack MCP instance">
-    Go to **MCP**, click **Add instance** for **slack**, wire your connection on **Instance config**, set the profile **active**, and save. Validation confirms token binding only — no tools are callable yet.
+  <Step title="Add the slack MCP instance">
+    Open **MCP**, click **Add connectors**, find **slack**, and add it to your workspace. Open the instance, and on **Instance config** create or open a profile, choose your connection in the **Connection** picker, set the profile **Status** to **Active**, and click **Save**, then **Use this profile for workflows**.
   </Step>
-  <Step title="Invite the bot">
-    In Slack, invite the bot to channels where you plan to post once tools are available (`/invite @YourBot`).
+  <Step title="Invite the bot to your channels">
+    In Slack, open each channel the bot should use and type `/invite @YourAppName`. A bot generally cannot post to or read a channel it has not joined.
+  </Step>
+  <Step title="Smoke test">
+    In **Workflow Studio**, add a connector tools step that calls `slack_list_channels` and run it to see the channels. Then call `slack_post_message` to a test channel (see the example below).
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
-
 ## What you can build
 
-Once messaging tools ship, typical patterns will include:
-
-- **Alert routing** — Workflow failure or metric threshold → post formatted message to `#ops-alerts`.
-- **Human task notifications** — **human_task** assigned → Slack DM or channel ping with approve link.
-- **Daily digests** — RSS or Brave news step → LLM summary → morning post to `#team-news`.
-- **Two-way triage** — Incoming Slack events (future) → create ClickUp or GitLab tasks from thread context.
-
-Until tools land, use other connectors (email, webhooks, or project tools) for outbound notifications.
+- **Alert routing.** When a workflow fails or a metric crosses a threshold, call `slack_post_message` to your alerts channel.
+- **Human task notices.** When a **human** step is waiting, post a message so the right person sees it, and reply in the same thread with `slack_reply_to_thread` when it is resolved.
+- **Daily digest.** Gather news or metrics, let an LLM step write a short summary, and post it each morning.
+- **Channel summaries.** Read `slack_get_channel_history` and `slack_get_thread_replies`, then ask an LLM step to summarize decisions or open questions.
 
 ## Tools
 
-_No tools are registered in the current adapter build._
+| Tool | What it does |
+|------|--------------|
+| `slack_post_message` | Post a message to a channel or direct message. Posts to Slack. |
+| `slack_reply_to_thread` | Reply to a message thread. Posts to Slack. |
+| `slack_add_reaction` | Add an emoji reaction to a message. Changes data. |
+| `slack_list_channels` | List public and private channels, or only the channels in your configured list. |
+| `slack_get_channel_history` | Read recent messages from a channel, newest first. |
+| `slack_get_thread_replies` | Read all replies in a thread. |
+| `slack_get_users` | List users in your Slack workspace. |
+| `slack_get_user_profile` | Get one user's profile. |
 
-Planned first-wave tools (subject to change):
+The first three tools write to Slack. The other five only read.
 
-| Tool (planned) | Description |
-|----------------|-------------|
-| `slack_post_message` | Post a message to a channel or thread |
-| `slack_list_channels` | List channels the bot can access |
-| `slack_get_channel_history` | Read recent messages for context |
-| `slack_update_message` | Edit a bot message |
-| `slack_add_reaction` | Add an emoji reaction to a message |
+Parameters:
+
+- `slack_post_message`: `channel_id` (the channel or user ID, such as `C0123456789`) and `text`, both required. Returns the `channel` and message timestamp `ts`.
+- `slack_reply_to_thread`: `channel_id`, `thread_ts` (the parent message's `ts`), and `text`, all required.
+- `slack_add_reaction`: `channel_id`, `timestamp` (the message's `ts`), and `reaction` (the emoji name without colons, such as `thumbsup`), all required.
+- `slack_list_channels`: optional `limit` (default 100, maximum 200) and `cursor` for the next page.
+- `slack_get_channel_history`: `channel_id` (required) and `limit` (default 10). Returns `messages` and `has_more`.
+- `slack_get_thread_replies`: `channel_id` and `thread_ts`, both required. The result includes the parent message.
+- `slack_get_users`: optional `limit` (default 100, maximum 200) and `cursor`.
+- `slack_get_user_profile`: `user_id` (required, such as `U0123456789`).
+
+To find a channel's ID in Slack, open the channel's details; the ID is shown at the bottom of the About tab.
 
 ## Example
 
-Future workflow step (not available until tools ship):
+Post an alert to a channel:
 
 ```json
 {
   "id": "slack-notify",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Notify Slack channel",
+  "instance_id": "YOUR_SLACK_INSTANCE_ID",
   "tool_name": "slack_post_message",
   "tool_args": {
-    "channel": "#deployments",
+    "channel_id": "C0123456789",
     "text": "Deploy {{input.version}} completed successfully."
   },
-  "timeout_s": 15
+  "timeout_s": 30
 }
 ```
 
+In Studio you pick the instance and tool from lists, and Studio fills in `instance_id`.
+
 ## Configuration
+
+These are the settings on the instance's config profile. When you use a connection, give its credential rows the same key names. Published key names carry the `slack_` prefix.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIToken` | Yes | Slack bot OAuth token (`xoxb-...`) with scopes for channels and methods you use |
-
-User tokens (`xoxp-...`) are supported by the schema but bot tokens are recommended for automation.
+| `slack_api_token` | Yes | Slack bot token (`xoxb-`). A user token (`xoxp-`) is also accepted, but a bot token is the safer choice for automation. |
+| `slack_team_id` | See description | Your Slack workspace ID (`T...`). Required for `slack_get_users`, and for `slack_list_channels` when `slack_channel_ids` is empty. |
+| `slack_channel_ids` | No | Comma-separated channel IDs. When set, `slack_list_channels` returns only these channels (skipping archived ones) instead of listing the whole workspace. |
+| `slack_api_base` | No | Slack Web API address. Default `https://slack.com/api`. Normally leave it empty. |
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| No tools in catalog | Expected — adapter is a placeholder until messaging tools are registered |
-| Instance config saves but tool calls fail | No callable tools yet; wait for adapter update or use another notification channel |
-| `not_in_channel` (future) | Invite the bot to the target channel before posting |
-| Invalid token | Regenerate bot token after reinstalling the Slack app to the workspace |
+| `resolved config is missing api_token` | The active profile has no token. Add the `slack_api_token` row to the connection and check the profile is **Active**. |
+| `team_id is required in config` | Add `slack_team_id` to the connection, or for `slack_list_channels` set `slack_channel_ids`. |
+| `Slack API error: not_in_channel` | Invite the bot to the channel with `/invite @YourAppName`. |
+| `Slack API error: channel_not_found` | The `channel_id` is wrong, or the bot cannot see that private channel. Use the channel's ID (usually starting with `C`), not its name, and invite the bot. |
+| `Slack API error: missing_scope` | Add the scope that Slack names in the error under **OAuth & Permissions**, then reinstall the app. |
+| `Slack API error: invalid_auth` or `token_revoked` | The token is wrong or was revoked. Reinstall the app, copy the new token, and use **Rotate** on the connection. |
 
 ## Related
 

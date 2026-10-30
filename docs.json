@@ -70,11 +70,11 @@
           "platform/user-management",
           "platform/roles-permissions",
           "platform/billing-and-credits",
-          "platform/multi-product-billing",
           "platform/analytics",
           "platform/security-and-compliance",
           "platform/referrals-and-affiliates",
           "platform/feature-availability",
+          "platform/limits",
           "platform/troubleshooting"
         ]
       },
@@ -83,22 +83,23 @@
         "icon": "workflow",
         "expanded": true,
         "pages": [
+          "workflows/build-your-first-workflow",
           "workflows/studio",
-          "workflows/json-editor",
-          "workflows/dry-run",
+          "workflows/step-types",
           "workflows/template-intellisense",
+          "workflows/dry-run",
           "workflows/run-setup",
           "workflows/external-triggers",
           "workflows/trigger-run-identity",
-          "workflows/step-types",
-          "workflows/autonomous-episodes",
-          "workflows/conversation-sessions",
           "workflows/command-center",
+          "workflows/human-tasks",
           "workflows/runs-and-command-center",
           "workflows/execution-timeline",
           "workflows/run-recovery",
-          "workflows/human-tasks",
+          "workflows/conversation-sessions",
+          "workflows/autonomous-episodes",
           "workflows/patterns",
+          "workflows/json-editor",
           "workflows/json-schema-cookbook"
         ]
       },
@@ -121,6 +122,7 @@
         "icon": "plug",
         "expanded": true,
         "pages": [
+          "integrations/how-connecting-works",
           "integrations/quickstart",
           "integrations/connections",
           "integrations/mcp-instances",
@@ -129,6 +131,7 @@
           "integrations/authentication",
           "integrations/inbound-webhooks",
           "integrations/inbound-webhook-wizard",
+          "integrations/embedded-connect",
           "integrations/connector-catalog"
         ]
       },

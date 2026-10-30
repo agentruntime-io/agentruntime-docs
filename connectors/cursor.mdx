@@ -1,67 +1,74 @@
 ---
 title: Cursor connector
-description: Launch and manage Cursor cloud agents on GitHub repositories from AgentRuntime workflows.
+description: Launch, monitor, and steer Cursor cloud agents on GitHub repositories from AgentRuntime workflows.
 ---
 
-The **cursor** MCP adapter connects to the [Cursor Cloud Agents API](https://docs.cursor.com/). Launch coding agents against GitHub repos, monitor progress, send follow-up instructions, and optionally auto-open pull requests — useful for delegating implementation work from Workflow Studio or Chat Autopilot.
+The **cursor** connector uses the Cursor cloud agents API. Your workflow can hand a coding task to a Cursor cloud agent working on a GitHub repository, check on its progress, send it follow-up instructions, and ask it to open a pull request.
 
 ## Prerequisites
 
-- A Cursor account with Cloud Agents enabled
-- A Cursor **user API key** from account settings
-- GitHub repositories the Cursor GitHub App can access (or use `open_as_cursor_github_app`)
-- **project_contributor** access in AgentRuntime
+- A Cursor account with cloud agents enabled and a **user API key**.
+- A GitHub repository your Cursor account can access.
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
   <Step title="Create a Cursor API key">
-    In Cursor, open **Settings → API** and generate a user API key. Store it securely — treat it like a password.
+    In your Cursor account settings, create a user API key for the cloud agents API (see the [Cursor documentation](https://docs.cursor.com/)). Copy it and treat it like a password.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`. Set `APIBase` only if Cursor provides a non-default endpoint.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Cursor** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add cursor MCP instance">
-    Go to **MCP**, click **Add instance** for **cursor**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_key` (your Cursor API key). Leave `api_base` empty unless Cursor gave you a different endpoint.. Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="List existing agents">
-    Run **mcp_call** → `list_agents` to confirm the key works before launching production agents.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `cursor_get_me` tool from your **Cursor** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. This tool has no arguments and returns details about the key.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 <Note>
-  Cloud agents run on Cursor infrastructure and modify GitHub repositories. Use **human_task** approval before `launch_agent` in production repos.
+  Cloud agents change code in your repositories. Put a **Human** approval step before `cursor_launch_agent` for production repositories. See [Human tasks](/workflows/human-tasks).
 </Note>
 
 ## What you can build
 
-- **Bug-fix delegation** — Issue triage LLM step → `launch_agent` with repro steps and target repo → poll `find_agent_status` → notify on PR creation.
-- **Refactor batches** — Scheduled workflow launches agents per module with `branch_name` and `auto_create_pr`.
-- **Follow-up loops** — Initial agent run → review output → `add_followup_instruction` with corrections.
-- **Agent housekeeping** — `list_agents` → `delete_agent` for stale or failed runs.
+- **Delegate bug fixes.** A triage step writes a clear prompt, `cursor_launch_agent` starts an agent on the repo, and `cursor_find_agent_status` tells the workflow when it is done.
+- **Refine the result.** After a review step, `cursor_add_followup_instruction` sends corrections to the same agent.
+- **Scheduled chores.** A scheduled workflow launches an agent per module with `auto_create_pr` set to `true` and a `branch_name`.
+- **Housekeeping.** `cursor_list_agents` and `cursor_delete_agent` clear out finished or failed agents.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `launch_agent` | Start a cloud agent on a GitHub repo with prompt, ref, and optional PR settings |
-| `find_agent_status` | Get status and details for an agent by ID |
-| `list_agents` | List cloud agents with pagination |
-| `add_followup_instruction` | Send additional instructions to a running or completed agent |
-| `delete_agent` | Permanently delete a cloud agent |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `cursor_add_followup_instruction` | Write | Add follow-up instructions to an existing Cursor agent. | `agent_id`, `prompt` |
+| `cursor_delete_agent` | Delete | Delete a Cursor cloud agent. | `agent_id` |
+| `cursor_find_agent_status` | Read | Get status and details for a Cursor cloud agent. | `agent_id` |
+| `cursor_get_agent_conversation` | Read | Retrieve conversation history for a Cursor cloud agent. | `agent_id` |
+| `cursor_get_me` | Read | Retrieve metadata for the configured Cursor API key. | — |
+| `cursor_launch_agent` | Write | Launch a Cursor cloud agent on a GitHub repository. | `prompt`, `repository` |
+| `cursor_list_agents` | Read | List Cursor cloud agents. | `limit` |
+| `cursor_list_models` | Read | List AI models available for Cursor cloud agents. | — |
+| `cursor_list_repositories` | Read | List GitHub repositories accessible through the Cursor account. | — |
 
 ## Example
 
-Launch an agent to implement a feature from a workflow input:
+Launch an agent that implements a feature and opens a pull request. `prompt` is an object with a `text` field.
 
 ```json
 {
   "id": "cursor-agent",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Launch Cursor agent",
-  "tool_name": "launch_agent",
+  "tool_name": "cursor_launch_agent",
   "tool_args": {
     "repository": "my-org/my-repo",
     "ref": "main",
@@ -71,7 +78,9 @@ Launch an agent to implement a feature from a workflow input:
     "auto_create_pr": true,
     "branch_name": "agent/{{input.ticket_id}}"
   },
-  "depends_on": ["human-approve"],
+  "depends_on": [
+    "human-approve"
+  ],
   "timeout_s": 120
 }
 ```
@@ -80,21 +89,23 @@ Launch an agent to implement a feature from a workflow input:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | Cursor user API key |
-| `APIBase` | No | Cursor API base URL |
+| `api_key` | Yes | Cursor user API key. |
+| `api_base` | No | Cursor API base URL. Default `https://api.cursor.com`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| Agent cannot access repo | Install Cursor GitHub App on the org/repo or set `open_as_cursor_github_app` |
-| Webhook signature errors | `webhook_secret` must be at least 32 characters when set |
-| Agent stuck in pending | Poll `find_agent_status`; check Cursor dashboard for quota or repo errors |
-| PR not created | Confirm `auto_create_pr` is true and the agent completed successfully |
+| Problem | What to do |
+|---------|------------|
+| The agent cannot reach the repository | Check the `repository` value (a GitHub URL or `owner/repo`) and that your Cursor account has access to it. You can also set `open_as_cursor_github_app` to `true`. |
+| "webhook_secret must be at least 32 characters" | If you set `webhook_secret`, use a value of 32 characters or more. |
+| The agent seems stuck | Poll `cursor_find_agent_status` and check your Cursor account for quota or repository errors. |
+| No pull request appears | Set `auto_create_pr` to `true` when you launch the agent, and check that the agent finished successfully. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Human tasks](/workflows/human-tasks) — approval before launching agents
+- [Human tasks](/workflows/human-tasks) for approval before launching agents
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

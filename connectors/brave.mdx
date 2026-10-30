@@ -1,61 +1,66 @@
 ---
 title: Brave Search connector
-description: Web, news, image, video, and local search plus AI summaries via the Brave Search API.
+description: Search the web, news, images, videos, and local places with the Brave Search API, plus AI summaries and LLM-ready page content.
 ---
 
-The **brave** MCP adapter connects to the [Brave Search API](https://brave.com/search/api/). Run privacy-focused web searches, fetch news and media results, look up local businesses, and generate AI summaries from search keys — useful for research, monitoring, and grounded agent responses.
+The **brave** connector gives your workflows access to the [Brave Search API](https://brave.com/search/api/). Use it to research a topic, watch the news for a keyword, find local businesses, or feed fresh web content to an LLM step, all with an independent search index.
 
 ## Prerequisites
 
-- A Brave Search API subscription and **API key** (X-Subscription-Token)
-- **project_contributor** access in AgentRuntime
+- A Brave Search API subscription and its **API key** (sent to Brave as the `X-Subscription-Token`).
+- The **project_contributor** role or higher in your workspace, which lets you manage connections and MCP instances. See [Roles and permissions](/platform/roles-permissions).
 
 ## Connect in AgentRuntime
 
 <Steps>
-  <Step title="Subscribe to Brave Search API">
-    Sign up at [brave.com/search/api](https://brave.com/search/api/) and copy your subscription token from the dashboard.
+  <Step title="Get a Brave Search API key">
+    Sign up at [brave.com/search/api](https://brave.com/search/api/), choose a plan, and create an API key in the Brave API dashboard. Copy the key.
   </Step>
-  <Step title="Create a connection">
-    Go to **Connections** and click **New custom connection** to create an API key connection with `APIKey`.
+  <Step title="Add the connector to your workspace">
+    Click **MCP** in the sidebar, then **Add connectors**. Find **Brave Search** in the **App catalog**, select it, and click **Add to workspace**. The instance now appears on the **MCP connectors** page. See [MCP instances](/integrations/mcp-instances).
   </Step>
-  <Step title="Add brave MCP instance">
-    Go to **MCP**, click **Add instance** for **brave**, wire your connection on **Instance config**, set the profile **active**, and save.
+  <Step title="Add your credentials to a profile">
+    Open the new instance to reach **Instance config**. Under **Profiles for this connector**, click **New profile**, enter a **Display name**, and on the **Type secrets on this screen** tab fill in `api_key` (your Brave API key). Leave `api_base` empty.. Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**.
   </Step>
-  <Step title="Test web search">
-    Run **mcp_call** → `brave_web_search` with a simple query to confirm the token works.
+  <Step title="Test it">
+    In **Workflow Studio**, add the `brave_web_search` tool from your **Brave Search** instance (use **Browse platform MCP** if it is not listed), fill in its arguments, and run the workflow. A successful step means the connection works. A simple `query` such as `"AgentRuntime"` is enough.
   </Step>
 </Steps>
 
-See [Authentication](/integrations/authentication) for binding connections to MCP instances.
+<Note>
+  To reuse the same credentials in more than one profile, save them first under **Connections** → **New custom connection**, using the exact key names from [Configuration](#configuration), then choose **Use a saved connection** on the profile instead.
+</Note>
 
 ## What you can build
 
-- **News digests** — `brave_news_search` with `freshness=pd` → LLM summarizes top stories → post to Slack or email.
-- **Research with summary** — `brave_web_search` with `summary=true` → pass summary key to `brave_summarizer` for inline citations.
-- **Local lead gen** — `brave_local_search` for businesses near a query → enrich with CRM connector.
-- **Media monitoring** — `brave_image_search` or `brave_video_search` for brand or product mentions.
-- **Filtered web search** — `result_filter`, `goggles`, and `freshness` for precise result sets.
+- **News digest.** `brave_news_search` with `freshness` set to `pd` (past day) feeds an LLM step that writes a summary you post to Slack or email.
+- **Research with citations.** `brave_web_search` with `summary` set to `true` returns a key; pass it to `brave_summarizer` for an AI summary with inline references.
+- **Grounding for agents.** `brave_llm_context` returns page content prepared for LLM use, so an agent can answer from current web sources.
+- **Local lead lists.** `brave_local_search` or `brave_place_search` finds businesses near a query or coordinates, ready to enrich in your CRM connector.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `brave_web_search` | General web search; set `summary=true` to obtain a key for the summarizer |
-| `brave_summarizer` | AI summary from a prior web search summary key |
-| `brave_news_search` | News articles (defaults to past day when freshness omitted) |
-| `brave_local_search` | Local businesses and places with POI details |
-| `brave_image_search` | Image search results |
-| `brave_video_search` | Video search results |
+The **Required arguments** column lists the fields the tool's input schema marks as required. Some of them are optional in practice; if you have nothing to set, pass an empty value such as `""`, `[]`, `{}`, or `false`.
+
+| Tool | Access | What it does | Required arguments |
+|------|--------|-------------|--------------------|
+| `brave_image_search` | Read | Search for images with the Brave Search API. | `query` |
+| `brave_llm_context` | Read | Retrieve pre-extracted web content for RAG via Brave LLM Context API. | `query` |
+| `brave_local_search` | Read | Search for local businesses and places with Brave (web search plus local POI enrichment). | `query` |
+| `brave_news_search` | Read | Search for current news articles with the Brave Search API. | `query` |
+| `brave_place_search` | Read | Search points of interest via Brave Place Search API. | — |
+| `brave_summarizer` | Write | Generate a Brave AI summary from a web-search summary key. | `key` |
+| `brave_video_search` | Read | Search for videos with the Brave Search API. | `query` |
+| `brave_web_search` | Read | Run a web search with the Brave Search API. | `query` |
 
 ## Example
 
-Fetch today's news on a topic:
+Fetch news from the past day on a topic.
 
 ```json
 {
   "id": "brave-news",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Fetch news",
   "tool_name": "brave_news_search",
   "tool_args": {
@@ -72,21 +77,23 @@ Fetch today's news on a topic:
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `APIKey` | Yes | Brave Search API subscription token |
-| `APIBase` | No | Brave Search API base URL |
+| `api_key` | Yes | Brave Search API subscription token. |
+| `api_base` | No | Brave Search API base URL. Default `https://api.search.brave.com`. |
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `401` / invalid token | Verify subscription is active; key goes in `APIKey` as X-Subscription-Token |
-| Summarizer fails | Run `brave_web_search` with `summary=true` first; pass the returned key to `brave_summarizer` |
-| Empty local results | Query may be too broad; local search depends on Brave location data availability |
-| Unexpected result types | Use `result_filter` on web search to limit to `web`, `news`, `videos`, etc. |
+| Problem | What to do |
+|---------|------------|
+| `401` or "invalid subscription token" | Check that your Brave plan is active and that `api_key` holds the key from the Brave API dashboard. |
+| `brave_summarizer` fails | It does not search by itself. Run `brave_web_search` with `summary` set to `true` first and pass the returned key as `key`. |
+| Results are the wrong type | On `brave_web_search`, use `result_filter` (for example `web`, `news`, `videos`) to limit the result types. |
+| Results are too old | Set `freshness`, for example `pd` for the past day or `pw` for the past week. |
 
 ## Related
 
+- [MCP instances](/integrations/mcp-instances)
+- [Connections](/integrations/connections)
 - [Integrations quickstart](/integrations/quickstart)
-- [Exa connector](/connectors/exa) — semantic web search
+- [Exa connector](/connectors/exa) for semantic web search
 - [Connector catalog](/integrations/connector-catalog)
 - [Troubleshooting](/platform/troubleshooting)

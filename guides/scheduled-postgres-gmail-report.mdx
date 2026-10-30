@@ -1,40 +1,40 @@
 ---
 title: Scheduled Postgres → Gmail report
-description: Query Postgres on a schedule, summarize results with an LLM, and email stakeholders via Gmail.
+description: Every week, query Postgres, have an LLM write a short summary, and email it with Gmail.
 ---
 
-Send a **weekly operational report** pulled from Postgres, narrated by an LLM, and delivered by Gmail. AgentRuntime does not run cron internally — an external scheduler fires an [inbound webhook](/integrations/inbound-webhooks) or API call on your timetable.
+In this guide you build a **weekly report** that runs by itself. It reads numbers from your Postgres database, asks an LLM to turn them into a short written summary, and emails it to your team from your Gmail account.
 
-## What you'll build
+It is for ops, finance, and product teams who want a regular report without anyone building it by hand. It takes about 30 minutes.
 
 ```mermaid
 flowchart LR
-  Cron[External cron] -->|POST| WH[Inbound webhook]
-  WH --> Query[postgres_query]
-  Query --> LLM[llm_call narrative]
-  LLM --> Email[gmail send_email]
+  Cron[Cron schedule] --> Query[postgres_query]
+  Query --> LLM[LLM summary]
+  LLM --> Email[gmail_send_email]
 ```
 
-**Outcome:** Every Monday morning, finance or ops receives a Gmail message with KPIs and plain-language commentary sourced from your database.
+**Outcome:** every Monday morning, the people you choose receive an email with your key numbers and a plain-language summary.
 
 ## Prerequisites
 
-- **project_contributor** access
-- [Postgres connection](/connectors/postgres) with read-only user for reporting queries
-- [Google connection](/integrations/google-workspace) with Gmail enabled
-- LLM provider in **Providers**
-- External scheduler (GitHub Actions, Cloud Scheduler, cron) that can POST to your webhook URL weekly
+- The `project_contributor` role
+- A [Postgres connection](/connectors/postgres), ideally with a read-only database user
+- A [Google connection](/integrations/google-workspace) with Gmail turned on
+- A model your workspace can use. See [LLM providers](/ai/llm-providers)
 
 ## Connectors to install
 
 | Adapter | Purpose |
 |---------|---------|
-| [postgres](/connectors/postgres) | Run reporting SQL |
-| [gmail](/connectors/gmail) | Send email from your Google account |
+| [postgres](/connectors/postgres) | Run the report query |
+| [gmail](/connectors/gmail) | Send the email from your Google account |
+
+Install each from **MCP → Add connectors** (click the connector, then **Add to workspace**) and connect it on **Instance config**.
 
 ## Example report query
 
-Adjust to your schema — this example aggregates orders:
+Change this to fit your tables. This one totals the last seven days of orders:
 
 ```sql
 SELECT
@@ -50,33 +50,39 @@ ORDER BY 1 DESC;
 ## Build the workflow
 
 <Steps>
-  <Step title="Create workflow">
+  <Step title="Create the workflow">
     Name it `weekly-ops-report` in **Workflow Studio**.
   </Step>
   <Step title="Query Postgres">
-    **mcp_call** → `postgres_query` with your weekly SQL. Use a read-only DB user.
+    Add an `mcp` step with `postgres_query` and your SQL. `postgres_query` only allows read queries.
   </Step>
-  <Step title="LLM narrative">
-    **llm_call** turns row JSON into an executive summary with highlights and anomalies.
+  <Step title="Write the summary">
+    Add an **LLM** step that turns the rows into a short summary with highlights and anything unusual.
   </Step>
-  <Step title="Send via Gmail">
-    **mcp_call** → `send_email` to distribution list with subject line including the week ending date.
+  <Step title="Send the email">
+    Add an `mcp` step with `gmail_send_email` to your distribution list.
   </Step>
-  <Step title="Schedule">
-    Configure external cron to POST `{}` or `{"report_week": "2026-W23"}` to your inbound webhook each Monday 08:00 UTC.
+  <Step title="Test it">
+    Start a manual run. **What you should see:** the run succeeds and the email arrives.
   </Step>
-  <Step title="Optional approval">
-    Insert **human_task** between LLM and Gmail for regulated reports — see [Approve then send](/workflows/patterns#approve-then-send).
+  <Step title="Schedule it">
+    Open **Workflow setup → Cron**, choose the **Weekly Mon 09:00** preset (or type a **Cron (5-field)** expression such as `0 8 * * 1`), choose a **Timezone**, choose an **Automation API key**, and click **Add schedule**.
+  </Step>
+  <Step title="Optional: add approval">
+    For reports that need a sign-off, add a `human` step between the LLM and Gmail steps. See [Approve then send](/workflows/patterns#approve-then-send).
   </Step>
 </Steps>
+
+**What you should see after step 6:** the schedule under **Active schedules**, with the cron expression, timezone, and time of the next run. See [External triggers](/workflows/external-triggers#cron-schedules).
 
 ### Query step
 
 ```json
 {
   "id": "weekly-metrics",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Fetch weekly KPIs",
+  "instance_id": "REPLACE_POSTGRES_INSTANCE",
   "tool_name": "postgres_query",
   "tool_args": {
     "sql": "SELECT DATE_TRUNC('week', created_at) AS week, COUNT(*) AS order_count, SUM(total)::numeric(12,2) AS revenue FROM orders WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY 1 ORDER BY 1 DESC"
@@ -91,9 +97,9 @@ ORDER BY 1 DESC;
 ```json
 {
   "id": "write-summary",
-  "type": "llm_call",
+  "type": "llm",
   "name": "Executive summary",
-  "model": "gpt-4o-mini",
+  "model_ref": "REPLACE_MODEL_REF",
   "prompt": "You are a business analyst. Given this weekly metrics JSON from our database, write a concise email body (plain text, 3-5 short paragraphs) for leadership. Call out week-over-week changes if visible. Data: {{steps.weekly-metrics.result.rows}}",
   "depends_on": ["weekly-metrics"],
   "timeout_s": 120
@@ -105,12 +111,13 @@ ORDER BY 1 DESC;
 ```json
 {
   "id": "send-report",
-  "type": "mcp_call",
+  "type": "mcp",
   "name": "Email weekly report",
-  "tool_name": "send_email",
+  "instance_id": "REPLACE_GMAIL_INSTANCE",
+  "tool_name": "gmail_send_email",
   "tool_args": {
-    "to": "leadership@example.com",
-    "subject": "Weekly ops report — week ending {{input.report_week}}",
+    "to": ["leadership@example.com"],
+    "subject": "Weekly ops report",
     "body": "{{steps.write-summary.result.text}}"
   },
   "depends_on": ["write-summary"],
@@ -118,20 +125,20 @@ ORDER BY 1 DESC;
 }
 ```
 
-## Full workflow graph (copy-paste)
+`to` is a list of addresses. Add `"body_type": "html"` if the body is HTML. The default is plain text.
 
-Bind your `postgres` and `gmail` MCP instances. Adjust the SQL and recipient list before publishing.
+## Full workflow
+
+Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE_POSTGRES_INSTANCE` and `REPLACE_GMAIL_INSTANCE` with the ids of your instances, and `REPLACE_MODEL_REF` with a model from your [Providers](/ai/llm-providers) catalog. Change the SQL and the recipients first.
 
 ```json
 {
-  "tenant_id": "your-workspace-slug",
-  "workflow_id": "550e8400-e29b-41d4-a716-446655440040",
-  "params": {},
   "steps": [
     {
       "id": "weekly-metrics",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Fetch weekly KPIs",
+      "instance_id": "REPLACE_POSTGRES_INSTANCE",
       "tool_name": "postgres_query",
       "tool_args": {
         "sql": "SELECT DATE_TRUNC('week', created_at) AS week, COUNT(*) AS order_count, SUM(total)::numeric(12,2) AS revenue FROM orders WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY 1 ORDER BY 1 DESC"
@@ -141,21 +148,22 @@ Bind your `postgres` and `gmail` MCP instances. Adjust the SQL and recipient lis
     },
     {
       "id": "write-summary",
-      "type": "llm_call",
+      "type": "llm",
       "name": "Executive summary",
-      "model": "gpt-4o-mini",
+      "model_ref": "REPLACE_MODEL_REF",
       "prompt": "You are a business analyst. Given this weekly metrics JSON from our database, write a concise email body (plain text, 3-5 short paragraphs) for leadership. Call out week-over-week changes if visible. Data: {{steps.weekly-metrics.result.rows}}",
       "depends_on": ["weekly-metrics"],
       "timeout_s": 120
     },
     {
       "id": "send-report",
-      "type": "mcp_call",
+      "type": "mcp",
       "name": "Email weekly report",
-      "tool_name": "send_email",
+      "instance_id": "REPLACE_GMAIL_INSTANCE",
+      "tool_name": "gmail_send_email",
       "tool_args": {
-        "to": "leadership@example.com",
-        "subject": "Weekly ops report — week ending {{input.report_week}}",
+        "to": ["leadership@example.com"],
+        "subject": "Weekly ops report",
         "body": "{{steps.write-summary.result.text}}"
       },
       "depends_on": ["write-summary"],
@@ -165,36 +173,24 @@ Bind your `postgres` and `gmail` MCP instances. Adjust the SQL and recipient lis
 }
 ```
 
-Trigger weekly via inbound webhook or `POST /v1/workflows/{id}/command` with `{ "command": "start", "params": { "report_week": "2026-W23" } }`.
+## Common problems
 
-## Schedule with GitHub Actions (example)
-
-```yaml
-name: Weekly report trigger
-on:
-  schedule:
-    - cron: "0 8 * * 1"
-jobs:
-  trigger:
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          curl -X POST "$WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -d '{"report_week": "'"$(date +%G-W%V)"'"}'
-```
-
-Store the webhook URL and signing headers per [Inbound webhooks](/integrations/inbound-webhooks).
+| Problem | What to check |
+|---------|---------------|
+| The query step fails | The SQL has an error, the table does not exist, or the connection is not wired on the instance |
+| `postgres_query only allows SELECT/CTE queries` | The report must be a `SELECT` or `WITH` query |
+| The email is not sent | Gmail is not turned on for the Google connection, or `to` is not a list |
+| The schedule never runs | Check **Active schedules** for the next run time and timezone, and that the schedule has an **Automation API key** |
+| The summary invents numbers | Tell the LLM in the prompt to use only the data given |
 
 ## Variations
 
-- Export raw CSV with `postgres_query` → attach via a future file step, or write to [Google Sheets](/connectors/google-sheets) with `insert_multiple_rows`.
-- Swap Gmail for [Resend](/connectors/resend) for transactional sending from a verified domain.
-- Chain multiple queries (revenue, support tickets, churn) before one LLM step.
+- Write the rows to [Google Sheets](/connectors/google-sheets) with `google_sheets_insert_multiple_rows`.
+- Send with [Resend](/connectors/resend) (`resend_send_email`) from a verified domain.
+- Run several queries (revenue, support tickets, churn) before one LLM step.
 
-## Related
+## Next steps
 
-- [Postgres connector](/connectors/postgres)
-- [Gmail connector](/connectors/gmail)
-- [Workflow patterns — scheduled report](/workflows/patterns#inbound-webhook-triggers)
+- [Postgres connector](/connectors/postgres) and [Gmail connector](/connectors/gmail)
+- [External triggers](/workflows/external-triggers): schedules, webhooks, and events
 - [All guides](/guides/overview)

@@ -1,67 +1,105 @@
 ---
 title: Dry-run validation
-description: Compile-time workflow validation before you run — what it checks and what it does not.
+description: Check a workflow for mistakes before you run it. What a dry-run checks, what it cannot prove, and how to fix its messages.
 ---
 
-Dry-run (**Validate** in Workflow Studio) checks that your graph is **well-formed** before execution. It does not run tools or call models.
+A **dry-run** checks that your workflow is well-formed. It does not call any tool or model, and it does not run your steps. It is the quickest way to catch typos, missing connections, and broken `{{…}}` templates.
 
-## Compile vs execute
+**Who this is for:** anyone building a workflow in [Workflow Studio](/workflows/studio).
+
+**What you will do:** run a dry-run, read its messages, and fix them.
+
+## Run a dry-run
+
+<Steps>
+  <Step title="Open the workflow">
+    Open your workflow in Workflow Studio. If it needs start input, click **Setup** and fill in the values on the **Manual** tab. A dry-run checks `{{input.*}}` templates against these values.
+  </Step>
+  <Step title="Click Dry-run">
+    Click **Dry-run** in the toolbar. The run panel opens on the **Dry Run** tab.
+
+    You should see a pass or fail result (for example **Dry-run failed** with **1 error**), the **Checks performed**, the **Run order**, and **Issues by step**. Each issue shows the step's id, a code such as `template_unknown_step`, and a message. **Copy report** and **JSON** at the top right copy or show the full report.
+
+    <Frame caption="A failed dry-run: the Review the reply step refers to a step called writer that does not exist">
+      <img src="/images/workflows/dry-run-failed.png" alt="The Dry Run tab showing Dry-run failed with 1 error, the checks performed, the run order, and one issue, template_unknown_step: template references unknown step writer" />
+    </Frame>
+  </Step>
+  <Step title="Fix and repeat">
+    Fix the issues, then click **Dry-run** again.
+  </Step>
+</Steps>
+
+<Note>
+  A dry-run is advice. Saving, running, and publishing are still allowed when it reports problems. The **Dry Run** tab shows the latest check of the **current canvas**. It is not a replay of the run you have selected, so a past run can show **Success** while the Dry Run tab shows errors from a later edit.
+</Note>
+
+## Compile versus run
 
 | | Dry-run | Run |
-|---|---------|-----|
-| Purpose | Compile the workflow | Execute the workflow |
-| Calls MCP / LLM | No | Yes |
+|---|---|---|
+| Purpose | Check the workflow | Do the work |
+| Calls tools and models | No | Yes |
 | Produces step outputs | No | Yes |
 
-## What dry-run checks
+## What a dry-run checks
 
-- Graph structure and step configuration
-- Dependency cycles and broken `depends_on` links
-- Template **syntax** and **wiring** (`{{steps.*}}` points to a real upstream step)
-- `{{input.*}}` resolves against your **run setup** / start params when provided
-- Lua syntax
-- MCP instance bindings
+- The graph and each step's required fields
+- Fields that do not exist on a step (typos)
+- `depends_on` links that point nowhere, and loops in the dependencies
+- Template syntax, and that `{{steps.<id>…}}` points at a step this step depends on
+- That `{{input.*}}` values resolve from the start input you provided
+- That Lua scripts compile, and that they return a table
+- That each tool step has an MCP instance or server, and that its arguments fit the tool's input schema
+- Disabled steps (shown as a warning)
 
-## Template variables
+## What a dry-run cannot prove
+
+- That a tool, database, or model call will succeed
+- That a Lua script handles every possible input
+- That a child workflow is valid. Dry-run each child workflow on its own.
+
+## Template variables in a dry-run
 
 ### `{{input.*}}`
 
-Validated against start input (`trigger_payload`, `trigger_steps`). If you reference `{{input.email}}` but did not provide `email` in run setup, dry-run fails.
+Checked against your start input. If a step uses `{{input.email}}` and you gave no `email`, the dry-run fails.
 
 ### `{{steps.<step-id>.…}}`
 
-Dry-run checks that the referenced step exists and is wired in `depends_on`. It does **not** require that upstream step has already produced data — that only happens during a real run.
+The dry-run checks that the step exists and that this step depends on it (directly or further up). It does not need that step to have produced anything, because nothing has run yet. The same goes for loop variables such as `{{foreach.item}}` and `{{while.prev…}}`.
 
-Inside **`for_each`** / **`while`** steps, loop-scope templates (`{{foreach.item}}`, `{{body.prep.item}}`, `{{while.prev.score.feedback}}`, etc.) are also compile-only at dry-run — runtime provides that scope when the loop runs.
+## Fix common messages
 
-Example chain that **passes** dry-run when wired correctly:
+| Message | Likely cause | What to do |
+|---|---|---|
+| `template_unresolved` mentioning `steps['…']` | Bracket syntax inside `{{…}}` | Use dot syntax with the step `id`: `{{steps.<step-id>.result.field}}`. See [Template intellisense](/workflows/template-intellisense#mustache-vs-lua-steps). |
+| `template_unresolved` on `{{input.x}}` | The start input has no `x` | Add it under **Setup**, or give a default: `{{input.x \| "default"}}`, or `{{input.x \| omit}}` to leave it out |
+| `template_unknown_step` | A template names a step id that is not in the workflow, for example `{{steps.writer.result.text}}` when no step has the id `writer` | Use the id of a step that exists (not its display name), and connect it with `depends_on` |
+| `template_missing_dependency` | The step you read is not in this step's `depends_on` | Draw the connection, or add the id to `depends_on` |
+| `for_each_items_unresolved` or `for_each_items_invalid` | The loop's list did not resolve | Provide the missing input, or return the list from the step before it (`return { items = items }`) |
+| `graph_schema_validation` | A step has a field that does not exist, or one of the wrong type | Check the field name against [Step types](/workflows/step-types) |
+| `lua_fixture_return_type` | A Lua script did not return a table | End the script with `return { ... }` |
+| `mcp_tool_input_schema_unavailable` | The tool's input schema could not be loaded | Check the tool's connection, then dry-run again |
+| `mcp_tool_arg_deferred` (warning) | A tool argument still holds a `{{…}}` | Fine: it is checked when the step runs |
+| `workflow_call_child_target` | A `workflow` step has a `child_target` that is not empty, `"published"`, or a version number | Fix the value |
 
-```
-RSS fetch → LLM (uses {{steps.rss.result.items}}) → Lua → Gmail (uses {{steps.lua.result.html}})
-```
-
-A successful run will not be contradicted by dry-run errors on those `steps.*` references alone.
-
-### When dry-run reports `template_unresolved`
-
-The issue means the validator still sees literal `{{…}}` text (or required `{{input.*}}` could not be satisfied). Common fixes:
-
-| Symptom | Likely cause | What to do |
-|---------|--------------|------------|
-| Message mentions `steps['…']` or `steps["…"]` | Bracket syntax inside `{{…}}` | Use dot form: `{{steps.<step-id>.result.field}}` with the graph **Step ID**, not the display name ([details](/workflows/template-intellisense#mustache-vs-lua-steps)) |
-| `{{input.*}}` on a required field | Key missing from **Run setup** | Add the field under shared/per-step start input, or use a pipe default / `\| omit` |
-| Correct dot path to an upstream step | Missing dependency or typo in step id | Confirm the step exists and appears in `depends_on` / canvas wiring |
-
-Each issue includes a **suggestion** line in the Dry Run panel when the engine can infer the fix. **`steps.*`** templates with valid dot syntax are **compile-only** at dry-run (upstream output is not required to validate).
-
-## Dry Run tab vs run history
-
-The execution panel **Dry Run** tab shows the latest validation for the **current graph**, not a replay of the selected run. A green **Success** badge on a past run and red dry-run errors can both be correct: the run worked; the validation summary may be from a separate Validate click or a stricter check on the canvas.
-
-## API
+## Check from the API
 
 ```
 POST /v1/workflows/{workflow_id}/validate
 ```
 
-Returns `valid`, `checks_performed`, and `issues` with step ids and codes.
+Send the graph in `graph` and your start input in `params.trigger_payload`. The response has `valid`, `readiness` (`ready` or `blocked`), `blockers`, `checks_performed`, and `issues` with step ids and codes. `blocked` is advice: it tells you something could not be checked, for example a tool without a loadable input schema.
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| Everything fails on `{{input.*}}` | You have not filled in **Setup** yet. Add start input and dry-run again. |
+| The dry-run is green but the run fails | Dry-run does not call tools. Read the failed step's error in **Events**. |
+
+## Next steps
+
+- [Template intellisense](/workflows/template-intellisense)
+- [Step types](/workflows/step-types)
+- [Runs and observability](/workflows/runs-and-command-center)

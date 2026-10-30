@@ -1,115 +1,79 @@
 ---
 title: Custom MCP servers
-description: Register third-party MCP servers you operate and use them in workflow mcp_call steps.
+description: Register an MCP server that you run yourself and use its tools in your workflows.
 ---
 
-Most teams install connectors from the **platform catalog** (Gmail, Postgres, GitHub, and 40+ Go adapters). When you operate your own **Model Context Protocol** server — internal tools, a partner API wrapper, or a locally hosted adapter — register it as a **workspace-owned** MCP server and add an instance like any other connector.
+Most teams add connectors from the catalog. If you run your own **MCP server** (a service that exposes tools over the Model Context Protocol), you can register it and use its tools in workflows like any other connector. This page is for developers or admins who operate such a server.
 
-## Platform vs custom
+## Before you begin
 
-| Type | Who publishes | How you install |
-|------|---------------|-----------------|
-| **Platform catalog** | AgentRuntime operators | **MCP → Add connectors** → **Add instance** on a catalog row |
-| **Custom (third-party)** | Your workspace | **MCP → Add connectors** → **Add connector** → register URL you operate |
+- The **project_contributor** role or higher (MCP write permission).
+- An MCP server reachable at a URL, using streamable HTTP, for example `https://tools.example.com/mcp`.
+- At least one tool exposed by the server. Registration stops with "No tools discovered" if the server returns none.
 
-Custom servers create an `mcp_servers` row scoped to your workspace. You still wire **connections** on **Instance config** profiles when tools need credentials.
-
-## Requirements
-
-Your MCP server must:
-
-- Speak MCP over **HTTP** at a stable URL (for example `https://tools.example.com/mcp`)
-- Expose tools with JSON **input** and **output** schemas
-- Be reachable from AgentRuntime's runtime network (public HTTPS or allowlisted private endpoint)
-- Return at least one tool on **discover** — empty catalogs fail registration
-
-For greenfield servers, the AgentRuntime MCP SDK packages (`agentruntime-mcp` for Python, `agentruntime-mcp-go` for Go) provide router helpers compatible with platform discovery.
-
-<Warning>
-  Custom MCP registration is **not** the same as **Platform MCP** (`mcp.agentruntime.io`) for IDE automation. Platform MCP wraps Console REST APIs. Custom servers are **project tool servers** for workflow `mcp_call` steps.
-</Warning>
-
-## Register in the Console
+## Register the server
 
 <Steps>
-  <Step title="Open MCP connectors">
-    Go to **MCP** (`/mcp`) and click **Add connectors**.
+  <Step title="Open the catalog">
+    Go to **MCP** and click **Add connectors**. The **App catalog** opens.
   </Step>
-  <Step title="Add connector">
-    In the marketplace modal, click **Add connector** (not **Add instance** on a platform row). This opens the registration wizard.
+  <Step title="Start registration">
+    In the left column, click **Add connector** (not **Add to workspace**). The **Add MCP connector** dialog opens.
   </Step>
-  <Step title="Register server">
-    Enter **Name**, **Server URL** (`canonical_url`), and optional **Description**. Click **Register →**.
+  <Step title="Fill in the form">
+    - **Name** — required, for example `Resend MCP`.
+    - **MCP URL** — required. The address of your server's MCP endpoint.
+    - **Bridge vendor** — leave on **Auto-detect from URL** unless you know you need another option: **Grafana (URL + token headers)**, **Google / Gmail (bearer token)**, or **Custom (no auth mapping)**.
+    - **Description (optional)**.
+
+    Click **Register →**.
   </Step>
-  <Step title="Discover tools">
-    AgentRuntime calls your server and imports the tool catalog and config schema. If discovery returns zero tools, check that the URL is correct and the MCP endpoint is running.
+  <Step title="Watch the progress">
+    The dialog lists six steps: **Register server**, **Discover tools**, **Review catalog**, **Publish & activate**, **Validate connector**, and **Add workspace instance**. After discovery you can review the tools. The dialog continues by itself after a few seconds; click **Hold** to pause and look at the list.
   </Step>
-  <Step title="Review catalog">
-    Review discovered tools (name, input/output shape). Use **Hold** to inspect the list, or wait for the countdown to continue automatically.
-  </Step>
-  <Step title="Publish and activate">
-    The wizard publishes version `1.0.0`, runs **validation checks**, and creates a **workspace instance**.
-  </Step>
-  <Step title="Configure credentials">
-    Open **Instance config** (`/mcp/instances/{instance_id}`). On the active profile, wire a [connection](/integrations/connections) if tools need API keys or OAuth tokens.
-  </Step>
-  <Step title="Use in Workflow Studio">
-    Add an **mcp_call** step, select your instance, and pick a tool from the discovered catalog.
+  <Step title="Open the instance">
+    When it finishes you see **Open instance →** and **Open server** links. Open the instance to attach credentials if your server needs them.
   </Step>
 </Steps>
 
-On success, the wizard offers **Open instance →** and **Open server** links. Server-level health checks live at `/mcp/{server_id}/validate`.
+You should now see the instance on **MCP connectors**, under your own MCP servers. Use it in **Workflow Studio** with an MCP step, as described in [MCP instances](/integrations/mcp-instances).
 
-## Register via API
+If registration stops partway, the server appears under **Setup incomplete** on the **MCP connectors** page. Click **Manage setup** to fix the URL and finish discovery and publishing.
 
-Requires **project_contributor**:
+## Credentials
 
-```
-POST /v1/mcp/servers
-```
+Whether your server needs credentials depends on the server.
 
-```json
-{
-  "name": "Internal tools MCP",
-  "canonical_url": "https://tools.example.com/mcp",
-  "description": "CRM and billing helpers",
-  "mode": "third_party",
-  "auth_mode": "token"
-}
-```
+- **Credentials stored in AgentRuntime:** save them as a [connection](/integrations/connections) and attach it to the instance's active profile, as with any connector. For Grafana, choose the **Grafana** bridge vendor; the instance then asks for the Grafana URL and a service account token.
+- **Your server checks its own tokens:** there may be nothing to attach. Run a test workflow to confirm.
 
-Then discover, publish a version, validate, and create an instance:
+Do not put secrets in workflow graphs or scripts.
 
-| Step | Endpoint |
-|------|----------|
-| Discover tools | `POST /v1/mcp/servers/{id}/discover` |
-| Publish version | `POST /v1/mcp/servers/{id}/versions` with `tools`, `config_schema`, `activate: true` |
-| Validate | `POST /v1/mcp/servers/{id}/validate` |
-| Add instance | `POST /v1/mcp/instances` with `{ "server_id": "…" }` |
+## API
 
-See [API examples — MCP](/api/examples#register-a-custom-mcp-server) for full request/response samples.
+You can also manage servers through the API. These routes require MCP write (or read, for discovery) permission:
 
-## Auth and connections
+| Action | Request |
+|--------|---------|
+| Create a server | `POST /v1/mcp/servers` |
+| Discover tools | `GET /v1/mcp/servers/{id}/discover` |
+| Publish a version | `POST /v1/mcp/servers/{id}/versions` |
+| Run validation | `POST /v1/mcp/servers/{id}/validate` |
+| Add an instance | `POST /v1/mcp/instances` |
 
-The registration wizard defaults to `auth_mode: "token"`. Credential delivery depends on your server:
+The Console wizard is the easiest route because it also sets up routing for you. See [API examples](/api/examples#register-a-custom-mcp-server) and the [API reference](/api/reference#mcp).
 
-- **Connection-backed** — Store secrets in **Connections**, bind on the instance's active config profile (`source_spec`). Preferred for API keys and OAuth refresh tokens.
-- **Server-side auth** — If your MCP server validates its own tokens at the HTTP layer, you may not need per-instance wiring (still validate in a test run).
+## Common problems
 
-Do not embed secrets in workflow graphs or Lua scripts.
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| **No tools discovered** | Confirm URL, TLS, and that the MCP handshake returns tools. Test with curl from your network. |
-| **Validation failed** | Open `/mcp/{server_id}/validate` for per-check messages (reachability, schema, smoke call). |
-| **Tools missing in Workflow Studio** | Ensure the instance exists and the active config profile is set. Save and re-open the workflow. |
-| **401 / 403 at runtime** | Wire the correct connection on **Instance config** or fix server-side auth. |
+| Problem | What to do |
+|---------|------------|
+| "No tools discovered" | Check the **MCP URL**, that the server is running, and that it lists at least one tool. |
+| A validation check fails | Open `/mcp/{server_id}/validate` and click **Run checks**. Each check shows its message. |
+| Tools are missing in Workflow Studio | Make sure the instance exists and has an **active** profile. Reload the workflow. |
+| 401 or 403 at run time | Attach the right connection to the profile, or fix your server's own authentication. |
 
 ## Related
 
 - [MCP instances](/integrations/mcp-instances)
 - [Connections](/integrations/connections)
-- [API reference — MCP](/api/reference#mcp)
-- [Platform MCP (IDE)](/api/platform-mcp)
+- [Platform MCP](/api/platform-mcp) — a different feature that lets IDEs control AgentRuntime

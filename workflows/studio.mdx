@@ -1,82 +1,148 @@
 ---
 title: Workflow Studio
-description: Author, validate, version, and run workflow graphs in the AgentRuntime Console.
+description: Build, test, publish, and run workflows in the AgentRuntime Console.
 ---
 
-**Workflow Studio** is the visual editor for designing agent workflows. Open it from the Console sidebar at **Workflow Studio** (`/workflow`).
+**Workflow Studio** is the visual editor where you build workflows: a set of steps that run in order, call your tools and agents, and wait for people when needed.
 
-## The authoring loop
+**Who this is for:** anyone building a workflow in the Console. You need the `project_contributor` role (or higher) in the project to edit and run workflows. `project_viewer` can look but not change.
+
+**What you will do on this page:** create a workflow, add steps, check it, run it, and (when you want a frozen copy) publish it.
+
+New to workflows? Follow the step-by-step tutorial [Build your first workflow](/workflows/build-your-first-workflow) first, then come back here for the full reference.
+
+## Before you start
+
+- Sign in to the [Console](https://console.agentruntime.io) and pick the workspace and project you want to work in.
+- If a step will call a tool such as Gmail or Slack, set up the connection first. See [Integrations quickstart](/integrations/quickstart).
+
+## Build and run your first workflow
 
 <Steps>
-  <Step title="Create a workflow">
-    Click **New workflow** and give it a name. The canvas opens with an empty graph.
+  <Step title="Create the workflow">
+    In the Console sidebar, open **Workflow Studio**, then click **Create workflow**. The **Find a workflow recipe** dialog opens. Type a name in **Workflow name** if you want one, then click **Blank canvas** for an empty canvas (or pick a recipe to start from).
+
+    You should see the canvas, a toolbar along the top, and a green chip that reads **Live** with a "saved" time.
+
+    <Frame caption="Workflow Studio with a workflow open: toolbar on top, step palette on the left, canvas in the middle, run panel at the bottom">
+      <img src="/images/workflows/studio-overview.png" alt="Workflow Studio showing the toolbar with Publish, Share, Setup, Run and Dry-run, the step palette on the left, a three-step workflow on the canvas, and the run panel with the Events, Timeline, Context, Full Logs and Dry Run tabs at the bottom" />
+    </Frame>
   </Step>
   <Step title="Add steps">
-    Drag step types onto the canvas and connect them with dependencies. Each step needs a unique `id`, a `type`, and type-specific configuration.
+    Add steps from the step palette and drag them onto the canvas. The built-in step types are **Agent**, **External agent (Cursor Cloud)**, **For each**, **Human**, **LLM**, **Lua**, **While** and **Workflow**. Tools from your connected integrations are listed under **Our MCP** and **Composio MCP**. See [Step types](/workflows/step-types) for what each one does.
+
+    <Frame caption="The step palette">
+      <img src="/images/workflows/studio-palette.png" alt="The step palette listing the built-in step types Agent, External agent (Cursor Cloud), For each, Human, LLM, Lua, While and Workflow, then Our MCP and Composio MCP with Browse buttons" />
+    </Frame>
   </Step>
-  <Step title="Wire dependencies">
-    Steps run when their `depends_on` predecessors complete. Independent branches run in parallel automatically.
+  <Step title="Connect the steps">
+    Draw a line from one step to the next. A step starts when the steps it depends on have finished. Steps that do not depend on each other run at the same time.
   </Step>
-  <Step title="Validate">
-    Click **Validate** to run a server-side dry-run. Validation checks graph structure, dependency cycles, Lua syntax, and MCP bindings — without executing tools. Chained `{{steps.*}}` templates are checked for wiring and syntax only; they do not require upstream step outputs. See [Dry-run semantics](/workflows/dry-run).
+  <Step title="Fill in each step">
+    Click a step to open its settings. To use data from an earlier step or from the run's start input, type `{{` and pick a suggestion. See [Template intellisense](/workflows/template-intellisense).
   </Step>
-  <Step title="Import (optional)">
-    Use **Import** to load a shared graph from JSON — canvas `{ "nodes", "edges" }` or backend `{ "steps": [] }`. The review step shows a read-only preview and, for MCP steps, lets you map each `server_url` to an instance in your workspace before applying to the canvas.
+  <Step title="Dry-run it">
+    Click **Dry-run** in the toolbar. A dry-run checks the workflow without calling any tool or model. Results appear in the **Dry Run** tab of the run panel at the bottom. See [Dry-run validation](/workflows/dry-run).
   </Step>
-  <Step title="Edit as JSON (optional)">
-    Switch the center panel to **JSON** mode to edit the backend graph with IntelliSense, **Apply to canvas**, and **Edit script** for Lua steps. See [JSON editor](/workflows/json-editor).
+  <Step title="Set the starting input (optional)">
+    Click **Setup** to open **Workflow setup**. On the **Manual** tab, choose where the run starts and type the input values. See [Run setup](/workflows/run-setup).
   </Step>
-  <Step title="Publish">
-    Publish an immutable version when the graph is ready. Runs always execute a published snapshot, not draft edits.
-  </Step>
-  <Step title="Run">
-    Start a run from the workflow configuration panel (**Run setup**). Configure **shared input** (`trigger_payload`) and optional per-step overrides (`trigger_steps`), then **Run** or **Dry-run**. Use **Save defaults** to persist start values on the workflow version (separate from canvas Save).
+  <Step title="Run it">
+    Click **Run**. Studio saves your latest edits first, then starts a run of your **Live** copy. Watch the steps in the **Events** and **Timeline** tabs of the run panel.
   </Step>
 </Steps>
 
-## Template variables
-
-Steps pass data downstream through template strings:
-
-```
-{{steps.<step-id>.result.contacts}}
-{{input.customer_email}}
-```
-
-Use the step **Step ID** from the node config (UUID on Studio canvas nodes), not the canvas display name. See [Template intellisense](/workflows/template-intellisense#step-id-vs-display-name).
-
-Use these in `tool_args`, LLM `prompt` fields, `for_each_items`, and Lua `script` inputs. Upstream step results are available under `steps.<step-id>.result` in `{{…}}` fields; in Lua use `steps["<step-id>"].result` or dot form when the id is identifier-safe.
-
-Studio suggests variables as you type — see [Template intellisense](/workflows/template-intellisense) for search tips, the variable picker, and the **Variables** reference tab.
-
-**Run-start input** uses `{{input.*}}` (from `trigger_payload` and optional `trigger_steps`). See [Run setup and start input](/workflows/run-setup).
-
-## Versioning
-
-Each publish creates a new immutable version. You can list versions, roll back runs to a specific version, and compare graphs. Draft edits do not affect in-flight runs.
-
-## Live streaming
-
-While a run is active, Workflow Studio subscribes to a WebSocket event stream (`/v1/workflows/{id}/stream`). You see step start, progress, completion, failure, and human-task pause events as they happen.
-
-## Autopilot assistance
-
-The Console **Chat** panel (Autopilot) can scaffold starter workflows, create graphs from natural language, and navigate you to Workflow Studio. Autopilot actions include `create_workflow`, `scaffold_starter`, and `run_workflow`.
-
-## Archive workflows
-
-From the workflow list, select a workflow and click **Archive** to remove it from your active Studio list. Archive is **soft** — the definition is retained for run history and audit, not permanently erased.
-
 <Note>
-A dedicated **Archived** view and **Restore** action are planned but not available yet. True permanent delete will be a separate action from archive in a future release.
+  You do not have to publish to run or test. Studio saves your edits automatically, and **Run** always runs the latest saved edits. Publish when you want a frozen copy that does not change.
 </Note>
+
+## Live copy and published versions
+
+Every workflow has one editable copy, called **Live**, and any number of frozen **published versions** (v1, v2, and so on).
+
+| | What it is | How it changes |
+|---|---|---|
+| **Live** | The copy you edit. Studio **Run** uses it. | Every save changes it. |
+| **Published version** | A frozen snapshot of Live with an optional note. | Never changes. |
+
+Each place that starts a workflow can choose what to run: **Live**, **Last published** (your newest published version), or a specific version such as **v3**. You see this choice as **Runs** on schedules, webhooks, and event triggers, and in the Share menu. Starting a run from Studio always runs Live.
+
+A run that has already started keeps the version it started with. Later edits never change a run in progress.
+
+### Publish a version
+
+<Steps>
+  <Step title="Open History">
+    Click **History** in the toolbar (in a narrow window it is an icon). It has two tabs, **Live revisions** and **Published versions**, and a **Publish…** button. The **Publish** button in the toolbar opens the same dialog directly.
+  </Step>
+  <Step title="Publish">
+    Click **Publish…**, add a note such as "Added the refund check" if you like, and click **Publish vN**.
+
+    <Frame>
+      <img src="/images/workflows/studio-history.png" alt="The History dialog with Live revisions and Published versions tabs, Catalog package… and Publish… buttons, and a list of revisions with Restore buttons" />
+    </Frame>
+
+    You should see a message "vN published". If some triggers still run Live, Studio asks whether to switch them: **Keep on Live** or **Switch to Last published**.
+  </Step>
+</Steps>
+
+In **History** you can also:
+
+- **Restore** (Live revisions tab, then **Restore into Live**) to bring an earlier saved state back into Live as a new revision.
+- **View** or **Compare with Live** on a published version.
+- **Edit from vN** to copy a published version back into Live.
+- **Copy link** to share the link of a published version.
+
+The `Published vN` chip next to the **Live** chip shows your newest published version. Anything set to **Last published** runs it.
+
+## Import, export, and JSON
+
+The right end of the toolbar adapts to your window width. In a wide window you see:
+
+- **Canvas** and **JSON**, which switch between the visual editor and the graph as JSON. See [JSON editor](/workflows/json-editor).
+- The **JSON** menu (`{ } JSON` with an arrow): **Export JSON** downloads the graph, **Import** loads a graph from a file or the clipboard, **Edit JSON** opens the JSON view, and **View JSON** shows the graph read-only. Import shows a preview and, for tool steps, lets you map each tool server to one of your own instances before the graph is applied.
+- **Auto layout** (left to right, top to bottom, or grid) and the full-screen button tidy the canvas.
+- **Variables** opens a reference of every template variable available in the workflow.
+
+In a narrower window these fold into **More** (the `⋯` button). **More** has **Auto layout**, **Fit to screen**, **Variables**, **Export JSON**, **Import** and **View JSON**, but no way to switch to the JSON editor. Widen the window to edit JSON.
+
+## Share a workflow
+
+Open **Share** in the toolbar, then **Share settings…**. The **Share workflow** dialog asks who you are sharing with:
+
+- **Outside your org:** an unlisted share link. The person signs in and adds their own copy. The link installs your newest **published** version, never unpublished Live edits.
+- **Share with your team:** a link for people who already have access to the project.
+- **Run with an API key:** a ready-made request that starts the workflow. It does not share the workflow itself.
+- **More options:** **List on Marketplace** or **Export as JSON file**.
+
+### Updates to an installed copy
+
+A workflow you added from a shared package shows **Installed from `<package>` vN** in the header. When the publisher releases a new version, a pill such as **v1 → v2** appears. Click it to open **Update to vN**, which shows what the publisher changed, what you changed, and any databases or child workflows that need a choice.
+
+- **Update Live** merges the update into Live as a new revision. Your triggers, webhooks, connections, and run history stay.
+- **Update and publish** does the same and publishes a version straight away.
+- **Add as a new copy instead** leaves this copy untouched.
+- **Replace with theirs** replaces Live with the publisher's version.
+- **Undo** (in the message after an update) puts back the revision from before.
+- **Keep this up to date** can be **Off**, **Update Live automatically**, or **Update and publish automatically**.
+
+## Archive a workflow
+
+In the workflow list, select a workflow and click **Archive**. The workflow is hidden from your lists and its run history is kept. To get an archived workflow back, contact support. You need workflow edit permission to archive.
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| **Run** is greyed out | The canvas is empty, or your role cannot run workflows (`project_viewer` can only look). |
+| A trigger runs old behaviour after you edited | The trigger is set to **Last published** or a fixed version. Change **Runs** to **Live**, or publish and switch it to **Last published**. |
+| Studio says "Live changed somewhere else" | Another tab, an agent, or the API saved a newer revision. Autosave pauses so it does not overwrite it. Click **Reload Live** (this drops unsaved edits in the current tab). |
+| A `{{…}}` value is empty at run time | Check the step id in the template. See [Template intellisense](/workflows/template-intellisense). |
 
 ## Next steps
 
-- [JSON editor](/workflows/json-editor) — Canvas vs JSON mode, IntelliSense, script overlay
-- [Template intellisense](/workflows/template-intellisense) — inline variable suggestions
-- [Step types reference](/workflows/step-types) — MCP, LLM, human, Lua, and for-each
-- [Run setup and start input](/workflows/run-setup) — trigger_payload, saved defaults, API merge flag
-- [Runs and Command Center](/workflows/runs-and-command-center) — run controls and observability
-- [Human tasks](/workflows/human-tasks) — approval gates
-- [JSON schema cookbook](/workflows/json-schema-cookbook) — copy-paste graph examples
+- [Step types](/workflows/step-types): what each step does and its fields
+- [Run setup](/workflows/run-setup): starting input and saved defaults
+- [Runs and Command Center](/workflows/runs-and-command-center): watch and control runs
+- [Human tasks](/workflows/human-tasks): approvals and replies
+- [Workflow patterns](/workflows/patterns): recipes you can copy

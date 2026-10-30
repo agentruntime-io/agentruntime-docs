@@ -1,72 +1,108 @@
 ---
 title: MCP instances
-description: Install platform MCP servers, configure profiles, and bind connections in your project.
+description: Add a connector to your workspace, give it credentials with a config profile, and use it in workflows.
 ---
 
-An **MCP instance** is your workspace's deployment of an MCP server from the platform catalog (or a custom server you register). Instances make tools available to workflow **mcp_call** steps. By default, instances and [connections](/integrations/connections) are **workspace-wide**; set an optional **project scope** when creating them if only one project should see or use them.
+An **MCP instance** is your workspace's copy of a connector. A connector is a set of tools for one service, such as Gmail or Postgres. You add an instance, tell it which [connection](/integrations/connections) to use, and then workflow steps can call its tools.
 
-Manage them from **MCP** (`/mcp`) in the [Console](https://console.agentruntime.io). The page title is **MCP connectors**.
+This page is for people setting up connectors in the [Console](https://console.agentruntime.io). It explains where to click and what each setting means.
 
-## Catalog vs instance
+## Before you begin
+
+- The **project_contributor** role or higher. Without MCP write permission, **Add connectors** is disabled.
+- A [connection](/integrations/connections) for the service, if the connector needs credentials.
+
+## Key terms
 
 | Term | Meaning |
 |------|---------|
-| **MCP server (catalog)** | Platform-wide definition — adapter slug, tool list, config schema |
-| **MCP instance** | Your project's installed copy with config profiles, env, and connection wiring |
+| **Connector (MCP server)** | A tool set published in the catalog, or a server you registered yourself. |
+| **Instance** | Your workspace's use of a connector, with its own credentials. |
+| **Config profile** | A saved setup on an instance that says where its credentials come from. You can keep several profiles; one is **active** for workflows. |
+| **Connection** | Saved credentials, managed on the **Connections** page. |
 
-The catalog lists 40+ Go adapters (Gmail, Postgres, Shopify, GitHub, …). See the [connector catalog](/integrations/connector-catalog).
-
-## Installing an instance
+## Add an instance
 
 <Steps>
   <Step title="Open MCP connectors">
-    Go to **MCP** in the sidebar (`/mcp`). Browse **Platform catalog** servers or your installed instances.
+    Click **MCP** in the sidebar. The page is titled **MCP connectors**. Use the **Search** box and the **Status** filter (**All status**, **Active** or **Disabled**) to find instances you already have. A new workspace shows **No MCP instances yet**.
+
+    <Frame caption="The MCP connectors page in a new workspace">
+      <img src="/images/integrations/mcp-instances-page.png" alt="The MCP connectors page with an Add connectors button, a Filter connectors box with Search and Status, and the empty state No MCP instances yet" />
+    </Frame>
   </Step>
-  <Step title="Add an instance">
-    On a catalog server row, click **Add instance** (or open the platform marketplace modal). First-party platform servers create a workspace instance you own.
+  <Step title="Open the catalog">
+    Click **Add connectors**. The **App catalog** opens. Use **Search…** or the categories on the left (**All Apps**, **In workspace**, **Ours**, **Composio MCP**, **Featured**, and topics such as **CRM** and **Communication**) to find a connector. **Add connector** at the top of the list registers a server you run yourself.
+
+    <Frame caption="The App catalog">
+      <img src="/images/integrations/mcp-add-connectors-catalog.png" alt="The App catalog dialog with an Add connector button, My connections, categories such as All Apps, In workspace, Ours and Composio MCP, a Search box, and cards for connectors with their tool counts" />
+    </Frame>
   </Step>
-  <Step title="Open instance config">
-    Open **Instance config** (`/mcp/instances/{instance_id}`). Description: *"Pick a profile, connect credentials, then save. Workflows use the profile you mark active."*
-  </Step>
-  <Step title="Wire a connection">
-    On the active config profile, select a [connection](/integrations/connections) in the credential / `source_spec` wiring. For Google and WhatsApp, use the embedded connect flows when offered.
-  </Step>
-  <Step title="Set active profile">
-    Mark the profile **active** so runtime resolution uses it for this instance.
-  </Step>
-  <Step title="Validate">
-    Optionally run **MCP validation** at `/mcp/{server_id}/validate` to check server-level health, or validate a connection binding via API.
+  <Step title="Add it to your workspace">
+    Click the connector to open its page, which lists its tools, then click **Add to workspace**. You should see a "Connector instance added" message and the instance on the **MCP connectors** page.
   </Step>
 </Steps>
 
-## Using instances in workflows
+## Give the instance credentials
 
-In **Workflow Studio** (`/workflow/{id}`), add an **mcp_call** step and select:
+<Steps>
+  <Step title="Open Instance config">
+    Open your instance. The **Instance config** page says: "Pick a profile, connect credentials, then save. Workflows use the profile you mark active."
+  </Step>
+  <Step title="Create or open a profile">
+    Under **Profiles for this connector**, click **New profile**, or select an existing one.
+  </Step>
+  <Step title="Choose the credentials">
+    Under **Set up profile**, enter a **Display name**. Then pick a saved connection in the credentials section, or enter values directly. Use the **Per-key & mixed** tab when different fields should come from different places.
+    For Google and WhatsApp you can sign in from here if you have no connection yet.
+  </Step>
+  <Step title="Make it active">
+    Set **Status** to **Active — can be used in workflows** and click **Save**. Then click **Use this profile for workflows**. The profile now shows an **active** badge.
+  </Step>
+</Steps>
 
-- The **instance** (saved as `instance_id` + `server_url` on the step)
-- The **tool name** from the instance's tool catalog
-- **tool_args** — static values or template variables (`{{input.*}}`, `{{steps.step-id.result.*}}`)
+A **Draft** profile is saved but not used by workflows. You cannot delete the active profile while other profiles exist; make another profile active first.
 
-At runtime, the workflow engine calls the MCP tool with credentials from the instance's active config profile.
+## Check an instance
 
-## Importing shared graphs
+Open **Server detail** from the instance page, then go to the connector's **MCP validation** page (`/mcp/{server_id}/validate`) and click **Run checks**. Each check shows its status. You can also test with a small workflow that calls one read-only tool.
 
-When you **Import** a workflow JSON from another workspace or a template:
+## Use an instance in a workflow
 
-1. Studio previews the graph (fit-to-screen).
-2. MCP steps grouped by **`server_url`** show connection status for your workspace.
-3. Pick an existing instance, **Create instance**, or connect credentials for servers you have not installed yet.
-4. Unknown servers must be added from **MCP** before import can complete.
+In **Workflow Studio**, add an MCP step. In workflow JSON its type is `mcp`. Select:
 
-Shared graphs should include **`server_url`** (portable). **`instance_id`** values from the source workspace are remapped on import.
+- the **instance**
+- a **tool** from that instance
+- the **tool arguments**: fixed values, or template variables such as `{{input.email}}` for the run's input
+
+At run time, AgentRuntime calls the tool with credentials from the instance's active profile. See [Workflow Studio](/workflows/studio) and [step types](/workflows/step-types).
+
+## Import a workflow that uses connectors
+
+When you click **Import** in Workflow Studio and load a workflow file, the **Review import** step shows a **Connectors** section. For each connector the workflow uses:
+
+- If you already have an instance, choose it from **Choose instance**.
+- If you have none, click **Add connector** to add one.
+- If the connector is not in your workspace's catalog, you see "Server not registered in this workspace" with an **Add MCP server** link.
+
+Set up credentials on any new instance before you run the workflow.
 
 ## Custom MCP servers
 
-Register tenant-owned MCP servers you operate (**MCP → Add connectors → Add connector**) and deploy instances the same way as catalog adapters. See the [Custom MCP servers](/integrations/custom-mcp-servers) guide for the full wizard, API flow, and troubleshooting.
+You can also register an MCP server you run yourself. See [Custom MCP servers](/integrations/custom-mcp-servers).
 
-## Platform MCP (IDE integration)
+## Platform MCP
 
-Separate from project instances, **Platform MCP** at [mcp.agentruntime.io](https://mcp.agentruntime.io/mcp) exposes Console APIs as tools for IDEs and assistants. Authenticate with a PAT. Use it to list workflows, start runs, and manage resources from Cursor or other MCP clients.
+**Platform MCP** is different. It lets IDEs and AI assistants control your AgentRuntime account (list workflows, start runs). It does not add tools to your workflows. See [Platform MCP](/api/platform-mcp).
+
+## Common problems
+
+| Problem | What to do |
+|---------|------------|
+| **Add connectors** is disabled | You need MCP write permission in the project. |
+| The tool is missing in Workflow Studio | Check that the instance has an **active** profile, then reload the workflow. |
+| Runs fail with an authorization error | Open the connection and click **Test**, or rotate the key. See [Connections](/integrations/connections). |
+| An **N health issues** button appears on the MCP page | Open the connector it lists to review changes to its tools. |
 
 ## Related
 

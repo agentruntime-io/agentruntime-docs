@@ -1,75 +1,89 @@
 ---
 title: Integration authentication
-description: OAuth, API keys, and connection strings for AgentRuntime MCP connectors.
+description: How connectors sign in to outside services — OAuth, API keys, and connection strings — and how to keep those credentials safe.
 ---
 
-Connectors use different authentication methods. AgentRuntime stores credentials in **connections** and injects them at runtime through **MCP instance bindings** — never embed secrets in workflow graphs.
+Every connector needs a way to prove to the outside service who you are. This page explains the three common ways and how to rotate secrets safely. It is for anyone choosing or maintaining credentials for a connector.
 
-## OAuth 2.0 (Google, LinkedIn)
+In all cases the credentials live in a [connection](/integrations/connections), stored in the Vault. A connector uses them through the active config profile on its [MCP instance](/integrations/mcp-instances). Never paste secrets into a workflow graph or a script.
 
-OAuth lets users authorize AgentRuntime without sharing passwords. The platform stores access and refresh tokens and refreshes them automatically.
+## Which method does my connector use?
 
-**Supported in Console today:**
+| Method | Typical connectors | What you do |
+|--------|--------------------|-------------|
+| **OAuth sign-in** | Google connectors (Gmail, Drive, Sheets, Calendar, and others) | Sign in and approve permissions |
+| **Meta sign-in or access token** | WhatsApp | Use **Connect with Meta**, or paste an access token |
+| **API key or token** | Resend, GitHub, Shopify, Notion, ClickUp, Exa, ActiveCampaign, and many more | Create a key in the service, then paste it into a connection |
+| **Connection string** | Database connectors such as Postgres, MySQL, MongoDB, and Redis | Paste the connection string or credentials the connector asks for |
 
-- **Google Workspace** — Gmail, Drive, Sheets, Calendar, and related adapters
-- **LinkedIn** — Marketing APIs (via API key connection in most setups)
+Each [connector page](/integrations/connector-catalog) lists the exact fields it needs.
 
-<Steps>
-  <Step title="Connect">
-    Go to **Connections**, start the OAuth flow, and sign in to the external service.
-  </Step>
-  <Step title="Grant scopes">
-    Approve the requested permissions. Scopes determine which MCP tools work.
-  </Step>
-  <Step title="Bind">
-    Select the connection when installing or editing an MCP instance.
-  </Step>
-</Steps>
+## OAuth sign-in (Google)
 
-If refresh fails (user revoked access), the connection shows **Reconnect**. Re-authorize before running workflows that depend on it.
+OAuth lets you approve access without sharing your password. AgentRuntime keeps the tokens and refreshes them for you.
+
+1. Open **Connections** and click **Sign in with Google**.
+2. Enter a **Display name** and pick the Google services you need.
+3. Click **Continue to Google**, sign in, and approve the permissions.
+
+The permissions you approve decide which tools work. To add a service later, open the account and click **Update permissions**. If access is revoked or expires, open the account and click **Reconnect**.
+
+Other services that offer OAuth sign-in appear under **Accounts** when you click **Add from template**, with a **Connect** button.
+
+## WhatsApp
+
+WhatsApp can use Meta's signup (**Connect with Meta**) or pasted keys (**Paste API keys**: access token, WhatsApp Business Account ID, and optionally a phone number ID). See the [WhatsApp connector](/connectors/whatsapp).
 
 ## API keys and personal access tokens
 
-API keys are the most common method for developer tools, email providers, and search APIs.
-
-**Examples:** Resend, Exa, GitHub (PAT), Shopify, ActiveCampaign, ClickUp, Notion
+API keys are the most common method for developer tools, email providers, and search services.
 
 <Steps>
-  <Step title="Generate a key">
-    Create an API key or PAT in the external service with the minimum required scopes.
+  <Step title="Create a key in the outside service">
+    Give it the fewest permissions that still let your workflow work.
   </Step>
-  <Step title="Save in Connections">
-    Create a connection in the Console and paste the key. Keys are encrypted at rest.
+  <Step title="Save it as a connection">
+    On **Connections**, click **Add from template** (or **New custom connection**), paste the key, and click **Save**.
   </Step>
-  <Step title="Rotate safely">
-    Save a new key, validate bound MCP instances, verify a test run, then revoke the old key in the external service.
+  <Step title="Attach it to the instance">
+    On the instance's **Instance config** page, choose the connection in the profile you use for workflows.
   </Step>
 </Steps>
 
+### Rotate a key safely
+
+1. Create the new key in the outside service. Keep the old one active for now.
+2. In AgentRuntime, open the connection, click **Rotate**, enter the new key, and click **Save to Vault**.
+3. Click **Test**, then run a small workflow to confirm it works.
+4. Revoke the old key in the outside service.
+
 <Warning>
-  Rotating a key before updating the connection causes failed tool calls in active runs. Always update the connection first.
+  If you revoke the old key before updating the connection, tool calls in active runs fail. Update the connection first.
 </Warning>
 
 ## Database connection strings
 
-Database adapters (`postgres`, `mysql`, `mongodb`, `redis`, `neo4j`, `sqlite`, `firestore`) use connection strings or service account JSON stored as connections.
+Database connectors use a connection string or similar credentials. Good habits:
 
-- Use read-only credentials where possible
-- Restrict network access to AgentRuntime egress IPs if your database requires allowlisting
-- Prefer separate connections per environment (sandbox vs production)
+- Create a database user with read-only access when the workflow only reads data.
+- Use separate connections for test and production databases.
 
-## WhatsApp
+## Signing in to AgentRuntime itself
 
-WhatsApp uses Meta business credentials — either through embedded signup (recommended) or manual entry of phone number ID, business account ID, and access token.
+Connector credentials are separate from how you sign in to AgentRuntime:
 
-## Workflow and API authentication
+| Method | Used for |
+|--------|----------|
+| Console sign-in | Using the web Console |
+| Personal access token (PAT) | Scripts, CI, and the API |
+| Webhook signature | External systems that start workflows through an [inbound webhook](/integrations/inbound-webhooks) |
 
-Connector auth is separate from **how you authenticate to AgentRuntime**:
+See [API authentication](/api/authentication) for PATs.
 
-| Method | Use for |
-|--------|---------|
-| Console session | Browser UI |
-| Personal access token | Scripts, CI, Platform MCP |
-| Inbound webhook signature | External triggers into workflows |
+## Common problems
 
-See [API authentication](/api/authentication).
+| Problem | What to do |
+|---------|------------|
+| A tool fails with 401 or 403 | The key may be wrong, expired, or missing permissions. Click **Rotate** to enter a new one. |
+| A Google connector stops working | Open the Google account and click **Reconnect**. |
+| The connector cannot find credentials | Check that the instance's active profile uses the connection. |
