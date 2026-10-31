@@ -78,12 +78,12 @@ Runs are grouped by workflow. Use the **Filter…** box to find one workflow, an
 
 | Control | What it does |
 |---|---|
-| **Pause** | Stops new steps from starting. Steps already running can finish. Available while a run is **Running**. |
+| **Pause** | Stops new steps from starting. Steps already running can finish. People can still answer the run's tasks; the run carries on from there when you resume it. Available while a run is **Running**. |
 | **Resume** | Continues a paused run |
 | **Stop** | Ends the run. The main **Stop** button is a **Force stop**. The arrow beside it offers **Force stop**, **Stop immediately**, and **Stop gracefully**. |
 | **Pause all**, **Resume all**, **Stop all** | The same, for every run in a workflow group |
 
-**Stop gracefully** lets steps that are already running finish, never starts the rest, and ends the run as **Stopped**. The immediate options cancel tool calls that are in flight. A stopped run cannot be resumed.
+**Stop gracefully** lets steps that are already running finish (their results are not recorded), never starts the rest, and ends the run as **Stopped**. **Stop immediately** and **Force stop** also cancel the calls in flight: tool calls, model calls, Lua scripts and loops. An agent step stops at its next tool call. A stop does not undo what a call already did, and does not stop child workflows. A stopped run cannot be resumed. See [How runs execute](/workflows/how-runs-execute#stop).
 
 <Frame caption="An in-progress run with the Stop menu open">
   <img src="/images/workflows/command-center-in-progress-stop-menu.png" alt="The In progress list with one Paused run showing Resume, Stop and View buttons, and the Stop menu open with Force stop, Stop immediately and Stop gracefully" />

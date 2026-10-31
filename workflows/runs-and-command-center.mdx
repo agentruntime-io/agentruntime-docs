@@ -49,11 +49,12 @@ In Studio, use the buttons next to **Run** while a run is selected. In Command C
 | **Resume** | Continue a paused run. |
 | **Stop** | End the run. Options: **Force stop** (the main button), **Stop immediately**, **Stop gracefully**. |
 
-- **Stop immediately** and **Force stop** cancel tool calls in flight. Model calls are cancelled on a best-effort basis.
-- **Stop gracefully** lets running steps finish and never starts the rest. The run ends as **Stopped**.
+- **Stop immediately** and **Force stop** cancel the calls in flight: tool calls, model calls, Lua scripts, Cursor Cloud waits and loops. Each cancelled step shows **Cancelled**. An agent step stops at its next tool call.
+- **Stop gracefully** lets running steps finish and never starts the rest. Their results are not recorded. The run ends as **Stopped**.
+- A stop does not undo anything a call already did (an email sent stays sent), and does not stop child workflows.
 - A stopped run cannot be resumed. Start a new run instead.
 
-In the API, `stop` takes `params.mode`: `immediate` (default) or `graceful`.
+In the API, `stop` takes `params.mode`: `immediate` (the default), `graceful`, or `force`. See [How runs execute](/workflows/how-runs-execute#stop).
 
 ## When a step fails {#failure-handling}
 

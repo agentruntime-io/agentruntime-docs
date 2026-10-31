@@ -83,6 +83,29 @@ For each field, click **Add field** and fill in:
 
 The **Input schema** describes structured input for the agent. The **Output schema** describes the fields the agent must reply with. In a workflow, an `agent` step whose agent has an output schema puts each field on the step result, so later steps can use it. See [Step types](/workflows/step-types#agent-run-an-agent).
 
+## Limits
+
+Limits stop an agent that is stuck in a loop from running for ever. They are a safety net, not a budget to tune tightly: the defaults let an agent do a lot of work in one step. Open the agent and find the **Limits** section.
+
+| Setting | What it does |
+|---|---|
+| **Max tool calls per step** | How many tool calls one agent step may make. Leave it empty for the default, 200. Every call counts, even when the agent makes several at once. |
+| **Per-tool limits** | Cap one tool, for example a paid search tool at 3 calls. Click **Add a tool limit**, pick or type the tool, and enter **Max calls**. When a tool reaches its cap, the agent is told so and carries on with its other tools; the step does not fail. Calls past the cap still count toward **Max tool calls per step**. |
+| **When the limit is reached** | **Pause and ask (default)**, **Fail**, or **Continue automatically** (up to a number of times you set in **Continue up to**, 3 by default). |
+
+The counts apply to one agent step. A new step, or the same step in the next run, starts again at zero.
+
+### When an agent reaches its limit
+
+With **Pause and ask**, the step does not fail and keeps everything it has done so far. A **Tool call limit reached** task appears in [Command Center](/workflows/command-center):
+
+- **Continue** gives the agent more calls (you can change how many) and it picks up exactly where it stopped. Nothing runs again.
+- **Stop** fails the step. You can add a reason.
+
+The run's events show **Tool call limit reached** and, after a Continue, **Continued** with the number of calls added.
+
+An agent step inside a `for_each` or `while` loop cannot pause. It fails when it reaches the limit, whatever you chose.
+
 ## See an agent's sessions
 
 Select an agent in the list. The panel on the right shows **Recent sessions**: up to 15 of the agent's recent chat sessions. Each row shows a status, the chat it belongs to, and when it started.

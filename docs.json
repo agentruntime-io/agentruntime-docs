@@ -90,6 +90,7 @@
           "workflows/build-your-first-workflow",
           "workflows/studio",
           "workflows/step-types",
+          "workflows/how-runs-execute",
           "workflows/template-intellisense",
           "workflows/lua",
           "workflows/dry-run",

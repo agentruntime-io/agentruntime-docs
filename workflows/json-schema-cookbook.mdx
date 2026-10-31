@@ -289,7 +289,7 @@ Answer it from [Command Center](/workflows/command-center) or the API. Later ste
 }
 ```
 
-Leave `child_target` out while you build, so the child's **Live** copy runs. The step's result comes from the child's terminal step by default (`output_from`).
+Leave `child_target` out while you build, so the child's **Live** copy runs. The step's result comes from the child step marked `terminal: true`, or else the child's last step (`output_from`). See [Step types](/workflows/step-types#workflow-run-another-workflow).
 
 ## Example 7: skip a step on some runs
 

@@ -77,7 +77,7 @@ Runs one of your [agents](/ai/agents) for one turn, with its tools and memory.
 |---|---|
 | `agent_id` | Which agent to run |
 | `prompt` | The task for this turn. Can contain templates. |
-| `input` | Optional structured input. Values can be templates. |
+| `input` | Optional structured input for the agent. Values can be templates. It is added to the run's start input; where both have the same key, the step's value wins. |
 | `timeout_s` | Time limit in seconds. Studio's default is 600. |
 
 The agent's reply is on the step as `result.message`. If the agent has an **output schema**, it must reply with those fields. The reply is checked against the schema, and an invalid reply gets one chance to be fixed. Each field then sits on the step result, for example `{{steps.triage.result.priority}}`. This is the way to get structured data (lists, yes/no, scores) from a model into later steps.
@@ -159,7 +159,7 @@ The body runs first, then the condition is checked. In JSON, `while_iteration_ti
 | `workflow_id` | The child workflow to run |
 | `input` | The child's start input. Values can be templates. |
 | `wait` | `true` (default) waits for the child. `false` starts it and moves on. |
-| `output_from` | Where the step's result comes from: `terminal` (the child's terminal step, default) or a step id |
+| `output_from` | Where the step's result comes from: a child step id, or `terminal` (the default). With `terminal`, the result is the child step marked `terminal: true`; if there is none, the child's last step (a step nothing depends on); if the child has several last steps, the one that finished last. |
 | `child_target` | Which version of the child to run: leave empty for Live, or `"published"`, or a version number |
 | `timeout_s` | Studio's default is 600. Only a `workflow` step inside a loop body stops waiting for the child after this many seconds. A top-level `workflow` step does not enforce it: it waits until the child run finishes. |
 
@@ -179,6 +179,8 @@ Steps pass data with **templates** in double braces. Type `{{` in a Studio field
 | `{{input.field \| "default"}}` | The default after `\|` is used when the value is missing or empty. End with `omit` to leave the key out. |
 
 A step can only read steps it depends on (directly or further up the chain). Inside a loop body, use the inner step's own `id`.
+
+When a template is the whole value of a field, the field gets the value with its type (a number, a list, an object). When a template sits inside text, for example in a prompt, objects and lists are written as JSON, numbers as plain digits, and a missing step value as empty text.
 
 <Warning>
   A missing start input is not an error when the run starts. If `{{input.customer_email}}` has no value, the step receives the literal text `{{input.customer_email}}`, and a tool step sends it as is. Give inputs that may be missing a default, `{{input.customer_email | ""}}`, or leave the key out with `{{input.customer_email | omit}}`. Dry-run flags templates that nothing can fill.

@@ -92,7 +92,7 @@ When you `PATCH` a workflow you can send `base_revision` (the `revision` you las
 | `params.trigger_payload` | The input for the run. Steps read it as `{{input.*}}` |
 | `params.trigger_steps` | Optional per-step input overrides, keyed by step id |
 | `params.run_id` | For `pause`, `resume`, and `stop`: the run to control |
-| `params.mode` | For `stop`: `immediate` (the default) or `graceful` |
+| `params.mode` | For `stop`: `immediate` (the default, cancels calls in flight), `graceful` (running steps finish), or `force` (like `immediate`, retried until it is recorded). Any other value is refused with `400`. |
 
 `start` returns `202 Accepted` with the new `run_id`, a `status`, and `ran` (which copy of the workflow ran). Keep the `run_id` to check progress.
 
@@ -146,6 +146,7 @@ The step result always includes `approved`. The Console **Approve** and **Reject
 | `step_completed` | The step finished. A rejected approval also completes, with `data.skipped: true` |
 | `step_failed` | The step failed. The run fails with it |
 | `step_skipped` | The step was skipped (**Skip when**, a disabled step, or a skipped step it depends on) |
+| `step_cancelled` | The run was stopped while the step was running, and its call was cancelled (`data.reason: "run_stopped"`). The call may already have had an effect. |
 | `step_lease_expired` | The worker running the step stopped responding. The step is recovered or fails with `WORKER_LOST` |
 | `step_revision_requested` | A reviewer sent work back for changes, so the steps run again |
 | `step_input_provided` | A person answered a step's question, so the step runs again with the answer |
