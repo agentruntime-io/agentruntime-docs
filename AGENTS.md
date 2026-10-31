@@ -1,13 +1,36 @@
 # AgentRuntime documentation
 
-User-facing docs for [docs.agentruntime.io](https://docs.agentruntime.io), built on [Mintlify](https://mintlify.com).
+User-facing docs for [docs.agentruntime.io](https://docs.agentruntime.io), served by **Portico**, AgentRuntime's own open-source docs engine (code in `Portico/` in the monorepo, repo `agentruntime-io/Portico`). Mintlify no longer serves the site (moved to Portico on 2026-10-31).
 
 ## About this project
 
 - MDX pages with YAML frontmatter
-- Site config in `docs.json`
-- Preview locally: `mint dev`
-- Check links: `mint broken-links`
+- Site config in `docs.json`: navigation, navbar, footer, colors, fonts, logo, favicon, and redirects. Portico reads the same Mintlify-shaped format, so keep content to `docs.json` + MDX.
+- Portico-only settings live in `site.yaml` at the repo root (`url`, `githubEditBase`, `openapi.specs`, `support`). The API spec is `openapi/agentruntime.yaml`.
+- Static files (images, video) anywhere in this repo are published at the same path, e.g. `images/x.png` is served as `/images/x.png`.
+- `style.css` and `.mintignore` were Mintlify-only and are unused by Portico. They are still in the repo; do not rely on them.
+
+### Hosting and deploys
+
+- Hosted on Vercel (project `portico`). The build clones this repo (`CONTENT_GIT_REPO`), so the site always builds from the content in Git.
+- A push to this repo triggers a rebuild through a Vercel deploy hook. Treat a push as a production release; batch doc changes and push when ready to ship.
+
+### Preview and check locally
+
+From the `Portico/` folder in the monorepo (port 3004):
+
+```bash
+CONTENT_ROOT=<path to this repo> npm run dev
+CONTENT_ROOT=<path to this repo> npm run validate
+```
+
+`validate` checks components, internal links, and tables split by blank lines. Run it before you push.
+
+### MDX components
+
+Portico supports the Mintlify-style components used across these docs: `Card`, `CardGroup`, `Note`, `Tip`, `Warning`, `Steps`, `Tabs`, `CodeGroup`, `Accordion`, and so on. It also offers home-page components (`Hero`, `Section`, `Band`, `TaskList`/`Task`); see `Portico/DESIGN_SYSTEM.md` before using them.
+
+**MDX gotcha:** a bare `{word}` in prose or in a table is parsed as a JavaScript expression and crashes the page. Wrap API paths like `/team/{id}/task` in backticks.
 
 ## Terminology
 
@@ -36,7 +59,7 @@ Use exact role slugs when documenting permissions:
 - `project_contributor`
 - `project_viewer`
 
-Do not use generic Admin/Member/Viewer from the Mintlify template.
+Do not use generic Admin/Member/Viewer labels.
 
 ## Style preferences
 
@@ -62,9 +85,9 @@ Do not use generic Admin/Member/Viewer from the Mintlify template.
 
 When adding connector docs, verify the adapter exists in `connectors/GO_CONNECTORS.md` before listing it.
 
-## Localized content (portal)
+## Localized content
 
-The first-party docs portal (`doc_system/portal`) serves English at unprefixed URLs (`/platform/quickstart`) and translations under locale prefixes (`/es/platform/quickstart`).
+Portico serves English at unprefixed URLs (`/platform/quickstart`) and translations under locale prefixes (`/es/platform/quickstart`).
 
 Place translated MDX beside the English tree using this convention:
 
@@ -80,8 +103,7 @@ i18n/
 
 - Mirror the English page path: `platform/quickstart.mdx` → `i18n/es/platform/quickstart.mdx`
 - Keep the same frontmatter keys (`title`, `description`, `sidebarTitle`)
-- If a translation is missing, the portal falls back to English and shows a banner
-- Mintlify preview (`mint dev`) still reads root-level English MDX only
+- If a translation is missing, Portico falls back to English and shows a banner
 
 ## Doc structure
 
@@ -98,7 +120,7 @@ api/                REST overview, authentication, examples, reference, Platform
 
 ### Platform MCP authoring skills (canonical)
 
-Plain Markdown under **`platform-mcp-skills/`** (listed in `.mintignore` — not Mintlify pages). External agents fetch via **raw GitHub**:
+Plain Markdown under **`platform-mcp-skills/`** (not docs pages: Portico only publishes `.mdx` files, so these are not rendered on the site). External agents fetch via **raw GitHub**:
 
 `https://raw.githubusercontent.com/agentruntime-io/agentruntime-docs/main/platform-mcp-skills/...`
 
@@ -122,7 +144,7 @@ When adding or updating tools in code:
    Output: `agentruntime-docs/.generated/connectors/{slug}.mdx`
 
 2. Copy tools, config keys, and field tables from the draft into the published page — rewrite setup/auth prose for users.
-3. Never point Mintlify at `.generated/` — it is reference only.
+3. Never publish `.generated/` — it is reference only. Portico skips dot-folders, so keep it that way.
 4. Add new slugs to `integrations/connector-catalog.mdx` and `docs.json` Connectors group.
 5. Keep **integration setup** docs free of per-connector tool tables — link to the connector page instead.
 
