@@ -45,6 +45,10 @@ If you cannot create databases, the **Create database** button is greyed out. Se
 
 You should see "Database and workflow MCP instance created" and the new database. If you see "Database created, but workflow MCP setup failed", the database exists but workflows cannot reach it yet. Open its **Overview** and click **Provision MCP**.
 
+<Frame caption="The Schema step of Create database">
+  <img src="/images/platform/databases-create-schema.png" alt="The Schema step of Create database with a refunds table and its columns id, customer, updated_at and updated_by, with type, primary key, required, unique, auto and foreign key settings" />
+</Frame>
+
 ### Find your way around a database
 
 Click a database in the list to open it. The left panel has:
@@ -58,7 +62,15 @@ Click a table to open it. Four tabs appear: **Data**, **Schema**, **SQL**, and *
 
 On **Overview** the **Agent access** card says **Connected** when workflows can use the database. If it says **MCP not provisioned**, click **Provision MCP**. When connected, **Open instance** takes you to the MCP instance, and **Re-provision** sets it up again. **Show tenantdata tools (8)** lists the tools workflows can call. To stop agents using a database, click **Archive database** and confirm. Archiving keeps the row data, and agents lose access.
 
+<Frame caption="A database overview, with Agent access connected">
+  <img src="/images/platform/databases-overview.png" alt="A database overview page showing Agent access as Connected, the database key, the MCP instance ID, and links to the schema JSON, migration history and technical details" />
+</Frame>
+
 ### The Data tab
+
+<Frame caption="The Data tab">
+  <img src="/images/platform/databases-data-tab.png" alt="The Data tab of a refunds table with Data, Schema, SQL and Data API tabs, a toolbar with search, Columns, Filter, refresh, Live, CSV and Insert row, and two rows" />
+</Frame>
 
 The **Data** tab shows a table's rows in a grid. Above the grid:
 
