@@ -13,7 +13,7 @@ User-facing docs for [docs.agentruntime.io](https://docs.agentruntime.io), serve
 ### Hosting and deploys
 
 - Hosted on Vercel (project `portico`). The build clones this repo (`CONTENT_GIT_REPO`), so the site always builds from the content in Git.
-- A push to this repo triggers a rebuild through a Vercel deploy hook. Treat a push as a production release; batch doc changes and push when ready to ship.
+- The site builds from `main`. A push to any branch calls a Vercel deploy hook that rebuilds production, but only what is on `main` is published: work on `develop` and release with a `develop` → `main` PR. Treat a merge to `main` as a production release and batch doc changes.
 
 ### Preview and check locally
 
