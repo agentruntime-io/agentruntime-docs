@@ -6,7 +6,7 @@ Optional syntax inside a single `{{ ... }}` expression. Read `|` left-to-right a
 
 | Pattern | Behavior |
 |---|---|
-| `{{input.field}}` | Required — fail if missing or unresolved |
+| `{{input.field}}` | Required at dry-run (validation fails if nothing can resolve it). At run time a missing input is NOT an error: the literal `{{input.field}}` text is passed on, so add a default or `omit` when the field may be absent. |
 | `{{input.field \| "2026/01/01"}}` | Default literal when field is missing or empty string |
 | `{{input.field \| 120}}` | Default number (JSON literal) |
 | `{{input.field \| omit}}` | Drop the key from the resolved map (child never sees it) |

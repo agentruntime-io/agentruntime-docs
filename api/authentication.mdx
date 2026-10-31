@@ -39,7 +39,7 @@ A token can never do more than you can. If your role is `project_viewer`, a toke
     Enter a **Name** that says what the key is for, for example `CI deploy`. You can add an optional **Description**.
   </Step>
   <Step title="Choose scopes">
-    A **scope** is one permission the token has. Pick only what the script needs. Common choices:
+    A **scope** is one permission the token has. Click a template under **Templates** to fill in a set of scopes (see [Scope templates](#scope-templates)), or tick scopes yourself under **Scopes**. Pick only what the script needs. Common choices:
 
     | Scope | Lets the token… |
     |-------|-----------------|
@@ -55,7 +55,7 @@ A token can never do more than you can. If your role is `project_viewer`, a toke
     | `analytics:read` | Read analytics |
     | `billing:read` | Read usage and billing |
 
-    The dialog shows the full list with a short description for each.
+    The dialog shows the full list under **Scopes**, grouped as **Connections**, **Workflows**, **Agents**, **Chat**, **Memory**, **LLM**, **Work (boards & tasks)**, **Inbound webhooks**, **Billing & usage**, **Platform** and **Administration**. Each scope has a label, its code, and a short description. A count next to **Scopes** shows how many of the listed scopes your role can grant.
   </Step>
   <Step title="Create and copy the token">
     Click **Create key**. The token is shown **once**. Copy it into a secrets manager. If you lose it, revoke the key and create a new one.
@@ -63,6 +63,35 @@ A token can never do more than you can. If your role is `project_viewer`, a toke
 </Steps>
 
 **What you should see:** the new key appears in the **API keys** list with its name and scopes. The secret itself is never shown in the list.
+
+### Scope templates
+
+A template is a ready-made set of scopes for a common job. In the **Create API key** dialog, click a template under **Templates**. It selects its scopes and, for every template except **All**, fills in a suggested **Name**. You can still tick or untick scopes afterwards. Click an active template again to clear the selection.
+
+| Template | What it grants | Scopes | Suggested name |
+|----------|----------------|--------|----------------|
+| **All** | Every scope your role can grant | All of them | None |
+| **Embedded Connect** | Host connect popups, receive connection webhooks, and run workflows per end user | `mcp:read`, `mcp:write`, `workflow:run`, `mcp:execute` | `Embedded Connect — production` |
+| **Embedded Connect (connect only)** | Connect links and partner webhooks only, with no workflow execution | `mcp:read`, `mcp:write` | `Embedded Connect — connect` |
+| **Run workflows** | Start runs through the API for workflows that already exist | `workflow:read`, `workflow:run`, `mcp:execute` | `Workflow automation` |
+| **Inbound webhooks** | Trigger workflows from external HTTP webhooks | `workflow:run`, `mcp:execute`, `webhook:manage` | `Inbound webhooks` |
+| **Usage export** | Read-only usage and billing reports. Add workflow scopes if the key also runs workflows. | `billing:read` | `Usage export` |
+
+A template shows a lock if your role cannot grant all of its scopes. Hover over it to see which ones are missing. A single scope your role cannot grant is locked too. Ask a workspace admin if you need it.
+
+### Embedded Connect scopes
+
+Three scopes are for [Embedded Connect](/integrations/embedded-connect). They appear under **Connections** in the dialog.
+
+| Scope | Label in the dialog | What it lets the key do |
+|-------|---------------------|-------------------------|
+| `connect:read` | **Read end users** | Read end users and segments, for example `GET /v1/principals`, `GET /v1/principal-segments` and `GET /v1/connect/sessions/{id}` |
+| `connect:write` | **Manage end users** | Manage end users, segments, connect links and settings, for example `POST /v1/connect/link`, `PUT /v1/principals/{id}` and `PUT /v1/embedded-connect/settings` |
+| `connect:execute` | **Run as end users** | Run workflows as end users. Use it with `workflow:run`, and send `external_user_id` or `segment_id` on `POST /v1/workflows/{id}/command` |
+
+The two scopes next to them, `mcp:read` (**View connections**) and `mcp:write` (**Manage connections**), cover connections in general. For end users and connect links, the hints in the dialog say to prefer `connect:read` and `connect:write`. The **Embedded Connect** and **Embedded Connect (connect only)** templates use `mcp:read` and `mcp:write`. They do not include the `connect:*` scopes.
+
+The dialog notes that Embedded Connect partner webhooks use `connect:write`. The `webhook:manage` scope is only for [inbound webhooks](/integrations/inbound-webhooks).
 
 ### Use the token
 

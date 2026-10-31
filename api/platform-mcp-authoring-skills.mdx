@@ -38,7 +38,7 @@ When you ask an assistant to build something, a good run looks like this:
 1. It calls `ar_get_started` to learn about your workspace and the guides.
 2. It reads the **Platform design** guide, then the guides for the parts it needs (database, workflow, app).
 3. It checks each workflow with `workflows_validate` before running it.
-4. For an app, it creates the workflows first, then points the app at them by their IDs. This avoids the **Import pending** state in the Console.
+4. For an app, it creates the workflows first, then points the app at them by their IDs. This avoids the **Needs setup** state in the Console.
 
 You do not need to publish a workflow before an app or a run can use it. They use the workflow's **Live** copy. Publish a numbered version only when something must stay pinned to a stable copy.
 
@@ -47,7 +47,7 @@ You do not need to publish a workflow before an app or a run can use it. They us
 | Problem | What to do |
 |---------|------------|
 | The assistant ignores the guides | Tell it to call `ar_get_started` first and read the guides it lists. If it cannot browse, paste the guide link or content into the chat |
-| An app shows **Import pending** | The app points to a workflow that does not exist yet. Create the workflow, then update the app with its ID |
+| An app shows **Needs setup**, or a problem that a workflow "isn't linked to this workspace yet" | The app points to a workflow that does not exist yet. Create the workflow, then update the app with its ID |
 | The assistant writes steps that fail validation | Ask it to read the Workflow authoring guide and run `workflows_validate`. See [Dry run](/workflows/dry-run) |
 
 ## Next steps

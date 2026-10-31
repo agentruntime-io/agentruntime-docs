@@ -1,0 +1,109 @@
+---
+title: Lua scripts
+description: What a Lua step can read, what it must return, what is not available, and its limits.
+---
+
+A **Lua** step runs a short script inside your workflow. Use it to reshape data between steps: pick fields, filter a list, compute a total, or decide whether a later step should run.
+
+**Who this is for:** anyone adding a Lua step in [Workflow Studio](/workflows/studio) or in JSON. You don't need to know Lua well: most scripts are a few lines.
+
+**What you will learn:** what the script can read, what it must return, how to fail a step on purpose, and what Lua cannot do here.
+
+## A first script
+
+This script reads the run's start input and an earlier step's output, and returns a table:
+
+```lua
+local orders = steps["load-orders"].result.rows or {}
+local total = 0
+for _, o in ipairs(orders) do
+  total = total + (o.amount or 0)
+end
+return { customer = input.customer_id, order_count = #orders, total = total }
+```
+
+Later steps read the values with templates such as `{{steps.sum-orders.result.total}}`.
+
+## What the script can read
+
+These names are ready to use. You don't declare them.
+
+| Name | What it holds |
+|---|---|
+| `input` | The run's start input, for example `input.customer_id`. If the start input is not an object (a list, text or a number), it is in `input.value`. |
+| `steps` | Results of earlier steps: `steps["step-id"].result`. A step id with hyphens also works with underscores, `steps.load_orders`, when that name is free. |
+| `run` | Details of the run: `run.run_id`, and when they apply `run.external_id`, `run.user_id`, `run.principal_id`, `run.trigger_type`, `run.segment_id`, `run.started_at` |
+| `connection` | Details of the connection the run uses, when there is one |
+| `item`, `index` | Inside a `for_each` body: the current item and its position, counting from 0. Also as `foreach.item` and `foreach.index`. |
+| `body` | Inside a loop body: the results of the other body steps in the current item or round, `body.<inner-id>` |
+| `loop` | Inside a `while` body: `loop.iteration` (from 0) and `loop.prev.<inner-id>` (the previous round's results) |
+
+`steps` only holds steps that **finished with a result**. A step that was skipped, or has not run, is `nil`. Guard before you index into it:
+
+```lua
+local check = steps["optional-check"]
+local passed = check ~= nil and check.result.ok == true
+return { passed = passed }
+```
+
+A step you read must have finished before your script runs, so add it to the Lua step's `depends_on` (draw the line on the canvas), directly or further up the chain. Otherwise it may not have run yet and reads as `nil`.
+
+## What the script must return
+
+- **Return a table**, for example `return { total = 42 }`. Returning a number, text or `true` fails the step with "lua script must return a table".
+- Use plain values in the table: text, numbers, `true`/`false`, and nested tables.
+- A list you return at the top level becomes an object with keys `"1"`, `"2"` and so on. Put lists inside a field instead: `return { items = items }`.
+- Setting a field to `nil` leaves it out.
+
+## Fail a step on purpose
+
+Call `error("message")`. The step fails with your message, and the run fails with it:
+
+```lua
+local email = input.email
+if email == nil or email == "" then
+  error("email is required")
+end
+return { email = string.lower(email) }
+```
+
+## What is available, and what is not
+
+Available:
+- The basics: `pairs`, `ipairs`, `type`, `tostring`, `tonumber`, `error`, `pcall`, `select`, `next`, `unpack`
+- `string` (for example `string.format`, `string.lower`, `string.find`, `string.gsub`)
+- `table` (for example `table.insert`, `table.concat`, `table.sort`)
+- `math`
+
+Not available:
+- **No JSON library.** `json.decode` and `json.encode` don't exist. To get structured data from a model, use an `agent` step whose agent has an output schema; its fields land on the step result. See [Step types](/workflows/step-types#agent-run-an-agent).
+- No network, files, `os`, `io`, `require` or loading other code
+- No `print`. To see a value, return it and look at the step's output in the **Events** tab.
+- No templates. Don't write `{{…}}` in a script: read `input` and `steps` instead.
+
+## Limits
+
+| Limit | Value |
+|---|---|
+| Script size | 64 KiB |
+| Result size | 1 MiB |
+| Time limit | 5 seconds by default. Set **Timeout** up to 30 seconds; a larger value is cut down to 30. |
+| Memory | A script that makes the engine's memory grow by more than 64 MB is stopped. |
+
+See [Limits](/platform/limits) for every workflow limit.
+
+## Common problems
+
+| Problem | What to try |
+|---|---|
+| "lua script must return a table" | End the script with `return { ... }`. |
+| An error about indexing a `nil` value | A step you read was skipped or has not run, or the id is wrong. Check the id, add the step to `depends_on`, and guard against `nil`. |
+| An error about `json` being `nil` | You used `json.decode`, which doesn't exist here. Use an `agent` step with an output schema for structured data. |
+| The step times out | Do less work in one script, or split it into two Lua steps. |
+| A list arrives as an object with `"1"`, `"2"` keys | Return the list inside a field: `return { items = items }`. |
+
+## Next steps
+
+- [Step types](/workflows/step-types)
+- [Template intellisense](/workflows/template-intellisense)
+- [JSON cookbook](/workflows/json-schema-cookbook)

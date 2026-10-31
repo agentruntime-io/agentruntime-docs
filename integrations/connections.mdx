@@ -20,7 +20,7 @@ Open **Connections** in the sidebar. You will see:
 
 - **New custom connection** and **Add from template** buttons at the top right.
 - An **Accounts** section with a **Sign in with Google** button, when Google sign-in is available for your workspace. The Google card shows how many Google accounts you have.
-- A **Saved connections** list, grouped by provider, with a **Search connections…** box. Each row shows when it was last updated and how many instances use it. A row marked **Unused** is not attached to any instance yet.
+- A **Saved connections** list, grouped by provider, with a **Search connections…** box. Each row shows when it was last updated and how many instances use it. A row marked **Unused** is not attached to any instance yet. Each row also has a chip that says who can use the connection, such as **Only you** or **Shared**. See [Choose who can use a connection](#choose-who-can-use-a-connection).
 
 <Frame caption="The Connections page in a new workspace">
   <img src="/images/integrations/connections-page.png" alt="The Connections page with the New custom connection and Add from template buttons, an Accounts section with a Sign in with Google button and a Google card showing No Google accounts yet, and an empty Saved connections section" />
@@ -39,7 +39,7 @@ One Google sign-in can power several Google connectors, so you choose the servic
     On **Connections**, click **Sign in with Google** (or **Add from template**, then click **Sign in** on the **Google** row under **Accounts**).
   </Step>
   <Step title="Name it and pick services">
-    Enter a **Display name** (for example `Work Google`), then tick the services you need, such as Gmail or Sheets. **Select all** and **Clear all** help with long lists.
+    Enter a **Display name** (for example `Work Google`), then tick the services you need, such as Gmail or Sheets. **Select all** and **Clear all** help with long lists. Under **Who can use it**, keep **Only me** or pick another option. See [Choose who can use a connection](#choose-who-can-use-a-connection).
   </Step>
   <Step title="Continue to Google">
     Click **Continue to Google**, sign in, and approve the permissions. You return to the Console.
@@ -77,12 +77,71 @@ Most connectors (Resend, GitHub, Shopify, Postgres, Notion, and more) use a key,
     </Frame>
   </Step>
   <Step title="Enter the credentials">
-    For a template, fill in the fields shown. For a custom connection, enter a **Display name**, then add one row per secret: a key name such as `api_key` and its value. Use **Add field** for more rows.
+    For a template, fill in the fields shown. For a custom connection, enter a **Display name**, then add one row per secret: a key name such as `api_key` and its value. Use **Add field** for more rows. The form also asks **Who can use it**, which starts on **Only me**. See [Choose who can use a connection](#choose-who-can-use-a-connection).
   </Step>
   <Step title="Save">
     Click **Save**. You should see a "Connection saved" message and the connection in **Saved connections**.
   </Step>
 </Steps>
+
+## Choose who can use a connection
+
+Connections are personal by default. When you add a Google account, a template connection, or a custom connection on the **Connections** page, **Who can use it** starts on **Only me**. Nobody else can use the connection until you choose otherwise. You can change your choice at any time.
+
+| Option | Who can use the connection |
+|--------|----------------------------|
+| **Only me** | Only you. Agents use it when you ask them to, if the connector is set to each person's own account. |
+| **Specific people** | You and the people you choose. Click **Add a person…** and pick a member. To remove someone, click the **×** next to their name. With nobody added, it works like **Only me**. |
+| **Everyone in this workspace** | Teammates, agents and workflows. Choose this for shared accounts, such as a team inbox. |
+
+Workflows run for your teammates too. A workflow that uses a connection set to **Only me** works only for you. If your whole team's workflows rely on a connection, choose **Everyone in this workspace**.
+
+<Note>
+  If you sign in to an account from an instance's **Instance config** page, the dialog says "Choose who can use this account before you sign in." There the choice starts on **Everyone in this workspace**, with the note "Workflows and teammates can only use the connector through a shared account."
+</Note>
+
+### See who can use a connection
+
+Each row on **Connections** has a chip. Open the connection to see the same chip in **Who can use it**, with a one-line explanation.
+
+| Chip | What it means |
+|------|---------------|
+| **Only you** | Only you can use it. |
+| **Shared with 2 people** | You and the people you chose can use it. The number changes with the list. |
+| **Shared** | Everyone in this workspace can use it. |
+| **Shared with you** | Someone else's personal connection that they shared with you. The owner's name can follow the label. |
+
+### Change who can use a connection
+
+Only the person who connected an account can change who uses it. Everyone else sees the chip but no button.
+
+<Steps>
+  <Step title="Open the connection">
+    Click its row on **Connections**. Under **Who can use it**, click **Manage access**.
+  </Step>
+  <Step title="Choose the access">
+    The **Manage access** dialog shows what is true now ("Right now: …"). Pick **Only me**, **Specific people** or **Everyone in this workspace**, and add or remove people.
+  </Step>
+  <Step title="Save">
+    Click **Save access**. You should see "Access updated". You stay the owner.
+  </Step>
+</Steps>
+
+If your change gives fewer people access, a dialog titled **Reduce who can use this account?** asks you to confirm. It says that connectors and workflows that use the account will work only for you, or only for you and the people you choose. When you pick **Only me**, it adds that teammates' runs that rely on the account will stop working. Click **Reduce access** to go on, or **Keep current access** to stay as you were.
+
+### Connections shared with you
+
+A connection marked **Shared with you** belongs to someone else. You can use it and click **Test** on it. You cannot rename it, rotate its credentials, change who uses it, or delete it. Only its owner can.
+
+### What admins and members see of private connections
+
+A member's private connection is not listed for other members. Pickers, such as the one on **Instance config**, do not offer it either.
+
+Workspace admins (`tenant_admin`) see one more section at the bottom of **Connections**, **Members' private connections**. It lists each member's private connections, read-only: the connection's name, its service and account, a **Personal** chip with the owner's name, and **Active** or **Disabled**. You can see them, but only the owner can use, change or delete them. The section appears only when there are such connections.
+
+### When a member leaves
+
+Removing a member disables their private connections. The work that used them is handed to another member. That member sees **Reconnect N connectors** under the bell in the header, and the **Connections** page shows **Handed over to you: reconnect**. For each service, connect your own account (the button that starts with **Connect** does this if you have none), pick it, and click **Re-point**. You can click **Dismiss** on an item instead. Credentials never move to another person. You need MCP write permission to re-point.
 
 ## Use a connection in a connector
 
@@ -98,6 +157,7 @@ Click the connection's row to open its details.
 | **Rename** | Click the pencil icon next to the name. |
 | **Change or rotate a key** | Click **Rotate**, edit the values, and click **Save to Vault**. Update the key in the outside service first if you are replacing it. |
 | **See where it is used** | Open the **Used by** section. |
+| **Change who can use it** | Click **Manage access**. See [Choose who can use a connection](#choose-who-can-use-a-connection). |
 | **Delete** | Click **Delete connection** and confirm. |
 
 <Warning>
@@ -112,6 +172,9 @@ Click the connection's row to open its details.
 | "Workspace required" message | Pick a workspace with the control in the header. |
 | A Google connector stops working | Open the account and click **Reconnect**. |
 | A tool says it has no credentials | Attach the connection to the instance's active profile. See [MCP instances](/integrations/mcp-instances). |
+| A teammate's workflow cannot use my connection | The connection is set to **Only me** or **Specific people**. Click **Manage access** and choose **Everyone in this workspace**. |
+| I cannot rename or delete a connection | It is marked **Shared with you**. Only its owner can change it. |
+| There is no **Manage access** button | Only the person who connected the account sees it. |
 
 ## Related
 

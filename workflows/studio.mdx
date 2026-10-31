@@ -20,7 +20,7 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
 
 <Steps>
   <Step title="Create the workflow">
-    In the Console sidebar, open **Workflow Studio**, then click **Create workflow**. The **Find a workflow recipe** dialog opens. Type a name in **Workflow name** if you want one, then click **Blank canvas** for an empty canvas (or pick a recipe to start from).
+    In the Console sidebar, open **Workflow Studio**, then click **Create workflow**. If Studio opens the last workflow you worked on instead of the list, click the back arrow in the toolbar (**Back to all workflows**) first. The **Find a workflow recipe** dialog opens. Type a name in **Workflow name** if you want one, then click **Blank canvas** for an empty canvas (or pick a recipe to start from).
 
     You should see the canvas, a toolbar along the top, and a green chip that reads **Live** with a "saved" time.
 
@@ -29,11 +29,7 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
     </Frame>
   </Step>
   <Step title="Add steps">
-    Add steps from the step palette and drag them onto the canvas. The built-in step types are **Agent**, **External agent (Cursor Cloud)**, **For each**, **Human**, **LLM**, **Lua**, **While** and **Workflow**. Tools from your connected integrations are listed under **Our MCP** and **Composio MCP**. See [Step types](/workflows/step-types) for what each one does.
-
-    <Frame caption="The step palette">
-      <img src="/images/workflows/studio-palette.png" alt="The step palette listing the built-in step types Agent, External agent (Cursor Cloud), For each, Human, LLM, Lua, While and Workflow, then Our MCP and Composio MCP with Browse buttons" />
-    </Frame>
+    Add steps from the step palette and drag them onto the canvas. The palette has three sections. **Built-in** lists the step types: **Agent**, **External agent (Cursor Cloud)**, **For each**, **Human**, **LLM**, **Lua**, **While** and **Workflow**. Tools from your connected integrations are listed under **Platform connectors** and **Hosted apps**. To add a connector, click **Browse connectors** above the list. An empty section also shows its own button, **Browse platform connectors** or **Browse hosted apps**. See [Step types](/workflows/step-types) for what each built-in step does.
   </Step>
   <Step title="Connect the steps">
     Draw a line from one step to the next. A step starts when the steps it depends on have finished. Steps that do not depend on each other run at the same time.
@@ -55,6 +51,68 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
 <Note>
   You do not have to publish to run or test. Studio saves your edits automatically, and **Run** always runs the latest saved edits. Publish when you want a frozen copy that does not change.
 </Note>
+
+## Work on the canvas
+
+### Undo and redo
+
+Click **Undo** or **Redo** in the toolbar to step back or forward through your edits. The two buttons sit just after the **Setup**, **Run** and **Dry-run** group, and they stay in the bar even in a narrow window. A button is greyed out when there is nothing to undo or redo. A workflow you have just opened has nothing to undo.
+
+You can also press **Ctrl+Z** to undo and **Ctrl+Y** or **Ctrl+Shift+Z** to redo (use **Cmd** on a Mac). See [Keyboard shortcuts and links](/platform/shortcuts-and-links) for all the canvas keys, including **Delete** and **Ctrl+S**.
+
+### Move around the canvas
+
+- Scroll over the canvas to zoom in or out toward your pointer. The zoom goes from 25% to 250%.
+- Drag an empty part of the canvas to move around.
+- The three buttons at the bottom left of the canvas zoom in, zoom out, and fit the whole workflow on screen.
+- The minimap at the bottom right shows the whole workflow as small boxes. Drag inside it to move the view. Scroll over it to zoom.
+
+## See a run on the canvas
+
+At the top left of the canvas, a small switch has two buttons: **Editing** and **Run**.
+
+- **Editing** shows the workflow you are building. This is the normal view.
+- **Run** shows the workflow as the selected run executed it, with each step marked with how it ended in that run. The first 8 characters of the run's ID show next to **Run**. **Run** is greyed out until you select a run.
+
+<Steps>
+  <Step title="Open the run panel">
+    Expand **Run logs and metrics** at the bottom of Studio.
+  </Step>
+  <Step title="Pick a run">
+    Click a run in the **Runs** list. The canvas switches to **Run**. A status badge for the run appears under the switch.
+  </Step>
+  <Step title="Go back to editing">
+    Click **Editing** in the switch, or the **Editing** row at the top of the **Runs** list (marked **Draft**). Studio brings back the canvas you were working on.
+  </Step>
+</Steps>
+
+By default, when you click **Run** in the toolbar, the canvas switches to the new run as soon as it starts. To stay on **Editing** instead, tick **Stay on canvas when a run starts** at the top of the **Runs** list. See [Execution timeline](/workflows/execution-timeline#stay-on-canvas-when-a-run-starts).
+
+In the **Run** view:
+
+- The canvas is read-only. If you try to change something, Studio says "Run inspect is read-only" and points you to **Back to editing**. The step settings panel has a **Back to editing** button, and the **Editing** button does the same.
+- The **Dry Run** tab says "Dry-run applies to the editing canvas". Go back to **Editing** to dry-run your changes.
+- If you can edit the workflow, the badge area also has two buttons:
+
+| Button | What it does |
+|---|---|
+| **Fork** | Makes a new workflow from this run's graph and run setup, and opens it. You see "Workflow forked from run". |
+| **Restore** | Asks "Restore workflow from this run?". Click **Restore workflow** to replace your **Live** copy with the graph from this run. Studio saves your unsaved edits first. |
+
+## Fix a stale tool step
+
+A step that calls a tool can fall out of date. When a dry-run finds one, it lists the problem under **Issues by step** in the **Dry Run** tab with one of two banners. The URL banner also shows in the step's settings.
+
+| Banner | What it means | What to click |
+|---|---|---|
+| **Stale MCP URL on this step** | The URL saved in the step no longer matches where its MCP instance lives now. The banner shows the **Saved URL** and **Instance resolves to**. This often happens after an MCP server's router URL changed, or after you copied a workflow from another environment. | **Sync MCP URL** updates the step to the current URL and runs the dry-run again. Other steps that use the same MCP instance are updated too. **Open step** jumps to the step. |
+| **Stale MCP tool on this step** | The tool the step calls is no longer published. The banner shows the **Saved tool**. This often happens after a connector was updated, or after you copied a workflow from another environment. | **Update MCP tool** opens **Replace MCP instance**. Expand an instance to see its tools, pick the current one, and click **Use**. **Open step** jumps to the step. |
+
+If the step is switched off, the banner title ends with "disabled step" instead of "step". That step will not run, so you can fix it or delete it.
+
+On the canvas, a step with an out-of-date tool also shows an **Update** badge. Its settings show "This tool is out of date." with an **Update** button. Both open the same **Replace MCP instance** dialog.
+
+Studio saves your edits automatically, so the fix is kept. Run the dry-run again to check that the banner is gone.
 
 ## Live copy and published versions
 
@@ -126,6 +184,19 @@ A workflow you added from a shared package shows **Installed from `<package>` vN
 - **Undo** (in the message after an update) puts back the revision from before.
 - **Keep this up to date** can be **Off**, **Update Live automatically**, or **Update and publish automatically**.
 
+## Pin and rename a workflow
+
+The workflow list is the page you see in **Workflow Studio** before you open a workflow. From inside a workflow, click the back arrow in the toolbar (its tooltip is "Back to all workflows") to get to it. Each row has an icon that opens the workflow, and a three-dot menu on its right with these items:
+
+| Menu item | What it does |
+|---|---|
+| **Pin** / **Unpin** | A pinned workflow shows a pin icon and stays at the top of the list. The other workflows are listed with the most recently changed first. Pins are saved to your account for the current project. |
+| **Rename** | Opens **Rename workflow**. Type the new name in **Name** and click **Save**. Only the name changes, not the steps. You see "Workflow renamed". |
+| **Create copy** | Makes a copy named like the original with "(Copy)" after it. |
+| **Delete** | Does the same as **Archive** below. |
+
+**Rename** and **Delete** are greyed out if you cannot edit workflows. **Pin** needs a project: if none is selected, Studio asks you to choose a project first.
+
 ## Archive a workflow
 
 In the workflow list, select a workflow and click **Archive**. The workflow is hidden from your lists and its run history is kept. To get an archived workflow back, contact support. You need workflow edit permission to archive.
@@ -138,11 +209,16 @@ In the workflow list, select a workflow and click **Archive**. The workflow is h
 | A trigger runs old behaviour after you edited | The trigger is set to **Last published** or a fixed version. Change **Runs** to **Live**, or publish and switch it to **Last published**. |
 | Studio says "Live changed somewhere else" | Another tab, an agent, or the API saved a newer revision. Autosave pauses so it does not overwrite it. Click **Reload Live** (this drops unsaved edits in the current tab). |
 | A `{{…}}` value is empty at run time | Check the step id in the template. See [Template intellisense](/workflows/template-intellisense). |
+| Studio says "Run inspect is read-only" | The canvas is on the **Run** view. Click **Editing** at the top left of the canvas. See [See a run on the canvas](#see-a-run-on-the-canvas). |
+| A step shows **Stale MCP URL on this step** or **Stale MCP tool on this step** | The step points at an old URL or a tool that is no longer published. See [Fix a stale tool step](#fix-a-stale-tool-step). |
+| **Delete** does nothing on the canvas | Click the step so it is selected, and make sure you are not typing in a field. **Backspace** never deletes a step. |
 
 ## Next steps
 
 - [Step types](/workflows/step-types): what each step does and its fields
 - [Run setup](/workflows/run-setup): starting input and saved defaults
+- [Keyboard shortcuts and links](/platform/shortcuts-and-links): canvas keys and shareable links
+- [Execution timeline](/workflows/execution-timeline): the run panel tabs and toolbar
 - [Runs and Command Center](/workflows/runs-and-command-center): watch and control runs
 - [Human tasks](/workflows/human-tasks): approvals and replies
 - [Workflow patterns](/workflows/patterns): recipes you can copy

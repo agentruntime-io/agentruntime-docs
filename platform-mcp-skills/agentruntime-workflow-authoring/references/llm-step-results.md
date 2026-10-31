@@ -28,13 +28,7 @@ local raw = type(llm) == "table" and llm.text or nil
 if type(raw) ~= "string" or raw == "" then error("missing LLM text") end
 ```
 
-When the prompt asks for JSON, decode in a **follow-on** `lua` step:
-
-```lua
-local parsed = json.decode(raw)
-if type(parsed) ~= "table" then error("LLM text is not a JSON object") end
-return { extraction = parsed }
-```
+Workflow Lua has **no JSON library** (`json.decode` is nil). Do not plan an `llm` step followed by a Lua decode. When downstream steps need structured fields, use an `agent` step whose agent declares an `output_schema`: the reply is validated against it (one repair round), and each field is on the step result, e.g. `{{steps.<step_id>.result.<field>}}`. Use `llm` steps for free text (summaries, drafts) that later steps pass on as text.
 
 Platform MCP: **`workflows_llm_step_contract`** returns the same contract inline.
 

@@ -30,7 +30,7 @@ A workflow graph is `{ "steps": [ ... ] }`. The portable workflow schema and aut
 
 | Studio palette | `type` | Use it to |
 |---|---|---|
-| Connector tools | `mcp` | Call a tool on a connected integration (send an email, query a database) |
+| Tools under **Platform connectors** or **Hosted apps** | `mcp` | Call a tool on a connected integration (send an email, query a database) |
 | **LLM** | `llm` | Send a prompt to a model |
 | **Agent** | `agent` | Run one of your agents, with its own tools and memory |
 | **Human** | `human` | Pause for a person to approve, reply, or answer |
@@ -39,10 +39,6 @@ A workflow graph is `{ "steps": [ ... ] }`. The portable workflow schema and aut
 | **While** | `while` | Repeat steps until a condition is met |
 | **Workflow** | `workflow` | Run another workflow and use its result |
 | **External agent (Cursor Cloud)** | `external_agent` | Start a Cursor Cloud background agent on a GitHub repository |
-
-<Frame caption="The step palette in Workflow Studio">
-  <img src="/images/workflows/studio-palette.png" alt="The step palette listing Agent, External agent (Cursor Cloud), For each, Human, LLM, Lua, While and Workflow under Built-in, then Our MCP and Composio MCP" />
-</Frame>
 
 ## `mcp`: call a tool
 
@@ -71,11 +67,11 @@ Examples: send an email with Gmail, query Postgres, create a GitHub issue, send 
 | `llm_credential_id`, `llm_credential_scope` | Optionally pin a specific provider key |
 | `timeout_s` | Time limit in seconds. Studio sets 60. With no `timeout_s`, the engine allows 120 seconds. |
 
-The reply is on the step as `result.text`. The text is not parsed. If you asked for JSON, decode it in a following `lua` step.
+The reply is on the step as `result.text`. The text is not parsed, and Lua has no JSON library, so an `llm` step cannot hand structured data to later steps. When you need fields (a list, a yes/no, a score), use an `agent` step whose agent has an output schema instead. `llm_params` accepts `temperature` (default 0.3) and `max_tokens`.
 
 ## `agent`: run an agent
 
-Runs one of your [agents](/ai/autopilot-and-chat) for one turn, with its tools and memory.
+Runs one of your [agents](/ai/agents) for one turn, with its tools and memory.
 
 | Field | Description |
 |---|---|
@@ -84,7 +80,7 @@ Runs one of your [agents](/ai/autopilot-and-chat) for one turn, with its tools a
 | `input` | Optional structured input. Values can be templates. |
 | `timeout_s` | Time limit in seconds. Studio's default is 600. |
 
-The agent's reply is on the step as `result.message`. An agent with an output schema also returns its schema fields.
+The agent's reply is on the step as `result.message`. If the agent has an **output schema**, it must reply with those fields. The reply is checked against the schema, and an invalid reply gets one chance to be fixed. Each field then sits on the step result, for example `{{steps.triage.result.priority}}`. This is the way to get structured data (lists, yes/no, scores) from a model into later steps.
 
 Agent steps can also hand work to each other, ask a person a question, or talk to a contact in a conversation. See [Autonomous episodes](/workflows/autonomous-episodes) and [Conversation sessions](/workflows/conversation-sessions).
 
@@ -117,20 +113,32 @@ Rules:
 - Read earlier steps with `steps["<step-id>"].result` and start input with `input.<field>`.
 - Lua cannot use the network, files, or the operating system. A script result can be at most 1 MiB.
 - Do not write `{{…}}` in a script. Scripts do not use templates.
+- There is no JSON library (`json.decode` does not exist).
+
+See [Lua scripts](/workflows/lua) for everything a script can read and return.
 
 ## `for_each`: run steps once per item {#for_each}
 
 | Field | Description |
 |---|---|
 | `for_each_items` | A template that resolves to a list, for example `{{steps.gen.result.items}}` |
-| `for_each_body_steps` | The steps to run for each item, in order. Required, at least one. |
+| `for_each_body_steps` | The steps to run for each item. Required, at least one. |
 | `for_each_max_parallel` | How many items run at once. Default 10, maximum 100. |
-| `for_each_error_policy` | `fail_fast`, `continue_on_error`, `pause`, or `human_review` |
-| `for_each_item_timeout_s` | Optional time limit per item (maximum 3600) |
+| `for_each_error_policy` | What happens when an item fails. See the table below. |
+| `for_each_item_timeout_s` | Optional time limit per item, in seconds. Studio accepts 1 to 3600. |
 
 A loop handles at most 500 items per run of the step. Inside the body, `{{foreach.item}}` (or `{{item}}`) is the current item and `{{foreach.index}}` (or `{{index}}`) is its position, counting from 0. In Lua use `item` and `index`.
 
-Body steps can be `mcp`, `lua`, `llm`, `agent`, `workflow`, or another `for_each` or `while`: loops can nest, at any depth. A nested loop keeps the limits above (500 items, parallelism, item timeout) and runs inside its top-level step. Parallelism multiplies, so a `for_each` inside a parallel `for_each` can run as many items at once as outer times inner. A nested `for_each` set to `pause` or `human_review` cannot pause the run partway through: it stops at its first failure and fails the surrounding loop body, so the outermost loop's error policy applies. The result has `count`, `succeeded_count`, `failed_count`, and `results[]`, one entry per item.
+Body steps can be `mcp`, `lua`, `llm`, `agent`, `workflow`, or another `for_each` or `while`: loops can nest, at any depth. A nested loop keeps the limits above (500 items, parallelism, item timeout) and runs inside its top-level step. Parallelism multiplies, so a `for_each` inside a parallel `for_each` can run as many items at once as outer times inner. A nested `for_each` set to `pause` or `human_review` cannot pause the run partway through: it stops at its first failure and fails the surrounding loop body, so the outermost loop's error policy applies. The result has `count`, `succeeded_count`, `failed_count`, `max_parallel`, and `results[]`, one entry per item with its `index` and either its `result` or an `error`.
+
+For each item, the body steps run one after another. Use `depends_on` between body steps to set their order: steps with no dependency between them run in alphabetical order of their `id`, not in the order you list them.
+
+| `for_each_error_policy` | When an item fails |
+|---|---|
+| `fail_fast` (default) | No new items start, and the step fails, so the run fails. |
+| `continue_on_error` | The other items still run. The step succeeds with `partial_success: true` and `first_failure` in its result. Check `failed_count`. |
+| `pause` | No new items start. The step ends with `failed: true` and the run pauses, so you can look and then resume or stop it. |
+| `human_review` | Like `pause`, and a review task appears in [Command Center](/workflows/command-center). Approving it resumes the run; rejecting it fails the run. |
 
 ## `while`: repeat until done
 
@@ -142,7 +150,7 @@ Body steps can be `mcp`, `lua`, `llm`, `agent`, `workflow`, or another `for_each
 | `while_condition` | A template that resolves to true or false, for example `{{body.score.pass}}` |
 | `while_eval_script` | A Lua script that returns `{ pass = true }` or `{ pass = false }`. Wins if you set both. |
 
-The body runs first, then the condition is checked. A `timeout_s` set on the `while` step limits each round (not the whole loop). Studio's **While** settings do not have a separate per-round field. Inside the body, `{{while.iteration}}` is the round number counting from 0, `{{body.<inner-id>.<field>}}` reads a step from the current round, and `{{while.prev.<inner-id>.<field>}}` reads the previous round. In Lua use `loop.iteration`, `loop.prev`, and `body`. When the limit is reached the result says `stopped_reason: "max_iterations"`; check it before treating the work as finished.
+The body runs first, then the condition is checked. In JSON, `while_iteration_timeout_s` limits each round; without it, a `timeout_s` set on the `while` step limits each round (not the whole loop). Studio's **While** settings have no per-round field, so set it in JSON. Inside the body, `{{while.iteration}}` is the round number counting from 0, `{{body.<inner-id>.<field>}}` reads a step from the current round, and `{{while.prev.<inner-id>.<field>}}` reads the previous round. In Lua use `loop.iteration`, `loop.prev`, and `body`. When the limit is reached the result says `stopped_reason: "max_iterations"`; check it before treating the work as finished.
 
 ## `workflow`: run another workflow
 
@@ -165,13 +173,16 @@ Steps pass data with **templates** in double braces. Type `{{` in a Studio field
 |---|---|
 | `{{input.field}}` | A value from the run's start input |
 | `{{steps.<step-id>.result.field}}` | An earlier step's output. Use the step `id`, with dot syntax only. |
-| `{{steps.<step-id>.input.field}}` | The values that step was actually called with |
 | `{{foreach.item}}`, `{{foreach.index}}` | The current item and its position inside a `for_each` body |
 | `{{body.<inner-id>.field}}` | A step in the current round of a loop body |
 | `{{while.iteration}}`, `{{while.prev.<inner-id>.field}}` | The round number, and the previous round's output |
 | `{{input.field \| "default"}}` | The default after `\|` is used when the value is missing or empty. End with `omit` to leave the key out. |
 
 A step can only read steps it depends on (directly or further up the chain). Inside a loop body, use the inner step's own `id`.
+
+<Warning>
+  A missing start input is not an error when the run starts. If `{{input.customer_email}}` has no value, the step receives the literal text `{{input.customer_email}}`, and a tool step sends it as is. Give inputs that may be missing a default, `{{input.customer_email | ""}}`, or leave the key out with `{{input.customer_email | omit}}`. Dry-run flags templates that nothing can fill.
+</Warning>
 
 ## Settings every step shares {#settings-every-step-shares}
 
@@ -190,7 +201,7 @@ Click a step on the canvas and scroll its settings panel to the **Execution** se
 | `input_allowlist` | Which steps (or `human`) may send input or a handoff to this step. In Studio: **Accepts input from**. |
 | `no_auto_start`, `terminal` | For agents that hand work to each other. See [Autonomous episodes](/workflows/autonomous-episodes). |
 
-`skip_when` supports one value or one `==` / `!=` comparison. It does not support `&&` or `||`; compute a true/false value in a `lua` step and reference that. A step is skipped for `true`, the text `true`, `yes`, or `1`, or a non-zero number. A missing or unresolved value means the step runs.
+`skip_when` supports a value or a comparison with `==` or `!=`, and you can join several with `&&` and `||` (no parentheses). For anything more complex, compute a true/false value in a `lua` step and reference that. `skip_when` applies to top-level steps only: inside a loop body, use `enabled`. A step is skipped for `true`, the text `true`, `yes`, or `1`, or a non-zero number. A missing or unresolved value means the step runs.
 
 The graph schema lists a `retry_count` field, but the runtime does not use it: a step that fails is not retried, and the run fails. Fix the cause and start a new run (see [Run recovery](/workflows/run-recovery)).
 

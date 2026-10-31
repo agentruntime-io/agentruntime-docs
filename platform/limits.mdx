@@ -42,15 +42,16 @@ Every step has a time limit, set in the step's `timeout_s` field. In Studio this
 | Step type | Studio default | If you write the JSON and leave `timeout_s` out |
 |---|---|---|
 | `mcp` (tool call) | 60 seconds | 120 seconds |
-| `llm` | 60 seconds | Always set `timeout_s` on `llm` steps |
-| `agent` | 600 seconds | Always set `timeout_s` on `agent` steps |
+| `llm` | 60 seconds | 120 seconds |
+| `agent` | 600 seconds | 1500 seconds (25 minutes) |
 | `lua` | Studio sends none | 5 seconds |
 | `human` | 86400 seconds | The task never expires |
 | `external_agent` (Cursor Cloud) | 3600 seconds | 3600 seconds |
 
 | Limit | Value | What you see when you hit it | What to do |
 |---|---|---|---|
-| Step time limit | The value in `timeout_s`. For `mcp`, `llm`, `agent`, and `external_agent` steps there is no maximum you can set. | The step fails with a timeout error, and the run fails with it. | Raise **Timeout** on the step, or make the step do less. For a tool call, remember that the service behind the tool can give up sooner than your limit. |
+| Step time limit | The value in `timeout_s`. For `agent` and `external_agent` steps there is no maximum you can set. | The step fails with a timeout error, and the run fails with it. | Raise **Timeout** on the step, or make the step do less. For a tool call, remember that the service behind the tool can give up sooner than your limit. |
+| One tool call or model call | 120 seconds, even when the step's `timeout_s` is higher. This applies to `mcp` and `llm` steps. | The step fails with a timeout error after 120 seconds. | Make the call do less (smaller pages, a narrower query), or split the work across several steps. |
 | Lua step time limit | 5 seconds by default. A larger `timeout_s` is cut down to 30 seconds. | The step fails. | Do less work in the script, or split it into two Lua steps. |
 | Time a run can take overall | There is no overall limit on a run. Each step has its own limit, and a run that waits for a person waits as long as the task allows. | Not applicable. | Set the limits on individual steps. |
 | Retries | Steps have no retry setting. AgentRuntime does not retry a step that failed. | The step fails and the run fails. | Fix the cause and start a new run. See [Run recovery](/workflows/run-recovery). |
@@ -84,7 +85,7 @@ Loops are `for_each` and `while` steps. See [Step types](/workflows/step-types) 
 |---|---|---|---|
 | Items in one `for_each` | 500 | The step fails with `for_each list has 600 items (max 500)` (with your own numbers). | Filter the list before the loop. Or split it into batches of up to 500 and run each batch through a child workflow. |
 | Items a `for_each` runs at once | `for_each_max_parallel`: 10 by default. A larger value is treated as 100. | Nothing fails. The remaining items wait for a free place. | Raise it to finish sooner, if the tool you call can take it. Lower it for tools with strict rate limits. |
-| Time limit per `for_each` item | Optional. `for_each_item_timeout_s` in JSON. Studio accepts 1 to 3600 seconds. | The item fails with `for_each item timeout after Ns`. Your error policy decides whether the loop goes on. | Raise it, or make each item smaller. |
+| Time limit per `for_each` item | Optional. `for_each_item_timeout_s` in JSON. Studio accepts 1 to 3600 seconds. A `timeout_s` on a top-level `for_each` step is not used: set the per-item limit instead. | The item fails with `for_each item timeout after Ns`. Your error policy decides whether the loop goes on. | Raise it, or make each item smaller. |
 | Rounds of a `while` loop | You must set `while_max_iterations`, at least 1. Studio starts at 5. There is no upper limit. | The loop ends without an error and the result says `stopped_reason: "max_iterations"`. With a value below 1 the step fails with `while_max_iterations must be >= 1`. | Check `stopped_reason` before you treat the work as finished. Raise the limit if the loop needs more rounds. |
 | Nested loops | A loop can sit inside another loop's body, with no fixed depth limit. Each nested loop keeps its own limits (500 items, parallelism, rounds). | Parallelism multiplies: a nested `for_each` inside a parallel `for_each` can run up to outer times inner items at once. | Keep nesting shallow, and keep the product of the loops' parallelism within what your tools can take. |
 
@@ -175,7 +176,7 @@ For limits that WhatsApp itself sets, such as the 24-hour window for free-form m
 |---|---|---|---|
 | Runs you can start | AgentRuntime does not limit how many runs you start. | Not applicable. | Not applicable. |
 | Steps in one run | Steps that do not depend on each other start together. | Not applicable. | Use `depends_on` where order matters. |
-| Steps running at once in your workspace | A workspace runs a limited number of steps at the same time. A step that has to wait for a free place starts as soon as another step finishes. | Nothing fails. A burst of runs takes longer to finish. | Spread large bursts out. Lower `for_each_max_parallel` on big loops. |
+| Steps running at once in your workspace | 64 steps across all of the workspace's runs. A step that has to wait for a free place starts as soon as another step finishes. | Nothing fails. A burst of runs takes longer to finish. | Spread large bursts out. Lower `for_each_max_parallel` on big loops. |
 
 <Note>
   A human step that is waiting for a person does not hold one of your workspace's places while it waits.

@@ -107,8 +107,7 @@ Install each from **MCP → Add connectors** (click the connector, then **Add to
     "order_id": "{{steps.validate.result.order_id}}"
   },
   "depends_on": ["validate"],
-  "timeout_s": 30,
-  "retry_count": 2
+  "timeout_s": 30
 }
 ```
 
@@ -176,8 +175,7 @@ Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE
         "order_id": "{{steps.validate.result.order_id}}"
       },
       "depends_on": ["validate"],
-      "timeout_s": 30,
-      "retry_count": 2
+      "timeout_s": 30
     },
     {
       "id": "extract-phone",

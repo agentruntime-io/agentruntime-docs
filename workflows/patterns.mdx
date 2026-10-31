@@ -104,11 +104,11 @@ See [External triggers](/workflows/external-triggers#cron-schedules). A typical 
 
 ### Time limits
 
-Every step has a time limit, set with `timeout_s` (**Timeout** in Studio). Studio sets 60 seconds on tool and LLM steps (the engine allows 120 seconds when a step has none); other defaults: agent steps 600 seconds (10 minutes), Human steps 86400 seconds (24 hours), Lua steps 5 seconds (maximum 30). Raise the limit for slow calls.
+Every step has a time limit, set with `timeout_s` (**Timeout** in Studio). Studio sets 60 seconds on tool and LLM steps (the engine allows 120 seconds when a step has none, and one tool or model call never runs longer than 120 seconds); other defaults: agent steps 600 seconds (10 minutes), Human steps 86400 seconds (24 hours), Lua steps 5 seconds (maximum 30). Raise the limit for slow calls.
 
 ### When a step fails
 
-When a step fails, the run fails. Steps that were running at the same time show **Cancelled**, and steps that needed the failed step show **Skipped · Blocked**. The run appears under **Issues today** in Command Center. A failed step is not retried (the runtime ignores `retry_count`). Fix the cause, then start a new run. See [Run recovery](/workflows/run-recovery).
+When a step fails, the run fails. Steps that were already running finish in the background, but their results are not recorded. Steps that needed the failed step show **Skipped · Blocked**. The run appears under **Issues today** in Command Center. A failed step is not retried (the runtime ignores `retry_count`). Fix the cause, then start a new run. See [Run recovery](/workflows/run-recovery).
 
 ### Send risky cases to a person
 

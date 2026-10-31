@@ -62,11 +62,12 @@ When a step fails, the run **fails** at once and cannot be resumed. The canvas a
 | Status shown | When |
 |---|---|
 | **Failed** | The step that caused the run to fail. Read its error in **Events**. |
-| **Cancelled** | The step was running at the same moment (for example a parallel model call) when another step failed |
 | **Skipped · Blocked** | The step never started because a step it needs failed |
 | **Success** | The step finished before the failure. Its output is still in the run's **Context**. |
 
-For example: branch A fails because a credential is missing. Branch B was still calling a model, so it shows **Cancelled**. The step that joins A and B shows **Skipped · Blocked**.
+A step that was already running when another step failed is not interrupted. It finishes in the background, but its result is not recorded on the run, and anything it did outside the run (an email it sent, a row it wrote) still happened.
+
+For example: branch A fails because a credential is missing. Branch B was in the middle of a tool call, so that call still completes, but its result is dropped. The step that joins A and B shows **Skipped · Blocked**.
 
 Other skip reasons you may see in **Events**: **Disabled** (the step is switched off), **Excluded this run** (you left it out in setup), **Approval rejected**, **Out of scope** (see [Autonomous episodes](/workflows/autonomous-episodes)).
 

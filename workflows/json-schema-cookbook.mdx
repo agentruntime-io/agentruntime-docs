@@ -171,7 +171,9 @@ A Lua step builds the list, then each item is processed.
 
 A `for_each` step's result has `count`, `max_parallel`, `succeeded_count`, `failed_count`, and `results[]`: one entry per item with its `index` and either its `result` or an `error`.
 
-A loop reads its list from a **list**, so return the list from the step before it, even when it is empty (`return { items = items }`). An LLM step returns text, not a list, so decode JSON text in a Lua step first (`json.decode`).
+A loop reads its list from a **list**, so return the list from the step before it, even when it is empty (`return { items = items }`).
+
+An `llm` step returns plain text, not a list, and Lua has no JSON library to decode it. To get a list or other structured data from a model, use an `agent` step whose agent has an **output schema**: the agent's reply is checked against the schema, and its fields land on the step result (for example `{{steps.extract.result.items}}`). See [Step types](/workflows/step-types#agent-run-an-agent).
 
 ### A loop body with several steps
 
@@ -204,7 +206,7 @@ Run a small pipeline for each item: an agent, then a Lua step.
 }
 ```
 
-`for_each_body_steps` is required. Use a list with one step for a single inner step. Loops cannot be nested inside loops.
+`for_each_body_steps` is required. Use a list with one step for a single inner step. Body steps run one after another for each item. Set `depends_on` between body steps to fix their order, as `tag` does here: body steps with no dependency between them run in alphabetical order of their `id`, not in the order you list them. A body can contain another `for_each` or `while`.
 
 ## Example 4: while (refine until good)
 
@@ -236,7 +238,17 @@ Repeat until a check passes, with a hard limit.
 }
 ```
 
-The result has `iteration_count`, `max_iterations`, `stopped_reason` (`condition` when the check passed, `max_iterations` when the limit was reached), `last` (the final round's outputs), and `iterations[]`. A run that hits the limit does not necessarily fail, so check `stopped_reason`.
+The result has:
+
+| Field | What it holds |
+|---|---|
+| `iterations` | How many rounds ran (a number) |
+| `max_iterations` | The limit you set |
+| `stopped_reason` | `condition` when the check passed, `max_iterations` when the limit was reached |
+| `last_body` | The final round's outputs, by inner step id, for example `{{steps.refine.result.last_body.draft.text}}` |
+| `iteration_records` | Every round: `[{ "iteration": 0, "body": { ... } }, ...]` |
+
+A loop that reaches the limit does not fail, so check `stopped_reason` before you treat the work as finished.
 
 ## Example 5: a human approval gate
 
@@ -294,7 +306,7 @@ Leave `child_target` out while you build, so the child's **Live** copy runs. The
 }
 ```
 
-`skip_when` takes one true/false value or one `==` / `!=` comparison. A skipped step counts as finished, so steps after it still run.
+`skip_when` takes a true/false value or a comparison with `==` or `!=`, and you can join several with `&&` and `||`, for example `{{input.kind == "voice" && input.lang != "en"}}`. Parentheses are not supported. A skipped step counts as finished, so steps after it still run. `skip_when` works on top-level steps only; inside a loop body, use `enabled` instead.
 
 ## Template quick reference
 
@@ -302,7 +314,6 @@ Leave `child_target` out while you build, so the child's **Live** copy runs. The
 |---|---|
 | `{{input.field}}` | The run's start input |
 | `{{steps.step-id.result.field}}` | An earlier step's output |
-| `{{steps.step-id.input.field}}` | The values that step was called with |
 | `{{foreach.item}}`, `{{foreach.index}}` | The current item and its position (from 0) in a `for_each` body |
 | `{{body.inner-id.field}}` | A step in the current round of a loop body |
 | `{{while.iteration}}`, `{{while.prev.inner-id.field}}` | The round number (from 0) and the previous round's output |
