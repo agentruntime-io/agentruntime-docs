@@ -8,13 +8,12 @@ Every step needs an id and type; give it a descriptive name. Top-level ids are u
 
 Top-level `depends_on` gives execution order, not just visual edges. Every top-level template reference must name a transitive ancestor. A nonempty `input_allowlist` of step ids is an additional restriction, never an alternative dependency. Lua reads are not inferred reliably by dry-run: wire them yourself.
 
-Inner steps may be `mcp`, `lua`, `llm`, or `agent`. No nested composites, `no_auto_start`, or routing out of a body. Put upstream top-level dependencies on the parent; use inner ids for inner ordering. Runtime preserves array order when no inner dependencies exist and otherwise performs a stable topological sort. Prefer explicit inner chains.
+Inner steps may be `mcp`, `lua`, `llm`, `agent`, `workflow`, `for_each`, or `while` (loops nest). No `no_auto_start` or routing out of a body. Put upstream top-level dependencies on the parent; use inner ids for inner ordering. Body steps run one at a time per item, in topological order of their inner `depends_on`; steps with no dependency between them run in alphabetical order of id, NOT array order. Always chain inner steps explicitly. `skip_when` is ignored on inner steps; only `enabled` applies.
 
 | Value | Template | Lua |
 |---|---|---|
 | Trigger input | `{{input.topic}}` | `input.topic` |
 | Completed top-level output | `{{steps.fetch.result.data}}` | `steps.fetch.result.data` |
-| Resolved top-level input | `{{steps.fetch.input.field}}` | `steps.fetch.input.field` |
 | Current inner output | `{{body.fetch.data}}` | `body.fetch.data` |
 | Current for_each item | `{{item.id}}` / `{{foreach.item.id}}` | `item.id` / `foreach.item.id` |
 | for_each index, zero-based | `{{index}}` | `index` |
@@ -36,13 +35,13 @@ return { page_token = prev.next_page_token or "" }
 
 Return a keyed table; top-level sequence tables serialize as maps of numeric-string keys. Nested nonempty sequences serialize as arrays. An empty Lua `{}` serializes as `{}`, not `[]`. Assigning `nil` removes a key. There is no supported Lua null sentinel or distinct empty-array constructor in this snapshot.
 
-Use native booleans/numbers and reserved-key syntax `["and"] = {...}`. Do not put `{{...}}` in Lua source: scripts execute directly, without template substitution. `input`, `steps`, `run`, and `connection` are injected; `item`, `foreach`, `body`, `loop` are meaningful only in their scopes. Safe basic/string/table/math functions exist; no OS, network, module loading, or filesystem access. Script limit 64 KiB in UTF-8 bytes; result limit 1 MiB. Default timeout 5 seconds, maximum 30 seconds even if a larger `timeout_s` is authored.
+Use native booleans/numbers and reserved-key syntax `["and"] = {...}`. Do not put `{{...}}` in Lua source: scripts execute directly, without template substitution. `input`, `steps`, `run`, and `connection` are injected; `item`, `foreach`, `body`, `loop` are meaningful only in their scopes. Safe basic/string/table/math functions exist; `json.decode` / `json.encode` are built in (see `llm-step-results.md`); no `os`, `io`, `coroutine`, network, module loading, `print`, metatables, or filesystem access. For validated structured data from a model, prefer an `agent` step whose agent declares an `output_schema` (its fields land on `steps.<id>.result.<field>`). `error("message")` fails the step on purpose. `steps` holds only completed steps with a result: a skipped step is `nil`, so guard before indexing. Script limit 64 KiB in UTF-8 bytes; result limit 1 MiB. Default timeout 5 seconds, maximum 30 seconds even if a larger `timeout_s` is authored.
 
 ## for_each
 
 Fields: `for_each_items` string, nonempty `for_each_body_steps`, optional `for_each_max_parallel` (default 10, maximum 100), `for_each_error_policy` (`fail_fast`, `continue_on_error`, `pause`, `human_review`). Maximum 500 items per loop invocation.
 
-Produce a present list field, including the empty case: `return { items = items }`. Empty Lua `{}` is accepted as an empty iteration list. **Do not omit the field by returning nil:** unresolved mustache strings now fail instead of becoming a bogus singleton item. A resolved null or empty array is empty, but a missing path is not resolved null. Runtime also coerces scalars/non-array maps to singleton lists; that is compatibility behavior, not a recommended authoring pattern.
+Produce a present list field, including the empty case: `return { items = items }`. Empty Lua `{}` is accepted as an empty iteration list. **Do not omit the field by returning nil:** unresolved mustache strings now fail instead of becoming a bogus singleton item. A resolved null or empty array is empty, but a missing path is not resolved null. A scalar or a non-empty object is an error (`for_each_items did not resolve to array`).
 
 Completed parent result contains `count`, `max_parallel`, `succeeded_count`, `failed_count`, and `results`. Each successful entry contains `index`, raw `body` outputs, and `result` from the selected last body step. Prefer named `results[i].body.map_rows` when aggregating. Failed entries contain `index` and `error`. `continue_on_error` can complete with failures and `partial_success`; check the counts before checkpointing. `fail_fast` makes the wrapper fail but is not transactional and does not guarantee already scheduled side effects stop.
 
@@ -56,7 +55,7 @@ return { pass = body.capture.no_more_pages == true }
 
 Runtime reads `pass` (or `result` if `pass` is absent). Use an actual boolean. `until` stops on true; `while` stops on false. Scalar `return true` compiles but fails execution because all workflow Lua must return a table.
 
-Result fields: `iteration_count`, `max_iterations`, `stopped_reason`, `last`, `iterations`. `last.capture` is raw, so downstream Lua is `steps.paginate.result.last.capture.next_page_token`. A cap returns `stopped_reason = "max_iterations"` without necessarily failing the step. Inspect it before treating pagination as complete. Large accumulated pages and retained iterations can exceed Lua/result or downstream list limits: choose bounded batches and continuation, not unbounded accumulation.
+Result fields: `iterations` (a count), `max_iterations`, `stopped_reason` (`condition` or `max_iterations`), `last_body` (final round outputs by inner id), `iteration_records` (`[{iteration, body}]`). `last_body.capture` is raw, so downstream Lua is `steps.paginate.result.last_body.capture.next_page_token`. A cap returns `stopped_reason = "max_iterations"` without necessarily failing the step. Inspect it before treating pagination as complete. Large accumulated pages and retained iterations can exceed Lua/result or downstream list limits: choose bounded batches and continuation, not unbounded accumulation.
 
 ## Other step types
 

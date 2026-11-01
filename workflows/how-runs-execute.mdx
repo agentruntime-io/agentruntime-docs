@@ -1,0 +1,104 @@
+---
+title: How runs execute
+description: The order steps run in, what happens when a step fails, is skipped or times out, and how pause and stop behave.
+---
+
+This page explains what AgentRuntime does with your workflow once a run starts. Read it when a run does something you did not expect, or before you build a workflow that sends emails, charges cards or writes to other systems.
+
+**Who this is for:** workflow builders who know the basics from [Build your first workflow](/workflows/build-your-first-workflow) and [Step types](/workflows/step-types).
+
+**What you will learn:** when a step starts, which steps run at the same time, what a failure, skip, pause or stop does to the rest of the run, and which limits apply.
+
+## When a step starts
+
+A step starts when **every step in its `depends_on` has finished**: succeeded, been skipped, or (for an approval) been answered. On the canvas, these are the lines that come into the step. A step with no `depends_on` starts as soon as the run starts.
+
+- **Steps that don't depend on each other run at the same time.** Two tool calls of 30 seconds each, side by side, finish in about 30 seconds.
+- **A step that joins several branches waits for all of them.**
+- **A run keeps the workflow version it started with.** Editing or publishing the workflow later does not change a run in progress. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+
+Each step moves through these events, which you see in the **Events** tab and the [events API](/api/reference#run-event-types): `step_scheduled` (its dependencies are done), `step_dispatched` (handed to a worker), `step_execution_started`, then `step_completed`, `step_failed`, `step_skipped` or `step_cancelled`.
+
+## When a step is skipped
+
+| Why the step is skipped | Do the steps after it run? |
+|---|---|
+| Its **Skip when** (`skip_when`) is true | Yes. A skipped step counts as finished. |
+| It is switched off (**Step enabled** off, `enabled: false`) | Yes |
+| You left it out when you started the run (**Excluded this run**) | No: they are skipped too |
+| It is an approval that was rejected, with **On reject** set to stop the branch (the default) | No: they are skipped too |
+
+A step that joins several branches is skipped when **any** branch it depends on was excluded or rejected, even if the other branches finished. To take a different path after a rejection, see [Human tasks](/workflows/human-tasks).
+
+## When a step fails
+
+**One failed step fails the whole run.**
+
+- Steps that need the failed step never start. They show **Skipped · Blocked**.
+- Steps that were already running on other branches are not interrupted. They finish in the background, but their results are not recorded. Anything they did outside the run (an email sent, a row written) still happened.
+- **AgentRuntime does not retry a failed step.** The `retry_count` field in the graph schema is not used. Fix the cause and start a new run. See [Run recovery](/workflows/run-recovery).
+
+Inside a `for_each`, the loop's **error policy** decides whether one failed item fails the step. See [Step types](/workflows/step-types#for_each-run-steps-once-per-item).
+
+## Time limits
+
+Each step has its own time limit (`timeout_s`, **Timeout** in Studio). A run has no overall time limit: it lasts as long as its steps, including waits for people.
+
+| Step | If `timeout_s` is not set | Notes |
+|---|---|---|
+| `mcp` (tool call) | 120 seconds | One call never runs longer than 120 seconds, even with a higher `timeout_s` |
+| `llm` | 120 seconds | Same 120-second cap per call |
+| `lua` | 5 seconds | At most 30 seconds |
+| `agent` | 25 minutes | |
+| `external_agent` | 60 minutes | |
+| `human` | Never expires | Set what happens on timeout with `timeout_policy`. See [Human tasks](/workflows/human-tasks). |
+| `for_each` | Not used | Set `for_each_item_timeout_s` to limit each item |
+| `while` | Limits each round, not the whole loop | Or set `while_iteration_timeout_s` |
+
+When a step runs out of time, it fails, and the run fails with it.
+
+## How many steps run at once
+
+| Scope | Limit | What happens past it |
+|---|---|---|
+| One run | Independent steps start together. Lua steps share a small number of places on each engine process, so a burst of Lua steps can wait briefly for each other. | The step waits for a free place. Nothing fails. |
+| One loop | `for_each_max_parallel` items at once (default 10, maximum 100). Nested loops multiply. | Items wait their turn. |
+| Your workspace | 64 steps at once, across all its runs. A human step waiting for a person doesn't count. | The step waits and starts as soon as another step finishes. Nothing fails. |
+| Agent steps | A limited number of agent steps run at once on each engine process. | The step waits for a free place, until its own time limit. |
+
+## Pause and resume
+
+**Pause** stops new steps from starting. Steps already running finish, and their results are recorded. A person can still answer a task while the run is paused: the answer is kept, and the run carries on from there when you **Resume** it.
+
+## Stop
+
+A stopped run ends with the status **Stopped** and cannot be resumed. You choose how hard to stop:
+
+| Option | API `params.mode` | What happens to steps that are running |
+|---|---|---|
+| **Stop gracefully** | `graceful` | They finish, but their results are not recorded. No new step starts. |
+| **Stop immediately** | `immediate` (the default) | Their calls are cancelled: tool calls, model calls, Lua scripts, Cursor Cloud waits and loops. Each one is recorded as `step_cancelled`. |
+| **Force stop** (the main **Stop** button) | `force` | Like **Stop immediately**, and the stop is retried until it is recorded. |
+
+Things a stop does not do:
+
+- **It does not undo anything.** A cancelled tool call may already have reached the other system and acted on it, and a cancelled model call has used tokens up to that point. `step_cancelled` means AgentRuntime stopped waiting, not that nothing happened.
+- **It does not interrupt an agent step mid-thought.** The agent stops at its next tool call.
+- **It does not stop child workflows** that a `workflow` step started. Stop those runs separately.
+
+The API refuses any other `mode` with a `400` error. See [Runs and Command Center](/workflows/runs-and-command-center#control-a-run).
+
+## When the platform restarts
+
+If the worker running a step stops responding (for example during a deploy), AgentRuntime notices and recovers the step:
+
+- Lua, LLM and human steps start again on their own, up to 3 times.
+- An agent step carries on from its last tool call.
+- A tool call, Cursor Cloud or `workflow` step, or a loop that contains one, fails with `WORKER_LOST`. It is not run again because it may already have had an effect outside the run. Check whether it did (for example, whether the email went out) before you start a new run.
+
+## Next steps
+
+- [Step types](/workflows/step-types)
+- [Lua scripts](/workflows/lua)
+- [Limits](/platform/limits)
+- [Run recovery](/workflows/run-recovery)

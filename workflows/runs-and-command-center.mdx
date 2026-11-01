@@ -49,11 +49,12 @@ In Studio, use the buttons next to **Run** while a run is selected. In Command C
 | **Resume** | Continue a paused run. |
 | **Stop** | End the run. Options: **Force stop** (the main button), **Stop immediately**, **Stop gracefully**. |
 
-- **Stop immediately** and **Force stop** cancel tool calls in flight. Model calls are cancelled on a best-effort basis.
-- **Stop gracefully** lets running steps finish and never starts the rest. The run ends as **Stopped**.
+- **Stop immediately** and **Force stop** cancel the calls in flight: tool calls, model calls, Lua scripts, Cursor Cloud waits and loops. Each cancelled step shows **Cancelled**. An agent step stops at its next tool call.
+- **Stop gracefully** lets running steps finish and never starts the rest. Their results are not recorded. The run ends as **Stopped**.
+- A stop does not undo anything a call already did (an email sent stays sent), and does not stop child workflows.
 - A stopped run cannot be resumed. Start a new run instead.
 
-In the API, `stop` takes `params.mode`: `immediate` (default) or `graceful`.
+In the API, `stop` takes `params.mode`: `immediate` (the default), `graceful`, or `force`. See [How runs execute](/workflows/how-runs-execute#stop).
 
 ## When a step fails {#failure-handling}
 
@@ -62,11 +63,12 @@ When a step fails, the run **fails** at once and cannot be resumed. The canvas a
 | Status shown | When |
 |---|---|
 | **Failed** | The step that caused the run to fail. Read its error in **Events**. |
-| **Cancelled** | The step was running at the same moment (for example a parallel model call) when another step failed |
 | **Skipped · Blocked** | The step never started because a step it needs failed |
 | **Success** | The step finished before the failure. Its output is still in the run's **Context**. |
 
-For example: branch A fails because a credential is missing. Branch B was still calling a model, so it shows **Cancelled**. The step that joins A and B shows **Skipped · Blocked**.
+A step that was already running when another step failed is not interrupted. It finishes in the background, but its result is not recorded on the run, and anything it did outside the run (an email it sent, a row it wrote) still happened.
+
+For example: branch A fails because a credential is missing. Branch B was in the middle of a tool call, so that call still completes, but its result is dropped. The step that joins A and B shows **Skipped · Blocked**.
 
 Other skip reasons you may see in **Events**: **Disabled** (the step is switched off), **Excluded this run** (you left it out in setup), **Approval rejected**, **Out of scope** (see [Autonomous episodes](/workflows/autonomous-episodes)).
 

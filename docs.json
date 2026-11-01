@@ -70,10 +70,14 @@
           "platform/user-management",
           "platform/roles-permissions",
           "platform/billing-and-credits",
+          "platform/apps",
+          "platform/databases-and-storage",
           "platform/analytics",
+          "platform/operate",
           "platform/security-and-compliance",
           "platform/referrals-and-affiliates",
           "platform/feature-availability",
+          "platform/shortcuts-and-links",
           "platform/limits",
           "platform/troubleshooting"
         ]
@@ -86,7 +90,9 @@
           "workflows/build-your-first-workflow",
           "workflows/studio",
           "workflows/step-types",
+          "workflows/how-runs-execute",
           "workflows/template-intellisense",
+          "workflows/lua",
           "workflows/dry-run",
           "workflows/run-setup",
           "workflows/external-triggers",
@@ -189,6 +195,7 @@
         "pages": [
           "ai/llm-providers",
           "ai/autopilot-and-chat",
+          "ai/agents",
           "ai/memory"
         ]
       },

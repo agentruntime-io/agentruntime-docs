@@ -73,9 +73,9 @@ Rules on the trigger:
 | **Principal suspended** | Stop scheduled syncs | Yes |
 | **Principal deleted** | Final clean-up | Yes |
 
-Accounts linked through Composio (Gmail, Slack, and others) report the provider `composio_account`, not `google_account`. Use `google_account` only for direct Google sign-in in Embedded Connect.
+Accounts connected through a **Hosted apps** connector (Gmail, Slack, and others) report the provider `composio_account`, not `google_account`. Use `google_account` only for direct Google sign-in in Embedded Connect.
 
-Example, start a sync when a customer connects a Composio account:
+Example, start a sync when a customer connects an account through a Hosted apps connector:
 
 ```json
 {
@@ -110,7 +110,7 @@ A common Embedded Connect pattern:
 
 | Setting | Chooses |
 |---|---|
-| **Connection provider** | Which type of connection (Google, Composio, WhatsApp) on connection events |
+| **Connection provider** | Which type of connection (for example `google_account`, `composio_account`, `whatsapp`) on connection events |
 | **Principal segment** | Which end users (by tags, whether they have a connection, and so on) |
 | **Console team** | Which internal users (team membership) |
 

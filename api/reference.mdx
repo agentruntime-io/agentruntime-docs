@@ -92,7 +92,7 @@ When you `PATCH` a workflow you can send `base_revision` (the `revision` you las
 | `params.trigger_payload` | The input for the run. Steps read it as `{{input.*}}` |
 | `params.trigger_steps` | Optional per-step input overrides, keyed by step id |
 | `params.run_id` | For `pause`, `resume`, and `stop`: the run to control |
-| `params.mode` | For `stop`: `immediate` (the default) or `graceful` |
+| `params.mode` | For `stop`: `immediate` (the default, cancels calls in flight), `graceful` (running steps finish), or `force` (like `immediate`, retried until it is recorded). Any other value is refused with `400`. |
 
 `start` returns `202 Accepted` with the new `run_id`, a `status`, and `ran` (which copy of the workflow ran). Keep the `run_id` to check progress.
 
@@ -125,14 +125,46 @@ The step result always includes `approved`. The Console **Approve** and **Reject
 
 `GET /v1/workflows/{id}/runs/{runID}/events` returns these `event_type` values. See also [Runs and Command Center](/workflows/runs-and-command-center#failure-handling).
 
+**Run lifecycle**
+
 | `event_type` | Description |
 |--------------|-------------|
-| `step_started` | A step began |
-| `step_completed` | A step succeeded, or was skipped (`data.skipped: true`) |
-| `step_failed` | A step failed; the run may move to `failed` |
-| `step_cancelled` | A step was still running when another step failed the run |
-| `state_changed` | The run changed status |
-| `run_started` / `run_rejected` | Run lifecycle |
+| `run_started` | The run was created with its input and workflow version |
+| `run_paused` / `run_resumed` | The run was paused or resumed |
+| `run_stopped` | Someone stopped the run |
+| `run_completed` | Every step finished; the run succeeded |
+| `run_failed` | A step failed, so the run failed |
+| `run_context_snapshot` | A snapshot of the run's state (input and step results) |
+
+**Steps**
+
+| `event_type` | Description |
+|--------------|-------------|
+| `step_scheduled` | A step's dependencies are done, so it is ready to run |
+| `step_dispatched` | The step was handed to a worker |
+| `step_execution_started` | A worker started the step |
+| `step_completed` | The step finished. A rejected approval also completes, with `data.skipped: true` |
+| `step_failed` | The step failed. The run fails with it |
+| `step_skipped` | The step was skipped (**Skip when**, a disabled step, or a skipped step it depends on) |
+| `step_cancelled` | The run was stopped while the step was running, and its call was cancelled (`data.reason: "run_stopped"`). The call may already have had an effect. |
+| `step_lease_expired` | The worker running the step stopped responding. The step is recovered or fails with `WORKER_LOST` |
+| `step_revision_requested` | A reviewer sent work back for changes, so the steps run again |
+| `step_input_provided` | A person answered a step's question, so the step runs again with the answer |
+| `child_run_linked` | A `workflow` step started its child run |
+
+**People, agents and conversations**
+
+| `event_type` | Description |
+|--------------|-------------|
+| `human_task_created` / `human_task_completed` | A task was created for a person, and later answered |
+| `agent_turn_progress` | Progress from an agent step (tool calls, messages) |
+| `agent_inbox_received` / `agent_inbox_decision` | An agent received a handoff and decided what to do with it |
+| `agent_opinion_asked` / `agent_opinion_answered` | An agent asked a person's view without pausing, and the answer that came back |
+| `contact_message_received` | A channel contact (for example a WhatsApp customer) wrote while this run was handling them |
+| `conversation_message_received` / `conversation_message_sent` | A message reached, or was posted by, a [conversation session](/workflows/conversation-sessions) run |
+| `session_waiting` | A session run finished its work and waits for the next message |
+
+New event types can appear over time. Ignore types you don't recognise rather than failing on them.
 
 ---
 

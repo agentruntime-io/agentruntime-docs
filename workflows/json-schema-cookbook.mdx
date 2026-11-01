@@ -171,7 +171,9 @@ A Lua step builds the list, then each item is processed.
 
 A `for_each` step's result has `count`, `max_parallel`, `succeeded_count`, `failed_count`, and `results[]`: one entry per item with its `index` and either its `result` or an `error`.
 
-A loop reads its list from a **list**, so return the list from the step before it, even when it is empty (`return { items = items }`). An LLM step returns text, not a list, so decode JSON text in a Lua step first (`json.decode`).
+A loop reads its list from a **list**, so return the list from the step before it, even when it is empty (`return { items = items }`).
+
+An `llm` step returns plain text, not a list. If you asked it for JSON, decode the text in a Lua step first (`return { items = json.decode(steps["gen"].result.text).items }`). For data you must be able to rely on, use an `agent` step whose agent has an **output schema**: the agent's reply is checked against the schema, and its fields land on the step result (for example `{{steps.extract.result.items}}`). See [Step types](/workflows/step-types#agent-run-an-agent).
 
 ### A loop body with several steps
 
@@ -204,7 +206,7 @@ Run a small pipeline for each item: an agent, then a Lua step.
 }
 ```
 
-`for_each_body_steps` is required. Use a list with one step for a single inner step. Loops cannot be nested inside loops.
+`for_each_body_steps` is required. Use a list with one step for a single inner step. Body steps run one after another for each item. Set `depends_on` between body steps to fix their order, as `tag` does here: body steps with no dependency between them run in alphabetical order of their `id`, not in the order you list them. A body can contain another `for_each` or `while`.
 
 ## Example 4: while (refine until good)
 
@@ -236,7 +238,17 @@ Repeat until a check passes, with a hard limit.
 }
 ```
 
-The result has `iteration_count`, `max_iterations`, `stopped_reason` (`condition` when the check passed, `max_iterations` when the limit was reached), `last` (the final round's outputs), and `iterations[]`. A run that hits the limit does not necessarily fail, so check `stopped_reason`.
+The result has:
+
+| Field | What it holds |
+|---|---|
+| `iterations` | How many rounds ran (a number) |
+| `max_iterations` | The limit you set |
+| `stopped_reason` | `condition` when the check passed, `max_iterations` when the limit was reached |
+| `last_body` | The final round's outputs, by inner step id, for example `{{steps.refine.result.last_body.draft.text}}` |
+| `iteration_records` | Every round: `[{ "iteration": 0, "body": { ... } }, ...]` |
+
+A loop that reaches the limit does not fail, so check `stopped_reason` before you treat the work as finished.
 
 ## Example 5: a human approval gate
 
@@ -277,7 +289,7 @@ Answer it from [Command Center](/workflows/command-center) or the API. Later ste
 }
 ```
 
-Leave `child_target` out while you build, so the child's **Live** copy runs. The step's result comes from the child's terminal step by default (`output_from`).
+Leave `child_target` out while you build, so the child's **Live** copy runs. The step's result comes from the child step marked `terminal: true`, or else the child's last step (`output_from`). See [Step types](/workflows/step-types#workflow-run-another-workflow).
 
 ## Example 7: skip a step on some runs
 
@@ -294,7 +306,71 @@ Leave `child_target` out while you build, so the child's **Live** copy runs. The
 }
 ```
 
-`skip_when` takes one true/false value or one `==` / `!=` comparison. A skipped step counts as finished, so steps after it still run.
+`skip_when` takes a true/false value or a comparison with `==` or `!=`, and you can join several with `&&` and `||`, for example `{{input.kind == "voice" && input.lang != "en"}}`. Parentheses are not supported. A skipped step counts as finished, so steps after it still run. `skip_when` works on top-level steps only; inside a loop body, use `enabled` instead.
+
+## Example 8: read JSON that a model returns
+
+Ask an `llm` step to answer in JSON, decode it in a `lua` step, then use the fields in later steps.
+
+```json
+{
+  "steps": [
+    {
+      "id": "classify",
+      "type": "llm",
+      "name": "Classify the ticket",
+      "model_ref": "REPLACE_MODEL_REF",
+      "prompt": "Classify this support ticket. Reply with JSON only, no other text: {\"category\": \"billing\" | \"bug\" | \"other\", \"urgent\": true | false, \"tags\": [string]}\n\nTicket: {{input.ticket_text}}",
+      "timeout_s": 60
+    },
+    {
+      "id": "parse",
+      "type": "lua",
+      "name": "Read the model's JSON",
+      "depends_on": ["classify"],
+      "script": "local ok, data = pcall(json.decode, steps[\"classify\"].result.text)\nif not ok then\n  error(\"model did not return valid JSON: \" .. tostring(data))\nend\nreturn { category = data.category, urgent = data.urgent == true, tags = data.tags or {} }",
+      "timeout_s": 5
+    },
+    {
+      "id": "alert",
+      "type": "mcp",
+      "name": "Tell the team",
+      "depends_on": ["parse"],
+      "instance_id": "REPLACE_MCP_INSTANCE",
+      "tool_name": "REPLACE_TOOL_NAME",
+      "skip_when": "{{steps.parse.result.urgent == false}}",
+      "tool_args": {
+        "text": "Urgent {{steps.parse.result.category}} ticket: {{input.ticket_text}}"
+      }
+    }
+  ]
+}
+```
+
+If the model replies `{"category":"billing","urgent":true,"tags":["refund"]}`, the `parse` step's result is:
+
+```json
+{ "category": "billing", "urgent": true, "tags": ["refund"] }
+```
+
+Later steps read it as `{{steps.parse.result.category}}` and so on. The `alert` step only runs for urgent tickets.
+
+- The `\n` and `\"` in `script` are only there because the script sits inside JSON. In Studio's Lua editor, or with **Edit script** in the [JSON editor](/workflows/json-editor), you write normal Lua.
+- `pcall` catches invalid JSON. Without it, bad JSON fails the step with the parse error.
+- When later steps must be able to rely on the fields, an `agent` step whose agent has an output schema is safer: its reply is checked against the schema, and the fields land on the step result without a Lua step. See [Step types](/workflows/step-types#agent-run-an-agent).
+
+To go the other way, `json.encode` turns a table into JSON text, for example for a tool that takes a raw JSON body:
+
+```json
+{
+  "id": "build-body",
+  "type": "lua",
+  "depends_on": ["load-orders"],
+  "script": "return { body = json.encode({ customer = input.customer_id, orders = steps[\"load-orders\"].result.rows }) }"
+}
+```
+
+Its result is `{ "body": "{\"customer\":\"c_42\",\"orders\":[...]}" }`. See [Lua scripts](/workflows/lua#read-and-write-json) for how values convert.
 
 ## Template quick reference
 
@@ -302,7 +378,6 @@ Leave `child_target` out while you build, so the child's **Live** copy runs. The
 |---|---|
 | `{{input.field}}` | The run's start input |
 | `{{steps.step-id.result.field}}` | An earlier step's output |
-| `{{steps.step-id.input.field}}` | The values that step was called with |
 | `{{foreach.item}}`, `{{foreach.index}}` | The current item and its position (from 0) in a `for_each` body |
 | `{{body.inner-id.field}}` | A step in the current round of a loop body |
 | `{{while.iteration}}`, `{{while.prev.inner-id.field}}` | The round number (from 0) and the previous round's output |

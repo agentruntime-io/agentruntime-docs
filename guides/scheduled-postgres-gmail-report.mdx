@@ -87,8 +87,7 @@ ORDER BY 1 DESC;
   "tool_args": {
     "sql": "SELECT DATE_TRUNC('week', created_at) AS week, COUNT(*) AS order_count, SUM(total)::numeric(12,2) AS revenue FROM orders WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY 1 ORDER BY 1 DESC"
   },
-  "timeout_s": 60,
-  "retry_count": 2
+  "timeout_s": 60
 }
 ```
 
@@ -143,8 +142,7 @@ Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE
       "tool_args": {
         "sql": "SELECT DATE_TRUNC('week', created_at) AS week, COUNT(*) AS order_count, SUM(total)::numeric(12,2) AS revenue FROM orders WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY 1 ORDER BY 1 DESC"
       },
-      "timeout_s": 60,
-      "retry_count": 2
+      "timeout_s": 60
     },
     {
       "id": "write-summary",

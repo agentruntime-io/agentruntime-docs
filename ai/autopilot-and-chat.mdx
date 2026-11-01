@@ -61,13 +61,21 @@ Conversations belong to you and to the project you were in. They are separate fr
 
 The message box has a model picker, which lists the models your workspace can use. See [LLM providers](/ai/llm-providers). A microphone button starts a voice session, where you talk to the assistant instead of typing.
 
+## Open a chat in your IDE
+
+Once you are in a saved conversation, the top of the chat panel shows a small monitor icon named **Open in IDE**. Its tooltip says "Open this chat in VS Code / Cursor". Click it to open the same chat in your editor.
+
+The Console asks your computer to open a `vscode://` link and shows "Opening in IDE". If nothing happens, install the AgentRuntime workbench in your editor and sign in. The Console says so in the message.
+
+The icon is not there on a **New chat** that you have not started, and it is greyed out while a reply is being written.
+
 ## Chat with your team
 
 The team workspace at [space.agentruntime.io](https://space.agentruntime.io) is a separate app for team channels, direct messages, and agent conversations. Use the Console panel for your own questions to Autopilot, and the team workspace to talk with colleagues and agents.
 
 ## Agents are different
 
-**Agents** (in the sidebar) are reusable AI workers that you set up, give tools to, and use in workflows or team chat. Autopilot is the assistant that helps you operate the Console. For a chat that runs one workflow run across many messages, see [Conversation sessions](/workflows/conversation-sessions).
+**Agents** (in the sidebar) are reusable AI workers that you set up, give tools to, and use in workflows or team chat. Autopilot is the assistant that helps you operate the Console. To create an agent, choose when it replies, or debug one of its runs, see [Agents](/ai/agents). For a chat that runs one workflow run across many messages, see [Conversation sessions](/workflows/conversation-sessions).
 
 ## Common problems
 
@@ -80,6 +88,7 @@ The team workspace at [space.agentruntime.io](https://space.agentruntime.io) is 
 
 ## Next steps
 
+- [Agents](/ai/agents): create agents and debug their runs
 - [Workflow Studio](/workflows/studio): edit what Autopilot built
 - [Command Center](/workflows/command-center): follow runs and approve tasks
 - [Memory](/ai/memory): long-term knowledge for agents

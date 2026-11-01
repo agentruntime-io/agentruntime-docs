@@ -3,7 +3,7 @@ title: Workspace settings
 description: A tour of the Settings page in the Console — workspace details, API keys, team, billing, and sign-in policy.
 ---
 
-This page is for workspace admins and anyone who wants to know where things live in **Settings**. It explains each tab and what you can do there.
+This page is for workspace admins and anyone who wants to know where things live in **Settings**. It explains each tab and what you can do there. Your own settings (theme, password, product tours) and the notification bell are covered at the end: see [Your profile and preferences](#your-profile-and-preferences) and [Notifications](#notifications).
 
 ## Open Settings
 
@@ -87,6 +87,77 @@ People sign in to the Console with email and password (with email verification) 
 
 Workspace admins also see **Vault** in the sidebar under **Administration**. It manages secret paths for workspace admins. Save everyday tool credentials in **Connections** instead, as described in [Connections](/integrations/connections).
 
+## Your profile and preferences
+
+Your own settings are not in **Settings**. They are on the **Profile** page. Click your avatar in the sidebar footer. The menu has **Profile**, **Billing**, **Settings**, **Theme** and **Log out**. Your email shows at the top of the menu.
+
+**Profile** has three tabs:
+
+| Tab | What it holds |
+|-----|---------------|
+| **General** | **Personal Information**: your photo, your name, your **Username**, your **Email Address** and your **User ID**. Below it, the **Product tours** card. |
+| **Preferences** | **Appearance** |
+| **Security** | **Password** |
+
+### Appearance
+
+Choose how the Console looks. Either open **Profile**, then **Preferences**, then **Appearance**, or use **Theme** in the avatar menu. Pick one of:
+
+| Choice | What it does |
+|--------|--------------|
+| **Light** | Always light |
+| **Dark** | Always dark |
+| **System** | Follows your device's light or dark setting |
+
+The Console remembers your choice. Until you pick one, it uses the light theme.
+
+### Change your username
+
+On **General**, edit **Username**. Use letters and digits only, 3 to 64 characters. The Console checks the name as you type and tells you if it is available. Click **Save username**. Your name and email are read-only.
+
+### Change your password
+
+<Steps>
+  <Step title="Open Security">
+    Open **Profile**, then the **Security** tab. The **Password** card is for your email and password sign-in.
+  </Step>
+  <Step title="Fill in the form">
+    Enter your **Current password**, a **New password** (at least 8 characters), and the same password in **Confirm new password**. If you forgot your current password, click **Forgot your current password?**.
+  </Step>
+  <Step title="Save">
+    Click **Change password**. You should see "Password updated".
+  </Step>
+</Steps>
+
+The button stays disabled until the current password is filled in, the new password has at least 8 characters, and both new passwords match. Two-factor authentication is not available yet. The **Two-Factor Authentication** card on this tab is greyed out.
+
+### Product tours
+
+**Product tours** are short guided walk-throughs that highlight parts of the Console. Find them on **Profile**, **General**, in the **Product tours** card. It lists three tours:
+
+| Tour | What it covers |
+|------|----------------|
+| **Console overview** | The sidebar, Autopilot, and the setup guide on Overview |
+| **Build your first workflow** | Connecting tools, saving secrets, opening Workflow Studio, and running |
+| **Workflow Studio** | The palette, the canvas, run controls, and the execution log |
+
+Click **Start tour** to begin one. After you finish a tour, its row shows **Completed** and the button changes to **Replay tour**. The Console remembers which tours you finished in your browser. The card also has **Open setup guide**, which brings up the setup guide, and **Remind me tomorrow**, which snoozes it.
+
+## Notifications
+
+The bell at the right end of the top bar shows notifications for you. A red number on the bell counts the ones you have not read. The number reads **99+** when there are more than 99.
+
+Click the bell to open the **Notifications** list.
+
+- A notification can have a title, a message, and an **Open** link that takes you to the right page.
+- Click a notification to mark it read.
+- Click **Mark all read** to clear the list.
+- An empty list says "No new notifications".
+
+The list refreshes every 30 seconds and when you return to the browser tab. When your credit balance runs low, a warning also pops up, usually with an **Open billing** button. See [Billing and credits](/platform/billing-and-credits).
+
+If a member left and their connectors were handed over to you, the list also shows **Reconnect N connectors** until you finish. Click **Open** to go to **Connections**. See [Connections](/integrations/connections#when-a-member-leaves).
+
 ## Common problems
 
 | Problem | What to try |
@@ -94,6 +165,9 @@ Workspace admins also see **Vault** in the sidebar under **Administration**. It 
 | A tab is missing | Your role does not include it. Ask a workspace admin. |
 | You cannot edit the workspace name or handle | You need permission to edit the workspace. Ask an admin or owner. |
 | **Handle** shows "That handle is already in use" | Choose a different handle. |
+| **Change password** is greyed out | The new password needs at least 8 characters, and **Confirm new password** must match it. |
+| **Save username** is greyed out | The username needs 3 or more letters or digits, and it must be different and available. |
+| The theme looks wrong | Open **Theme** in the avatar menu and pick **Light**, **Dark** or **System**. |
 
 ## Next steps
 
