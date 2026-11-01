@@ -133,6 +133,7 @@ The pull request is returned under `data`, so the title is `{{steps.get-pr.resul
   "type": "human",
   "name": "Approve review comment",
   "task_type": "approval",
+  "approver": { "any_member": true },
   "task_payload": {
     "title": "Post PR review on {{steps.validate.result.owner}}/{{steps.validate.result.repo}}#{{steps.validate.result.pr_number}}",
     "description": "Read the draft below. Approve to post it to GitHub, or reject to cancel.",
@@ -227,6 +228,7 @@ Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE
       "type": "human",
       "name": "Approve review comment",
       "task_type": "approval",
+      "approver": { "any_member": true },
       "task_payload": {
         "title": "Post PR review on {{steps.validate.result.owner}}/{{steps.validate.result.repo}}#{{steps.validate.result.pr_number}}",
         "description": "Read the draft below. Approve to post it to GitHub, or reject to cancel.",

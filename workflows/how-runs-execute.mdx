@@ -77,13 +77,13 @@ A stopped run ends with the status **Stopped** and cannot be resumed. You choose
 | Option | API `params.mode` | What happens to steps that are running |
 |---|---|---|
 | **Stop gracefully** | `graceful` | They finish, but their results are not recorded. No new step starts. |
-| **Stop immediately** | `immediate` (the default) | Their calls are cancelled: tool calls, model calls, Lua scripts, Cursor Cloud waits and loops. Each one is recorded as `step_cancelled`. |
+| **Stop immediately** | `immediate` (the default) | Their calls are cancelled: tool calls, model calls, agent steps, Lua scripts, Cursor Cloud waits and loops. Each one is recorded as `step_cancelled`. |
 | **Force stop** (the main **Stop** button) | `force` | Like **Stop immediately**, and the stop is retried until it is recorded. |
 
 Things a stop does not do:
 
 - **It does not undo anything.** A cancelled tool call may already have reached the other system and acted on it, and a cancelled model call has used tokens up to that point. `step_cancelled` means AgentRuntime stopped waiting, not that nothing happened.
-- **It does not interrupt an agent step mid-thought.** The agent stops at its next tool call.
+- **A graceful stop lets an agent step finish its turn.** **Stop immediately** and **Force stop** cut it off instead, including a model call or tool call in progress, and its reply is not written.
 - **It does not stop child workflows** that a `workflow` step started. Stop those runs separately.
 
 The API refuses any other `mode` with a `400` error. See [Runs and Command Center](/workflows/runs-and-command-center#control-a-run).

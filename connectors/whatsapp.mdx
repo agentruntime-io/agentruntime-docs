@@ -13,7 +13,7 @@ The **whatsapp** MCP adapter works with Meta's WhatsApp Cloud API. Send text, ph
 
 ## Connect in AgentRuntime
 
-AgentRuntime supports two connection paths. Use **Connect with Meta** unless you run your own Meta app.
+AgentRuntime supports two connection paths. Use **Connect with Meta**: it is the only path that receives incoming messages.
 
 ### Embedded signup (recommended)
 
@@ -34,7 +34,11 @@ AgentRuntime supports two connection paths. Use **Connect with Meta** unless you
 
 ### Manual credentials (Paste API keys)
 
-If you use your own Meta app and already have a System User token and IDs from Meta Business Manager:
+If you use your own Meta app and already have a System User token and IDs from Meta Business Manager, you can connect it to **send** messages.
+
+<Warning>
+  A connection made with **Paste API keys** for your own Meta app cannot receive messages: Meta sends incoming messages to your app, not to AgentRuntime. To start workflows from incoming messages or run [customer chats](/guides/whatsapp-customer-chat), connect the number with **Connect with Meta**.
+</Warning>
 
 <Steps>
   <Step title="Gather credentials">
@@ -53,7 +57,7 @@ If you use your own Meta app and already have a System User token and IDs from M
 </Steps>
 
 <Note>
-  AgentRuntime is an approved Meta **Tech Provider**, so customers can connect their own WhatsApp Business number with **Connect with Meta**. Use **Paste API keys** if you want messaging to run through your own Meta app and WABA.
+  AgentRuntime is an approved Meta **Tech Provider**, so customers can connect their own WhatsApp Business number with **Connect with Meta**, without a Meta app of their own.
 </Note>
 
 ## What you can build
@@ -96,7 +100,7 @@ For a back-and-forth chat, turn on [conversation sessions](/workflows/conversati
 
 The connector has more administrative tools too, for Flows, QR codes, groups, blocking users, commerce settings, and phone registration. Open the instance on the **MCP** page to see the full list.
 
-`whatsapp_send_message`, `whatsapp_send_media`, `whatsapp_send_reaction`, `whatsapp_mark_as_read`, and `whatsapp_send_template_message` accept an optional per-call `phone_number_id`. Otherwise the connector uses the ID from your connection. The interactive, location, and contact tools take the recipient as `to_number` and require `phone_number_id`.
+The send tools accept an optional per-call `phone_number_id`. Otherwise the connector uses the ID from your connection. The interactive, location, and contact tools take the recipient as `to_number`; the others take `to`.
 
 WhatsApp only allows free-form messages, media, and interactive messages within 24 hours of the customer's last message to you. Outside that window, use a template.
 

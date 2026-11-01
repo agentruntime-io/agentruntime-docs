@@ -96,6 +96,7 @@ Pauses the run and creates a task for a person in [Command Center](/workflows/co
 |---|---|
 | `task_type` | The kind of task. `approval` is the default. |
 | `task_payload` | What the person sees: a title, a message, and optionally a reply box |
+| `approver` | Who may answer. With no approvers listed, nobody can answer unless `any_member` is `true`. |
 | `timeout_s` | How long to wait. Studio's default is 86400 (24 hours). |
 | `timeout_policy` | What happens when nobody answers |
 | `on_reject` | What happens when the person rejects |

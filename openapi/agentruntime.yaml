@@ -104,14 +104,10 @@ tags:
       immutable event — use the event log for debugging and audit.
   - name: Tasks
     description: |
-      Human-in-the-loop (HITL) task management. When a workflow reaches a `human_task` step it
+      Human-in-the-loop (HITL) task management. When a workflow reaches a `human` step it
       pauses and creates a pending task. Submit a decision to resume execution.
   - name: MCP Tools
     description: List tool definitions discovered from registered MCP servers.
-  - name: Credentials
-    description: |
-      Manage per-MCP OAuth tokens and API keys. Credentials are stored in HashiCorp Vault and
-      cached in Redis. Updating a credential invalidates the cache automatically.
   - name: Builtin Tools
     description: |
       Query metadata about built-in tool capabilities provided by the runtime itself
@@ -431,7 +427,7 @@ security:
 
 paths:
   # ── Workflows ──────────────────────────────────────────────────────────────
-  /api/v1/workflows:
+  /v1/workflows:
     get:
       tags: [Workflows]
       summary: List workflows
@@ -532,7 +528,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
-  /api/v1/workflows/{id}:
+  /v1/workflows/{id}:
     parameters:
       - name: id
         in: path
@@ -556,32 +552,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-    put:
-      tags: [Workflows]
-      summary: Replace a workflow definition
-      description: |
-        Replaces the entire workflow definition and increments `version`. Use this when you want
-        to make a clean change to the graph. In-flight runs continue using the previous version
-        until they complete.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WorkflowCreate"
-      responses:
-        "200":
-          description: Updated workflow.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Workflow"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntity"
     patch:
       tags: [Workflows]
       summary: Partially update a workflow
@@ -622,7 +592,7 @@ paths:
           $ref: "#/components/responses/NotFound"
 
   # ── Execution ──────────────────────────────────────────────────────────────
-  /api/v1/workflows/{id}/command:
+  /v1/workflows/{id}/command:
     parameters:
       - name: id
         in: path
@@ -745,7 +715,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
-  /api/v1/workflows/{id}/stream:
+  /v1/workflows/{id}/stream:
     parameters:
       - name: id
         in: path
@@ -791,7 +761,7 @@ paths:
         **JavaScript example:**
         ```js
         const ws = new WebSocket(
-          'wss://api.agentruntime.io/api/v1/workflows/wf_01hw3k9x4v8m/stream?run_id=run_01hw3k9x4v8m',
+          'wss://api.agentruntime.io/v1/workflows/wf_01hw3k9x4v8m/stream?run_id=run_01hw3k9x4v8m',
           [],
           { headers: { Authorization: 'Bearer <your-api-key>' } }
         );
@@ -811,7 +781,7 @@ paths:
           $ref: "#/components/responses/NotFound"
 
   # ── Runs ───────────────────────────────────────────────────────────────────
-  /api/v1/workflows/{id}/runs:
+  /v1/workflows/{id}/runs:
     parameters:
       - name: id
         in: path
@@ -878,7 +848,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /api/v1/workflows/{id}/runs/{run_id}/events:
+  /v1/workflows/{id}/runs/{run_id}/events:
     parameters:
       - name: id
         in: path
@@ -958,7 +928,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /api/v1/workflows/{id}/runs/{run_id}/context:
+  /v1/workflows/{id}/runs/{run_id}/context:
     parameters:
       - name: id
         in: path
@@ -1006,7 +976,7 @@ paths:
           $ref: "#/components/responses/NotFound"
 
   # ── Human-in-the-loop Tasks ────────────────────────────────────────────────
-  /api/v1/workflows/{id}/runs/{run_id}/tasks/pending:
+  /v1/workflows/{id}/runs/{run_id}/tasks/pending:
     parameters:
       - name: id
         in: path
@@ -1062,7 +1032,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /api/v1/workflows/{id}/runs/{run_id}/tasks/{task_id}/complete:
+  /v1/workflows/{id}/runs/{run_id}/tasks/{task_id}/complete:
     parameters:
       - name: id
         in: path
@@ -1156,7 +1126,7 @@ paths:
                 code: "CONFLICT"
 
   # ── MCP Tools ──────────────────────────────────────────────────────────────
-  /api/v1/mcp/tools:
+  /v1/mcp/tools:
     get:
       tags: [MCP Tools]
       summary: List available MCP tools
@@ -1204,129 +1174,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  # ── Credentials ────────────────────────────────────────────────────────────
-  /api/v1/credentials/mcp:
-    get:
-      tags: [Credentials]
-      summary: List MCP credentials
-      description: |
-        Returns all stored MCP credentials for the project. Secret values are **never returned** —
-        only metadata (id, name, mcp_id, created_at).
-      responses:
-        "200":
-          description: List of credentials.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  credentials:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Credential"
-              example:
-                credentials:
-                  - id: cred_01hw3k9x4v8m
-                    name: "Acme CRM API Key"
-                    mcp_id: mcp_acme_crm
-                    created_at: "2026-02-01T08:00:00Z"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-    post:
-      tags: [Credentials]
-      summary: Create an MCP credential
-      description: |
-        Stores a new MCP credential in HashiCorp Vault. The `value` is the raw secret
-        (API key, OAuth bearer token, etc.) — it is encrypted at rest and never returned
-        by the API after creation.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, mcp_id, value]
-              properties:
-                name:
-                  type: string
-                  description: Human-readable label.
-                  example: "Acme CRM API Key"
-                mcp_id:
-                  type: string
-                  description: The MCP server instance this credential belongs to.
-                  example: mcp_acme_crm
-                value:
-                  type: string
-                  description: The secret value. Write-only — never returned by the API.
-                  example: "sk-acme-XXXXXXXXXXXXXXXX"
-      responses:
-        "201":
-          description: Credential created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Credential"
-              example:
-                id: cred_01hw3k9x4v8m
-                name: "Acme CRM API Key"
-                mcp_id: mcp_acme_crm
-                created_at: "2026-04-10T10:00:00Z"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntity"
-
-  /api/v1/credentials/mcp/{secret_id}:
-    parameters:
-      - name: secret_id
-        in: path
-        required: true
-        schema:
-          type: string
-        example: cred_01hw3k9x4v8m
-    put:
-      tags: [Credentials]
-      summary: Rotate a credential
-      description: |
-        Updates the secret value for an existing credential and **immediately invalidates
-        the Redis cache** for that MCP server — active sessions will re-authenticate with
-        the new credential on the next tool call.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [value]
-              properties:
-                value:
-                  type: string
-                  description: The new secret value.
-                  example: "sk-acme-YYYYYYYYYYYYYYYY"
-      responses:
-        "200":
-          description: Credential updated. Cache invalidated.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-    delete:
-      tags: [Credentials]
-      summary: Delete a credential
-      description: |
-        Permanently removes the credential from Vault and invalidates the cache.
-        Any running workflow that needs this credential will fail on its next tool call.
-      responses:
-        "204":
-          description: Credential deleted. No response body.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   # ── Builtin Tools ──────────────────────────────────────────────────────────
-  /api/v1/builtin-tools:
+  /v1/builtin-tools:
     get:
       tags: [Builtin Tools]
       summary: List built-in tool capabilities

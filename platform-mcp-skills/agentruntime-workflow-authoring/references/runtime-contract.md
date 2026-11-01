@@ -65,7 +65,7 @@ Result fields: `iterations` (a count), `max_iterations`, `stopped_reason` (`cond
 | `lua` | Nonempty `script` |
 | `llm` | `model` or `model_ref`, nonempty `prompt`; obtain provider/credential contract — see [llm-step-results.md](references/llm-step-results.md) |
 | `agent` | `agent_id`, nonempty `prompt` or `input`; obtain agent schema |
-| `human` | `task_type`; obtain payload/response contract for that task type |
+| `human` | `task_type`; obtain payload/response contract for that task type. Set who may answer: `approver.user_ids` / `approver.agent_ids`, or `"approver": { "any_member": true }`. With none of these, nobody can complete the task (a step with `conversation` is the exception). `any_member` refuses the member who started the run unless `allow_initiator: true`. A `timeout_policy` with `action: "approve"` approves only with `allow_auto_approve: true`; otherwise the step fails at timeout |
 | `workflow` | Child `workflow_id`, not parent id; obtain child input/output contract (the child needs no publishing). Optional `child_target` — see below |
 | `external_agent` | Deployment-specific provider/configuration contract required |
 
