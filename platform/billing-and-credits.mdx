@@ -21,6 +21,8 @@ Your balance is made of three pools. AgentRuntime always uses them in this order
 
 Pay-as-you-go credits stay with you when you change plans, when a trial ends, and when you cancel a subscription. Unused trial and included credits end when the trial or subscription ends.
 
+Credits alone do not keep a workspace running: it also needs an active trial or plan. Without one, the workspace is **suspended** (see [When a trial or plan ends](#when-a-trial-or-plan-ends)).
+
 ## Where to manage billing
 
 Open **Settings** in the [Console](https://console.agentruntime.io). Billing has three tabs:
@@ -61,13 +63,24 @@ A card that says **Paid subscription only — no trial on this plan** has no tri
   </Step>
 </Steps>
 
-When a trial is active, a banner shows when it ends. The banner has an **Add payment method** button: add a card before the trial ends to keep your plan. Otherwise you move to pay-as-you-go and the trial credits expire.
+When a trial is active, a banner shows when it ends. The banner has an **Add payment method** button: add a card before the trial ends to keep your plan. Otherwise the workspace is suspended when the trial ends, and the trial credits expire.
 
 ## Change or cancel a plan
 
 - **Upgrades** apply immediately.
 - **Downgrades** apply at the end of the billing period.
-- **Cancel subscription** ends your plan at the end of the period by default, so you keep access until then. The cancel dialog shows the options.
+- **Cancel subscription** ends your plan at the end of the period by default, so you keep access until then. The cancel dialog shows the options. After that, the workspace is suspended.
+
+## When a trial or plan ends {#when-a-trial-or-plan-ends}
+
+A workspace is **suspended** when its trial ends without a card, or when its plan is cancelled and the period is over. While it is suspended:
+
+- Workflows don't run and tools can't be used, even if the workspace still has pay-as-you-go credits. Starting a run is refused with "This subscription is not active. Update billing or subscribe again to resume workflow runs."
+- Your workflows, connections and data are kept.
+
+To continue, add a card and choose a plan under **Billing → Plans**. Your pay-as-you-go credits are still there when you do.
+
+If a payment fails instead, runs stop until you pay the open invoice in **Billing**.
 
 ## Add credits (pay-as-you-go)
 

@@ -30,6 +30,7 @@ flowchart LR
   "type": "human",
   "name": "Approve order confirmation",
   "task_type": "approval",
+  "approver": { "any_member": true },
   "depends_on": ["draft-email"],
   "task_payload": {
     "title": "Send order confirmation",

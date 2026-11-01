@@ -32,19 +32,26 @@ When one step fails, the whole run fails. The other steps explain what happened 
 
 ### Common failure reasons
 
-The Console shows a short reason on the run. The code is shown for support and API users.
+When a step fails, the run fails with that step's error message. Open the run's **Events** tab and read the failed step's error.
 
-| Console message | Code | What to do |
-|-----------------|------|------------|
-| MCP tool error | `MCP_TOOL_FAILED` | Check the tool's inputs, the connection, and whether the outside service is up |
-| LLM request failed | `LLM_REQUEST_FAILED` | Check your key under **Providers** and the model name |
-| Insufficient credits | `INSUFFICIENT_CREDITS` | Add credits or change plan. See [Billing and credits](/platform/billing-and-credits). |
-| Run timed out (no progress) | `RUN_STALLED_OR_TIMED_OUT` | Check for a slow outside service. Raise the step's `timeout_s` if needed. |
-| Graceful stop timed out | `DRAIN_TIMEOUT` | Stop the run immediately, then look at the slow step |
-| Stopped by operator | `RUN_STOPPED` | Expected. Someone stopped the run. Start a new one if needed. |
-| Human review step failed | `HUMAN_TASK_FAILED` | Check the approval step's settings, fix them, and run again |
-| Service unavailable | `UPSTREAM_ERROR` | Try again in a few minutes. Contact support if it keeps happening. |
-| Could not reach workflow service | `DEPENDENCY_UNAVAILABLE` | Try again in a few minutes |
+| Failed step | What to check |
+|-------------|---------------|
+| `mcp` (tool) | The tool's inputs, the connection, and whether the outside service is up. A tool call is cut off after 120 seconds. |
+| `llm` | Your key under **Providers** and the model name |
+| `agent` | The agent's model and tools. If it reached its tool call limit, see [Agents](/ai/agents). |
+| `human` | "human_task timed out" means nobody answered in time. See [Human tasks](/workflows/human-tasks). |
+| `lua` | The script's own error, or an `error("...")` it raised. See [Lua scripts](/workflows/lua). |
+
+Some failures also carry a code, shown for support and API users:
+
+| Code | What it means | What to do |
+|------|---------------|------------|
+| `INSUFFICIENT_CREDITS` | The run could not start: the workspace has too few credits | Add credits. See [Billing and credits](/platform/billing-and-credits). |
+| `WORKER_LOST` | The worker running a tool, `workflow` or Cursor Cloud step stopped responding, and the step was not run again because it may already have had an effect | Check whether the step acted, then start a new run. See [How runs execute](/workflows/how-runs-execute). |
+| `EPISODE_STALLED` | The agents in an [agentic workflow](/workflows/autonomous-episodes) stopped making progress | Give the agents clearer instructions or inputs |
+| `EPISODE_TURN_LIMIT` | The agents used all their turns without finishing | See [Limits](/platform/limits) |
+| `EPISODE_NO_ENTRY` | No agent step could start the agentic workflow | Grant entry to a step when you start the run, or turn off **Require entry grant** on one step |
+| `UPSTREAM_ERROR`, `DEPENDENCY_UNAVAILABLE` | The Console could not reach the workflow service | Try again in a few minutes. Contact support if it keeps happening. |
 
 ### Try again after fixing
 
@@ -56,7 +63,6 @@ A failed run cannot be resumed. Fix the cause, publish a new version if you chan
 |--------------|-----------------------|------------|
 | **Paused** | Someone paused it, or an approval step is waiting | Click **Resume**, or approve the task in **Command Center** |
 | Waiting for approval | A `human` step is waiting for a person | This is normal. Approve or reject it. |
-| **Draining** | A graceful stop is in progress | Wait, or stop it immediately |
 | A step stays **Running** | A slow tool or AI call | Check the outside service. Stop the run if needed. |
 | **Queued** or **Starting** for a long time | The run has not begun | Check that you have credits and that **Dry-run** shows no errors |
 

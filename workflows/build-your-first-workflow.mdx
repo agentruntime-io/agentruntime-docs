@@ -75,7 +75,7 @@ This workflow needs no connections and no AI model key, so it runs in a brand-ne
     Click a step to open its settings on the right.
 
     - **Draft the summary** has a **Lua script** field. Lua is a small scripting language for reshaping data. This script returns a table with the customer, the order, the amount, and a `summary` sentence. A Lua step must return a table.
-    - **Approve the refund** is a **Human** step. It pauses the run and creates a task. The message the reviewer sees is `{{steps.draft.result.summary}}`. Under **If no response (timeout policy)** it says **Keep waiting**, and under **When rejected** it says **Stop this branch**.
+    - **Approve the refund** is a **Human** step. It pauses the run and creates a task. The message the reviewer sees is `{{steps.draft.result.summary}}`. Under **If no response (timeout policy)** it says **Keep waiting**, and under **When rejected** it says **Stop this branch**. Its JSON has `"approver": { "any_member": true, "allow_initiator": true }`, so anyone who can edit the project may answer, including you, the person who runs it. Without that line, or a list of **Required approvers**, nobody could answer the task. See [Human tasks](/workflows/human-tasks#add-an-approval-step).
     - **Record the decision** reads the reviewer's answer. In a script, the answer is `steps["review"].result.approved`.
 
     <Frame caption="The Lua script of Draft the summary.">
@@ -258,6 +258,7 @@ This is the same workflow as the graph Studio saves. You can paste it with **Imp
       "name": "Approve the refund",
       "depends_on": ["draft"],
       "task_type": "approval",
+      "approver": { "any_member": true, "allow_initiator": true },
       "timeout_s": 86400,
       "task_payload": {
         "title": "Refund request",
