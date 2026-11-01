@@ -107,6 +107,10 @@ The counts apply to one agent step. A new step, or the same step in the next run
 
 With **Pause and ask**, the step does not fail and keeps everything it has done so far. A **Tool call limit reached** task appears in [Command Center](/workflows/command-center):
 
+<Frame caption="A Tool call limit reached task in Command Center">
+  <img src="/images/workflows/command-center-tool-limit-task.png" alt="Command Center with one item under Needs your attention: the Limit check workflow with a Tool call limit reached badge, a line saying the step used its tool calls, and View, an Add calls box, Continue and Stop buttons" />
+</Frame>
+
 - **Continue** gives the agent more calls (you can change how many) and it picks up exactly where it stopped. Nothing runs again.
 - **Stop** fails the step. You can add a reason.
 
