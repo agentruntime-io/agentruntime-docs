@@ -12,7 +12,7 @@ Do not ship a single “complete CRM” in one pass. Deliver **evidence → revi
 
 ## Phase v2 — Parse extraction
 
-- For structured extraction, use an `agent` step with an `output_schema` instead of `llm` + Lua: workflow Lua has no JSON decoder (see `llm-step-results.md`).
+- For structured extraction, prefer an `agent` step with an `output_schema` (validated). An `llm` step plus a Lua `json.decode` also works when you guard invalid output with `pcall` (see `llm-step-results.md`).
 - Validate shape before writing `claims` rows (still proposals until apply).
 
 ## Phase v3 — Apply (platform gap if no single transaction tool)

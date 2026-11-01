@@ -67,6 +67,26 @@ end
 return { email = string.lower(email) }
 ```
 
+## Read and write JSON
+
+`json.decode(text)` turns JSON text into Lua values, and `json.encode(value)` turns a value into JSON text. Use it, for example, when an `llm` step was asked to answer in JSON:
+
+```lua
+local ok, data = pcall(json.decode, steps["classify"].result.text)
+if not ok then
+  error("the model did not return valid JSON: " .. tostring(data))
+end
+return { category = data.category, urgent = data.urgent == true }
+```
+
+- Objects become tables, lists become sequence tables, and numbers become Lua numbers. Very large integers (beyond 2^53) lose precision.
+- `null` becomes `nil`. In an object the key is simply missing. In a list it leaves a gap, so `#t` and `ipairs` may stop early there.
+- Text that is not valid JSON raises an error. Wrap the call in `pcall`, as above, to handle it yourself.
+- `json.encode` writes a table with keys 1 to n as a list and any other table as an object. An empty table is written as `{}`.
+- Each call reads or writes at most 4 MiB of JSON.
+
+Models don't always return valid JSON. When later steps must be able to rely on the fields, use an `agent` step whose agent has an output schema: the reply is checked against the schema first. See [Step types](/workflows/step-types#agent-run-an-agent).
+
 ## What is available, and what is not
 
 Available:
@@ -74,9 +94,9 @@ Available:
 - `string` (for example `string.format`, `string.lower`, `string.find`, `string.gsub`)
 - `table` (for example `table.insert`, `table.concat`, `table.sort`)
 - `math`
+- `json` (`json.decode`, `json.encode`)
 
 Not available:
-- **No JSON library.** `json.decode` and `json.encode` don't exist. To get structured data from a model, use an `agent` step whose agent has an output schema; its fields land on the step result. See [Step types](/workflows/step-types#agent-run-an-agent).
 - No network, files, `os`, `io`, `require` or loading other code
 - No `print`. To see a value, return it and look at the step's output in the **Events** tab.
 - No templates. Don't write `{{…}}` in a script: read `input` and `steps` instead.
@@ -98,7 +118,7 @@ See [Limits](/platform/limits) for every workflow limit.
 |---|---|
 | "lua script must return a table" | End the script with `return { ... }`. |
 | An error about indexing a `nil` value | A step you read was skipped or has not run, or the id is wrong. Check the id, add the step to `depends_on`, and guard against `nil`. |
-| An error about `json` being `nil` | You used `json.decode`, which doesn't exist here. Use an `agent` step with an output schema for structured data. |
+| `json.decode` raises an error | The text is not valid JSON, often because a model added words around it. Wrap the call in `pcall`, or use an `agent` step with an output schema. |
 | The step times out | Do less work in one script, or split it into two Lua steps. |
 | A list arrives as an object with `"1"`, `"2"` keys | Return the list inside a field: `return { items = items }`. |
 

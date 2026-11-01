@@ -71,7 +71,7 @@ Examples: send an email with Gmail, query Postgres, create a GitHub issue, send 
 | `llm_credential_id`, `llm_credential_scope` | Optionally pin a specific provider key |
 | `timeout_s` | Time limit in seconds. Studio sets 60. With no `timeout_s`, the engine allows 120 seconds. |
 
-The reply is on the step as `result.text`. The text is not parsed, and Lua has no JSON library, so an `llm` step cannot hand structured data to later steps. When you need fields (a list, a yes/no, a score), use an `agent` step whose agent has an output schema instead. `llm_params` accepts `temperature` (default 0.3) and `max_tokens`.
+The reply is on the step as `result.text`. The text is not parsed. If you asked for JSON, decode it in a following `lua` step with `json.decode` (see [Lua scripts](/workflows/lua#read-and-write-json)). When later steps must rely on the fields, use an `agent` step whose agent has an output schema instead: its reply is checked first. `llm_params` accepts `temperature` (default 0.3) and `max_tokens`.
 
 ## `agent`: run an agent
 
@@ -84,7 +84,7 @@ Runs one of your [agents](/ai/agents) for one turn, with its tools and memory.
 | `input` | Optional structured input for the agent. Values can be templates. It is added to the run's start input; where both have the same key, the step's value wins. |
 | `timeout_s` | Time limit in seconds. Studio's default is 600. |
 
-The agent's reply is on the step as `result.message`. If the agent has an **output schema**, it must reply with those fields. The reply is checked against the schema, and an invalid reply gets one chance to be fixed. Each field then sits on the step result, for example `{{steps.triage.result.priority}}`. This is the way to get structured data (lists, yes/no, scores) from a model into later steps.
+The agent's reply is on the step as `result.message`. If the agent has an **output schema**, it must reply with those fields. The reply is checked against the schema, and an invalid reply gets one chance to be fixed. Each field then sits on the step result, for example `{{steps.triage.result.priority}}`. This is the most reliable way to get structured data (lists, yes/no, scores) from a model into later steps.
 
 Agent steps can also hand work to each other, ask a person a question, or talk to a contact in a conversation. See [Autonomous episodes](/workflows/autonomous-episodes) and [Conversation sessions](/workflows/conversation-sessions).
 
@@ -117,7 +117,7 @@ Rules:
 - Read earlier steps with `steps["<step-id>"].result` and start input with `input.<field>`.
 - Lua cannot use the network, files, or the operating system. A script result can be at most 1 MiB.
 - Do not write `{{…}}` in a script. Scripts do not use templates.
-- There is no JSON library (`json.decode` does not exist).
+- `json.decode` and `json.encode` read and write JSON.
 
 See [Lua scripts](/workflows/lua) for everything a script can read and return.
 

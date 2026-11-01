@@ -173,7 +173,7 @@ A `for_each` step's result has `count`, `max_parallel`, `succeeded_count`, `fail
 
 A loop reads its list from a **list**, so return the list from the step before it, even when it is empty (`return { items = items }`).
 
-An `llm` step returns plain text, not a list, and Lua has no JSON library to decode it. To get a list or other structured data from a model, use an `agent` step whose agent has an **output schema**: the agent's reply is checked against the schema, and its fields land on the step result (for example `{{steps.extract.result.items}}`). See [Step types](/workflows/step-types#agent-run-an-agent).
+An `llm` step returns plain text, not a list. If you asked it for JSON, decode the text in a Lua step first (`return { items = json.decode(steps["gen"].result.text).items }`). For data you must be able to rely on, use an `agent` step whose agent has an **output schema**: the agent's reply is checked against the schema, and its fields land on the step result (for example `{{steps.extract.result.items}}`). See [Step types](/workflows/step-types#agent-run-an-agent).
 
 ### A loop body with several steps
 
