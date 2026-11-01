@@ -58,6 +58,32 @@ If you add no keys, workflows and agents use the platform keys. If you add a wor
   Rotate a key on **Providers** first, then revoke the old one at your provider. Workflows that used a deleted key fall back to the platform default.
 </Note>
 
+## Google Gemini and Amazon Bedrock keys
+
+<Warning>
+  Gemini and Bedrock support is new and has not yet been checked against live provider accounts. Test a model with the lightning icon (see [Choose which models to use](#choose-which-models-to-use)) before you rely on it.
+</Warning>
+
+Both work in **LLM** steps and in agent steps, including agents that call tools.
+
+**Google Gemini.** Paste a Gemini API key from Google AI Studio. It starts with `AIza`.
+
+- Gemini counts its thinking against the step's maximum tokens. If you set a small `max_tokens`, the answer can come back empty, so leave room.
+- An agent's output schema is checked after Gemini replies; Gemini itself does not enforce it.
+
+**Amazon Bedrock.** The key is one line: the AWS region where your models run, a colon, and then one of these:
+
+| Credential | Format |
+|---|---|
+| A Bedrock API key | `us-east-1:ABSK…` |
+| An IAM access key | `us-east-1:AKIA…:secret-access-key`. For temporary credentials, add a colon and the session token at the end. |
+
+The **Add workspace key** form shows this format when you choose Bedrock. An IAM user needs permission `bedrock:InvokeModel` on the models you use.
+
+- Choose models by their Bedrock model ID or inference profile. The model picker lists common ones.
+- Bedrock replies arrive whole, not word by word.
+- Models without tool use, such as Titan or Llama 3, fail an agent step that offers tools.
+
 ## Choose which models to use
 
 Under **Workspace models** you see the models enabled for agents and workflows. Platform defaults are always on.
