@@ -97,6 +97,10 @@ Limits stop an agent that is stuck in a loop from running for ever. They are a s
 | **Per-tool limits** | Cap one tool, for example a paid search tool at 3 calls. Click **Add a tool limit**, pick or type the tool, and enter **Max calls**. When a tool reaches its cap, the agent is told so and carries on with its other tools; the step does not fail. Calls past the cap still count toward **Max tool calls per step**. |
 | **When the limit is reached** | **Pause and ask (default)**, **Fail**, or **Continue automatically** (up to a number of times you set in **Continue up to**, 3 by default). |
 
+<Frame caption="The Limits section of an agent's settings">
+  <img src="/images/ai/agent-limits.png" alt="The Limits section with Max tool calls per step set to 200, a per-tool limit row capping workflows_execute_command at 3 calls with an Add a tool limit button, and When the limit is reached with Pause and ask (default) selected, Fail, and Continue automatically" />
+</Frame>
+
 The counts apply to one agent step. A new step, or the same step in the next run, starts again at zero.
 
 ### When an agent reaches its limit
