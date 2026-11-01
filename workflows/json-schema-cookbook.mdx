@@ -308,6 +308,70 @@ Leave `child_target` out while you build, so the child's **Live** copy runs. The
 
 `skip_when` takes a true/false value or a comparison with `==` or `!=`, and you can join several with `&&` and `||`, for example `{{input.kind == "voice" && input.lang != "en"}}`. Parentheses are not supported. A skipped step counts as finished, so steps after it still run. `skip_when` works on top-level steps only; inside a loop body, use `enabled` instead.
 
+## Example 8: read JSON that a model returns
+
+Ask an `llm` step to answer in JSON, decode it in a `lua` step, then use the fields in later steps.
+
+```json
+{
+  "steps": [
+    {
+      "id": "classify",
+      "type": "llm",
+      "name": "Classify the ticket",
+      "model_ref": "REPLACE_MODEL_REF",
+      "prompt": "Classify this support ticket. Reply with JSON only, no other text: {\"category\": \"billing\" | \"bug\" | \"other\", \"urgent\": true | false, \"tags\": [string]}\n\nTicket: {{input.ticket_text}}",
+      "timeout_s": 60
+    },
+    {
+      "id": "parse",
+      "type": "lua",
+      "name": "Read the model's JSON",
+      "depends_on": ["classify"],
+      "script": "local ok, data = pcall(json.decode, steps[\"classify\"].result.text)\nif not ok then\n  error(\"model did not return valid JSON: \" .. tostring(data))\nend\nreturn { category = data.category, urgent = data.urgent == true, tags = data.tags or {} }",
+      "timeout_s": 5
+    },
+    {
+      "id": "alert",
+      "type": "mcp",
+      "name": "Tell the team",
+      "depends_on": ["parse"],
+      "instance_id": "REPLACE_MCP_INSTANCE",
+      "tool_name": "REPLACE_TOOL_NAME",
+      "skip_when": "{{steps.parse.result.urgent == false}}",
+      "tool_args": {
+        "text": "Urgent {{steps.parse.result.category}} ticket: {{input.ticket_text}}"
+      }
+    }
+  ]
+}
+```
+
+If the model replies `{"category":"billing","urgent":true,"tags":["refund"]}`, the `parse` step's result is:
+
+```json
+{ "category": "billing", "urgent": true, "tags": ["refund"] }
+```
+
+Later steps read it as `{{steps.parse.result.category}}` and so on. The `alert` step only runs for urgent tickets.
+
+- The `\n` and `\"` in `script` are only there because the script sits inside JSON. In Studio's Lua editor, or with **Edit script** in the [JSON editor](/workflows/json-editor), you write normal Lua.
+- `pcall` catches invalid JSON. Without it, bad JSON fails the step with the parse error.
+- When later steps must be able to rely on the fields, an `agent` step whose agent has an output schema is safer: its reply is checked against the schema, and the fields land on the step result without a Lua step. See [Step types](/workflows/step-types#agent-run-an-agent).
+
+To go the other way, `json.encode` turns a table into JSON text, for example for a tool that takes a raw JSON body:
+
+```json
+{
+  "id": "build-body",
+  "type": "lua",
+  "depends_on": ["load-orders"],
+  "script": "return { body = json.encode({ customer = input.customer_id, orders = steps[\"load-orders\"].result.rows }) }"
+}
+```
+
+Its result is `{ "body": "{\"customer\":\"c_42\",\"orders\":[...]}" }`. See [Lua scripts](/workflows/lua#read-and-write-json) for how values convert.
+
 ## Template quick reference
 
 | Syntax | Resolves to |

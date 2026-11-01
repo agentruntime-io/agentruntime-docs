@@ -85,6 +85,22 @@ return { category = data.category, urgent = data.urgent == true }
 - `json.encode` writes a table with keys 1 to n as a list and any other table as an object. An empty table is written as `{}`.
 - Each call reads or writes at most 4 MiB of JSON.
 
+Models sometimes wrap JSON in a Markdown code fence even when told not to. Strip the fence before you decode:
+
+```lua
+local text = steps["classify"].result.text
+text = (text:gsub("^%s*```%w*%s*", ""):gsub("%s*```%s*$", ""))
+local ok, data = pcall(json.decode, text)
+```
+
+To build JSON text, for example for a tool that takes a raw JSON body:
+
+```lua
+return { body = json.encode({ customer = input.customer_id, orders = steps["load-orders"].result.rows }) }
+```
+
+For a whole workflow that reads a model's JSON, see [JSON cookbook, Example 8](/workflows/json-schema-cookbook#example-8-read-json-that-a-model-returns).
+
 Models don't always return valid JSON. When later steps must be able to rely on the fields, use an `agent` step whose agent has an output schema: the reply is checked against the schema first. See [Step types](/workflows/step-types#agent-run-an-agent).
 
 ## What is available, and what is not
