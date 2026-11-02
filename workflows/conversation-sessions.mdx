@@ -105,6 +105,18 @@ In the [JSON editor](/workflows/json-editor), sessions live under `settings.sess
               "sections": [{ "title": "Options", "rows": "{{message.choices}}" }]
             }
           }
+        },
+        "templates": {
+          "list": { "tool_name": "whatsapp_list_message_templates", "tool_args": { "status": "APPROVED", "page_size": 100 } },
+          "send": {
+            "tool_name": "whatsapp_send_template_message",
+            "tool_args": {
+              "to": "{{input.from}}",
+              "template_name": "{{message.template.name}}",
+              "language_code": "{{message.template.language}}",
+              "body_parameters": "{{message.template.text_parameters}}"
+            }
+          }
         }
       }
     }
@@ -122,6 +134,7 @@ In the [JSON editor](/workflows/json-editor), sessions live under `settings.sess
 | **Files → File send tool**, **File tool arguments** | `outbound.media.tool_name`, `outbound.media.tool_args` | The MCP tool that delivers each file the workflow sends, called once per file after the text, on the same connection unless you set `media.instance_id`. Choose **None: files are not sent** to only record files. See [Files, voice notes, and locations](#files-voice-notes-and-locations). | `whatsapp_send_media` with WhatsApp replies |
 | **Choices → Choices tool**, **Up to (options)**, **Choices tool arguments** | `outbound.choices.tool_name`, `.max_choices`, `.tool_args` | The MCP tool that sends a question with options the contact can tap, for up to that many options. Choose **None: list the options in the text** to send them as numbered lines instead. See [Choices](#choices). | WhatsApp reply buttons, up to 3 |
 | **Tool for more options**, **Up to (more options)**, **More options tool arguments** | `outbound.choices.more` | The tool for more options than the first one shows. | WhatsApp list, up to 10 |
+| **Templates → Template send tool**, **Template send tool arguments**, **Template list tool**, **Template list tool arguments** | `outbound.templates.send`, `outbound.templates.list` | The MCP tools that send an approved message template to the contact and list the templates a person can pick from. They let a person [send a template](#send-a-template-to-a-contact) from the Console. Choose **None: no template sending** to turn it off. | `whatsapp_list_message_templates` and `whatsapp_send_template_message` with WhatsApp replies |
 
 <Warning>
   Leaving **Close after idle** blank (or `0`) means the 30-minute default, not "never". To keep conversations open for a long time, set a long idle timeout. See [Recipes](#recipes).
@@ -323,6 +336,34 @@ Studio warns when **To** or **Text** is empty, because nothing is recorded witho
   The conversation is the one between the contact and the number your connection sends from, so the step needs a connection that names its sending number. The contact's number is read as digits: `+94 71 228 0951` and `94712280951` are the same contact. If WhatsApp later reports the contact under a different number than the one you sent to, their reply opens a separate conversation.
 </Note>
 
+## Send a template to a contact
+
+Some channels only let you send free-form messages for a limited time after the contact's last message. On WhatsApp it is 24 hours. A reply from a person after that is accepted and then reported as not delivered (the message shows *Not delivered*, and the hand-off comes back in [Command Center → Missed](/workflows/command-center#missed-follow-up-on-tasks-nobody-answered)). What does reach the contact is a message template the channel has approved.
+
+**Send template** lets a person do that from the Console, through the same reply channel as every other message in the session:
+
+1. Click **Send template** on a **Reply not delivered** row in Command Center → **Missed**, or in the bar above the reply box in the conversation view (**Open the conversation**) of a run in a workflow that has templates set up.
+2. Pick one in **Template**. Each option shows the template's name, language and category, and only templates the channel has approved are listed.
+3. Fill in a **Value for** each numbered placeholder. **Preview** shows the message as the contact will read it.
+4. Click **Send template**.
+
+The message is recorded in the contact's conversation as sent by that person, with a *Template: name* label and its delivery state. From Missed, sending also marks the task followed up. When the contact replies, the session picks the conversation up with the template in its history.
+
+If the channel refuses the template (for example the name is not approved, or a value is not allowed), the dialog shows the reason and nothing is recorded, so you can correct it and send again. If the channel accepts it and reports a failure later, the message shows *Not delivered* like any other.
+
+**Set it up.** Open **Workflow setup → Sessions → Templates**. The WhatsApp defaults are filled in when you turn sessions on with a WhatsApp connection, and **Reset templates to WhatsApp defaults** brings them back. **None: no template sending** turns the action off, and in a workflow without it the dialog says so instead of listing templates.
+
+| Field | JSON | Notes |
+|---|---|---|
+| **Template list tool**, **Template list tool arguments** | `outbound.templates.list` | Returns the templates. The default asks WhatsApp for the first 100 `APPROVED` templates. |
+| **Template send tool**, **Template send tool arguments** | `outbound.templates.send` | Sends one template to the contact. It runs on the same connection as the reply channel unless you set `instance_id`. |
+
+The send tool's arguments can use `{{message.template.name}}`, `{{message.template.language}}`, `{{message.template.parameters}}` (the values, in order), `{{message.template.text_parameters}}` (the same values as a list of `{text}` objects, which is what WhatsApp's `body_parameters` takes), `{{message.template.parameter_count}}`, and `{{message.template.text}}` (the message as the person saw it in the preview). The recipient is the contact the session is with, so a value in the arguments cannot send to anyone else.
+
+<Note>
+  Only the values in a template's body are filled in. Templates whose header is an image, video or document, whose header has a placeholder, or whose buttons take a value from the message (such as a one-time code) are not offered. The dialog tells you how many templates it left out. The channel may charge for template messages, and a business-initiated template needs the contact's opt-in. The list shows up to 100 templates.
+</Note>
+
 ## Recipes
 
 Each recipe is a combination of the settings above. Durations are in minutes in the Console and seconds in JSON.
@@ -340,7 +381,7 @@ Each recipe is a combination of the settings above. Durations are in minutes in 
 | Record replies without sending them | Any | – | **Connection: None: post in the conversation only**. Read replies from the run (see [API](#sessions-from-the-api)). |
 
 <Note>
-  For WhatsApp, Meta only allows free-form messages within **24 hours of the contact's last message**. A long session is fine, because the agent answers right after a contact writes. A reply from a person sent more than a day after the contact's last message is rejected by Meta. Use an approved [template message](/connectors/whatsapp) for those.
+  For WhatsApp, Meta only allows free-form messages within **24 hours of the contact's last message**. A long session is fine, because the agent answers right after a contact writes. A reply from a person sent more than a day after the contact's last message is reported as not delivered. Use [Send template](#send-a-template-to-a-contact) to reach the contact with an approved template.
 </Note>
 
 ## Ending a session
@@ -398,7 +439,9 @@ POST /v1/workflows/{id}/command
 | The contact gets no reply | Check **Reply channel**: the **Connection** and **Send tool** must be set. With **None: post in the conversation only**, replies are recorded but not sent. Check that at least one agent has **Talks in the conversation** turned on. |
 | Every agent answers the contact | No step has **Talks in the conversation** on. Turn it on for the front-desk agent only. |
 | The conversation closed too soon | **Close after idle** is blank or `0`, which means the default of 30 minutes. Set a longer value (see [Recipes](#recipes)). |
-| A person's reply is rejected by WhatsApp | More than 24 hours passed since the contact's last message. Use an approved template message. |
+| A person's reply shows *Not delivered* | More than 24 hours passed since the contact's last message. Use **Send template** (see [Send a template to a contact](#send-a-template-to-a-contact)). |
+| **Send template** says the workflow's session has no template sending set up | Set **Workflow setup → Sessions → Templates**, or choose **Reset templates to WhatsApp defaults**. |
+| **Send template** lists no templates | The channel has no approved templates, or only ones this dialog can't fill (see the note under [Send a template to a contact](#send-a-template-to-a-contact)). |
 | The agent doesn't know what the contact is replying to | Your workflow sent them a template or other message first, and the step doesn't record it. Turn on **Record in the contact's conversation** (see [Messages your workflow starts](#messages-your-workflow-starts)). |
 | A template value is missing from the agent's prompt | An unfilled template is left out and listed under `unresolved_inputs` in the step result. Write prompts against `{{input.text}}` and fields every message carries. |
 
