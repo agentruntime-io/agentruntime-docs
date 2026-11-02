@@ -259,7 +259,7 @@ The 30-minute default suits a quick support chat. Change **Close after idle** fo
 Two WhatsApp rules apply however long the session is:
 
 - **24-hour window.** Free-form messages are only allowed within 24 hours of the customer's last message. The assistant always answers right after a customer writes, so it stays inside the window. Staff should reply within a day, or send an approved template with the [WhatsApp connector](/connectors/whatsapp).
-- **Proactive messages need templates.** To start a conversation yourself (order shipped, appointment reminder), use a template message in a separate workflow, as in [Shopify order → WhatsApp template](/guides/shopify-order-whatsapp).
+- **Proactive messages need templates.** To start a conversation yourself (order shipped, appointment reminder), use a template message in a separate workflow, as in [Shopify order → WhatsApp template](/guides/shopify-order-whatsapp). Turn on **Record in the contact's conversation** on that step, so the assistant knows what the customer is replying to. See [Messages your workflow starts](/workflows/conversation-sessions#messages-your-workflow-starts).
 
 More combinations, including fixed-length sessions and back-office agents, are in [Conversation sessions → Recipes](/workflows/conversation-sessions#recipes).
 
@@ -366,6 +366,7 @@ Replace the instance id, agent id, and step ids with your own:
 | A staff file shows *not sent* | Set **Files → File send tool** to `whatsapp_send_media` in the Sessions tab. |
 | A file shows *failed* | Check the type and size against the table in [Photos, voice notes, and files](#photos-voice-notes-and-files). |
 | Options arrive as numbered lines instead of buttons | The message's delivery says why: no **Choices tool** in the Sessions tab, more options than the tools show, or WhatsApp rejected the call (often a title over 20 characters). |
+| The assistant doesn't know what the customer is replying to | A template or other message went out from another workflow without being recorded. Turn on **Record in the contact's conversation** on that step. |
 | An attachment has an `error` and no file | The download from WhatsApp failed, usually because the connection's token has expired. Reconnect WhatsApp. |
 
 ## Related

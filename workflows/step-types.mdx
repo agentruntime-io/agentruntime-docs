@@ -54,6 +54,7 @@ Calls one tool on an MCP instance (an installed integration in your workspace).
 | `instance_id` | The MCP instance to use. Studio sets this when you pick an instance. |
 | `server_url` | A portable alternative that names the server instead. At run start AgentRuntime resolves it to an instance in your workspace. |
 | `tool_args` | The tool's arguments. Values can be templates. |
+| `contact_message` | Optional. Marks the step as a message to a contact and records it in the contact's conversation after a successful call: `{ "to", "text", "template" }`. `to` and `text` can be templates; `template` is a plain name. See [Messages your workflow starts](/workflows/conversation-sessions#messages-your-workflow-starts). |
 | `connection_resolution` | Which connection the tool uses: `workspace`, `principal` (the end user's own, in Embedded Connect), or `inherit` |
 | `timeout_s` | Time limit in seconds. Studio sets 60. If a step has no `timeout_s`, the engine allows 120 seconds. |
 
