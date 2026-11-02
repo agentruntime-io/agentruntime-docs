@@ -161,6 +161,22 @@
         "connection_resolution": {
           "$ref": "#/$defs/ConnectionResolution"
         },
+        "contact_message": {
+          "type": "object",
+          "description": "Records the message this step sends a contact in the contact's conversation after a successful call. to and text are templates like tool_args; template names the channel template for the record.",
+          "properties": {
+            "to": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "template": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
         "timeout_s": {
           "type": "integer",
           "minimum": 1
