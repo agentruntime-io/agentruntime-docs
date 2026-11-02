@@ -37,7 +37,7 @@ When a step fails, the run fails with that step's error message. Open the run's 
 | Failed step | What to check |
 |-------------|---------------|
 | `mcp` (tool) | The tool's inputs, the connection, and whether the outside service is up. A tool call is cut off after 120 seconds. |
-| `llm` | Your key under **Providers** and the model name |
+| `llm` | Your provider account on **Connections** (switched on for models) and the model name |
 | `agent` | The agent's model and tools. If it reached its tool call limit, see [Agents](/ai/agents). |
 | `human` | "human_task timed out" means nobody answered in time. See [Human tasks](/workflows/human-tasks). |
 | `lua` | The script's own error, or an `error("...")` it raised. See [Lua scripts](/workflows/lua). |

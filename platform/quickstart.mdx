@@ -29,7 +29,7 @@ You need:
   <Step title="Sign in and create a workspace">
     Open the [Console](https://console.agentruntime.io/auth) and sign in with email or Google. New users go through a short onboarding with two steps, **Join** and **Workspace**. If you were invited, accept the invite. Otherwise choose a name and a URL slug for your new workspace.
 
-    **You should see:** the Console with a left sidebar that includes **Overview**, **Command Center**, **Workflow Studio**, **MCP**, **Connections**, **Providers** and **Settings**.
+    **You should see:** the Console with a left sidebar that includes **Overview**, **Command Center**, **Workflow Studio**, **MCP**, **Connections**, **Models** and **Settings**.
   </Step>
   <Step title="Check your workspace name">
     Go to **Settings → General**. Confirm the **Name** and **Handle** of your workspace. The handle is the short identifier used in links and API calls.
@@ -43,11 +43,11 @@ You need:
 
     **You should see:** the invite in the invites list. Once they accept, they can use public projects as a **Contributor**. See [Roles and permissions](/platform/roles-permissions).
   </Step>
-  <Step title="Add your own AI model key (optional)">
-    You don't need one to start: **LLM** and agent steps use AgentRuntime's platform key until you add your own. To use your own account with a model company such as OpenAI or Anthropic, go to **Providers**, click **Add workspace key**, choose the provider and paste the API key. See [LLM providers](/ai/llm-providers).
+  <Step title="Add your own AI model account (optional)">
+    You don't need one to start: **LLM** and agent steps use AgentRuntime's platform account until you add your own. To use your own account with a model company such as OpenAI or Anthropic, go to **Connections**, click **Add from template**, connect the provider's API key template (for example **OpenAI API key**), then open the connection and switch on **Use for models**. See [Models and provider accounts](/ai/llm-providers).
 
-    <Frame caption="The Add workspace key form">
-      <img src="/images/ai/providers-add-workspace-key.png" alt="The Add OpenAI key dialog with Provider, Display name and API key fields and a Save key button" />
+    <Frame caption="Adding an OpenAI account">
+      <img src="/images/ai/connections-add-provider-account.png" alt="The form for the OpenAI API key template with a name field, an OpenAI API key field and Who can use it set to Everyone in this workspace" />
     </Frame>
   </Step>
   <Step title="Connect a tool">

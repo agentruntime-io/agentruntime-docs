@@ -68,7 +68,7 @@ Use this when you want the sign-in screen to carry your brand, or when you want 
 | **API-key services** (Resend, GitHub, Shopify, and more) | You always use your own key. Paste it into a connection. | **Connections**, **Add from template** or **New custom connection** |
 | **Database connectors** (Postgres and others) | You always use your own connection string. | **Connections** |
 | **Custom MCP servers** | You run the server and its credentials stay yours. See [Custom MCP servers](/integrations/custom-mcp-servers). | **MCP**, **Add connectors**, **Add connector** |
-| **AI models** | Add your own provider key, such as OpenAI or Anthropic, instead of using AgentRuntime's models. | **Providers**, **Add workspace key**. See [LLM providers](/ai/llm-providers). |
+| **AI models** | Add your own provider account, such as OpenAI or Anthropic, instead of using AgentRuntime's. | **Connections**, **Add from template**, then **Use for models** on the connection. See [Models and provider accounts](/ai/llm-providers). |
 
 To set up your own Google app:
 
@@ -105,7 +105,7 @@ If you turn **Use workspace OAuth app** off, AgentRuntime's app is used again, e
 | **Who can set it up** | `project_contributor` or higher | Own-app settings: workspace Admin or Owner, or `project_admin` |
 | **Choose it when** | You are starting out, testing, or building for your own team | Your customers will see the sign-in screen, or you need your own limits and approval status |
 
-For AI models the same idea applies. **Platform** models use keys AgentRuntime provides, and your plan must include them. If it does not, a step fails with an error saying your plan does not include platform-hosted models and asking you to add your own API key or upgrade. **Workspace keys** are your own provider keys, so the provider bills you and applies your own rate limits. On an LLM step you choose the **Model**, then the **API key**: the platform default or one of your workspace keys.
+For AI models the same idea applies. **Platform** models use keys AgentRuntime provides, and your plan must include them. If it does not, a step fails with an error saying your plan does not include platform-hosted models and asking you to add your own API key or upgrade. Your own provider accounts are connections switched on for models, so the provider bills you and applies your own rate limits. On an LLM step you choose the **Model**, then the **API key**: the platform default or one of your accounts.
 
 ## Who can do what
 
@@ -113,7 +113,7 @@ For AI models the same idea applies. **Platform** models use keys AgentRuntime p
 |------|---------------|
 | See connections, instances, and profiles | `project_viewer` or higher |
 | Add or change a connection, add an instance, edit a profile, register a custom MCP server | `project_contributor` or higher |
-| Add or change a workspace AI key on **Providers** | `project_contributor` or higher |
+| Switch a connection on for models, or make it a provider's default | `project_contributor` or higher |
 | Delete a connection or an instance | `project_admin` |
 | Save or change an own-app setting under **Settings**, **MCP & Integrations** | Workspace Admin or Owner, or `project_admin` |
 
@@ -137,7 +137,7 @@ Some accounts belong to one member. These are accounts a member connected for th
 | A sign-in button is disabled | That sign-in is not set up for your workspace. [Contact support](mailto:support@agentruntime.io). |
 | The Google consent screen still shows AgentRuntime after you added your own app | Check that **Use workspace OAuth app** is on and **OAuth client in use** reads **Your workspace app**. Then sign in again. Old connections keep their old tokens. |
 | Google rejects the sign-in with a redirect error | The redirect URI in your Google client must match the one on the card exactly. |
-| A step fails with "your plan does not include platform-hosted models" | Add your own key on **Providers**, then pick it on the step. |
+| A step fails with "your plan does not include platform-hosted models" | Add your own provider account on **Connections**, switch on **Use for models**, then pick it on the step. |
 
 ## Next steps
 

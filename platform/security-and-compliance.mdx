@@ -32,12 +32,12 @@ Workspace admins can also restrict who may join: require invites, allow only ver
 | What | Where you manage it |
 |------|---------------------|
 | Tool logins and API keys | **Connections** |
-| AI model provider keys | **Providers** |
+| AI model provider keys | **Connections** (switched on for models; listed on **Models**) |
 | API keys for scripts and CI | **Settings → API keys**. The secret is shown once. |
 | Webhook signing secrets | Shown once when you create a subscription |
 | Workspace secret paths | **Vault** (workspace admins) |
 
-Do not put secrets in workflow graphs, Lua scripts or code that runs in a browser. Use connections and provider keys instead.
+Do not put secrets in workflow graphs, Lua scripts or code that runs in a browser. Use connections instead.
 
 If a key may be exposed, revoke it in the Console, review your recent runs, and create a replacement.
 
