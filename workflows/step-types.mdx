@@ -69,7 +69,7 @@ Examples: send an email with Gmail, query Postgres, create a GitHub issue, send 
 | `prompt` | The prompt. Can contain templates. |
 | `system_prompt` | Optional instructions that frame the model's behaviour |
 | `llm_params` | Settings such as `temperature` and `max_tokens` |
-| `llm_credential_id`, `llm_credential_scope` | Optionally pin a specific provider key |
+| `llm_credential_id`, `llm_credential_scope` | Optionally pin a provider account: `tenant` with the id of your connection, or `system` for a platform account |
 | `timeout_s` | Time limit in seconds. Studio sets 60. With no `timeout_s`, the engine allows 120 seconds. |
 
 The reply is on the step as `result.text`. The text is not parsed. If you asked for JSON, decode it in a following `lua` step with `json.decode` (see [Lua scripts](/workflows/lua#read-and-write-json)). When later steps must rely on the fields, use an `agent` step whose agent has an output schema instead: its reply is checked first. `llm_params` accepts `temperature` (default 0.3) and `max_tokens`.
