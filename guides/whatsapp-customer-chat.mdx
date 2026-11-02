@@ -151,6 +151,9 @@ Open **Workflow setup → Sessions**:
   <Step title="Choices">
     Keep the default **Choices tool**, `whatsapp_send_interactive_buttons` **up to 3** options, and **Tool for more options**, `whatsapp_send_interactive_list` **up to 10**. This sends the assistant's `choices` as reply buttons or a list.
   </Step>
+  <Step title="Templates">
+    Keep the default **Template list tool**, `whatsapp_list_message_templates`, and **Template send tool**, `whatsapp_send_template_message`. They let staff send an approved template to a customer whose 24-hour window has closed. See [Reach a customer after the 24-hour window](#reach-a-customer-after-the-24-hour-window).
+  </Step>
 </Steps>
 
 Every message the workflow sends goes through this channel: the assistant's replies, the automatic replies, and staff replies, text first and then any files. A question with choices goes last, after its files.
@@ -258,10 +261,24 @@ The 30-minute default suits a quick support chat. Change **Close after idle** fo
 
 Two WhatsApp rules apply however long the session is:
 
-- **24-hour window.** Free-form messages are only allowed within 24 hours of the customer's last message. The assistant always answers right after a customer writes, so it stays inside the window. Staff should reply within a day, or send an approved template with the [WhatsApp connector](/connectors/whatsapp).
+- **24-hour window.** Free-form messages are only allowed within 24 hours of the customer's last message. The assistant always answers right after a customer writes, so it stays inside the window. Staff should reply within a day. A reply that comes later is reported as not delivered, and you can send the customer an approved template instead (see [Reach a customer after the 24-hour window](#reach-a-customer-after-the-24-hour-window)).
 - **Proactive messages need templates.** To start a conversation yourself (order shipped, appointment reminder), use a template message in a separate workflow, as in [Shopify order → WhatsApp template](/guides/shopify-order-whatsapp). Turn on **Record in the contact's conversation** on that step, so the assistant knows what the customer is replying to. See [Messages your workflow starts](/workflows/conversation-sessions#messages-your-workflow-starts).
 
 More combinations, including fixed-length sessions and back-office agents, are in [Conversation sessions → Recipes](/workflows/conversation-sessions#recipes).
+
+## Reach a customer after the 24-hour window
+
+When staff answer a hand-off more than a day after the customer's last message, WhatsApp accepts the reply and then reports that it wasn't delivered. The task comes back in **Command Center → Missed** as **Reply not delivered**, and the message shows *Not delivered* in the conversation.
+
+An approved template is the one message WhatsApp lets you send at that point, and **Send template** does it from the Console:
+
+1. Create and get a template approved in WhatsApp Manager first (for example a short "we have an update on your request, reply here" message). Only approved templates are offered.
+2. In **Command Center → Missed**, click **Send template** on the row. You can also click it above the reply box in the conversation view (**Conversation**) of any run in a workflow that has templates set up.
+3. Pick the **Template**, fill in a **Value for** each placeholder, check the **Preview**, and click **Send template**.
+
+The template is recorded in the customer's conversation as sent by you, with its delivery state. When the customer replies, the window opens again and the assistant picks up the conversation with the template in its history.
+
+This needs the **Templates** step in [step 3](#3-turn-on-sessions). Templates whose header is an image or video, whose header has a placeholder, or whose buttons take a value from the message (such as a one-time code) are not offered yet. WhatsApp bills the template to your WhatsApp Business account, and the price depends on the template's category and the customer's country; see Meta's pricing page. Business-initiated messages also need the customer's opt-in.
 
 ## Variations
 
@@ -359,7 +376,7 @@ Replace the instance id, agent id, and step ids with your own:
 |---|---|
 | No run appears when a customer writes | **Workflow setup → Inbound** has an active WhatsApp subscription for the right connection, and its **Runs** setting points at the copy you are editing (**Live**) or a published version that has your changes. A connection made before inbound routing was available needs reconnecting so it has your phone number ID. |
 | Every message starts a new run | **One run per conversation** is on in the copy the subscription runs (**Live**, or the published version it is pinned to). |
-| The customer gets no reply | **Reply channel** has a connection and send tool, and the WhatsApp MCP instance is active. Staff replies more than 24 hours after the customer's last message are rejected by Meta. |
+| The customer gets no reply | **Reply channel** has a connection and send tool, and the WhatsApp MCP instance is active. A staff reply more than 24 hours after the customer's last message is reported as not delivered: [send a template](#reach-a-customer-after-the-24-hour-window) instead. |
 | The customer receives the agent's internal summary | Set **Reply field** to `reply` on the assistant step. |
 | A back-office agent messages the customer | Turn on **Talks in the conversation** only on customer-facing agents. With none turned on, every agent answers. |
 | A waiting customer hears nothing for a long time | Add **Replies while nobody has answered**, and set a timeout with **Hand the conversation back**. |

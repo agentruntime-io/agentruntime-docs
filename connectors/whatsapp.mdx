@@ -93,7 +93,7 @@ For a back-and-forth chat, turn on [conversation sessions](/workflows/conversati
 | `whatsapp_delete_media` | Delete uploaded media |
 | `whatsapp_list_phone_numbers` | List phone numbers on the WhatsApp Business Account |
 | `whatsapp_get_phone_number` | Get details for one phone number |
-| `whatsapp_list_message_templates` | List message templates (optionally filter by status) |
+| `whatsapp_list_message_templates` | List message templates with their `components` (body text and placeholders), optionally filtered by status |
 | `whatsapp_get_template_status` | Get the approval status of a template |
 | `whatsapp_create_message_template`, `whatsapp_upsert_message_template`, `whatsapp_delete_message_template` | Create, update, or delete templates |
 | `whatsapp_get_business_profile`, `whatsapp_update_business_profile` | Read or update the business profile |
@@ -134,6 +134,8 @@ WhatsApp requires pre-approved templates for most outbound business messaging:
 2. Use `whatsapp_send_template_message` with header, body, and button parameters
 
 While your Meta app is in **development mode**, add recipient test numbers under WhatsApp → API setup.
+
+People can send a template by hand too: in a [conversation session](/workflows/conversation-sessions#send-a-template-to-a-contact), **Send template** in the Console uses these two tools to list the approved templates and send the one they pick.
 
 When a customer answers a template, their reply opens a 24-hour window again and arrives like any other message. If a [conversation session](/workflows/conversation-sessions) answers it, turn on **Record in the contact's conversation** on the template step, so the agent sees the template you sent. See [Messages your workflow starts](/workflows/conversation-sessions#messages-your-workflow-starts).
 

@@ -60,9 +60,30 @@ A hand-off you answered also comes back here when your reply doesn't reach the c
 
 Each row shows the workflow, how the task ended (for example **Handed back**, **Approved automatically**, **Rejected automatically**, **Not escalated (no backup approvers)**, **Expired**, **Reply not delivered**), how long it waited or why the reply wasn't delivered, and the last messages the contact sent while they waited.
 
-- **Conversation** opens the contact's thread (read-only).
+- **Conversation** opens the contact's thread (read-only until you send a template from it, see below).
 - **View** opens the run.
+- **Send template** (on **Reply not delivered** rows) sends the contact an approved message template, which reaches them even after the 24-hour window has closed. See [Send a template when your reply didn't arrive](#send-a-template-when-your-reply-didnt-arrive).
 - **Mark followed up** removes the task from the list once you have dealt with it, for example by calling the customer back.
+
+### Send a template when your reply didn't arrive
+
+A free-form reply is rejected once more than 24 hours have passed since the contact's last message. An approved template message is allowed. Open the row's **Send template**:
+
+<Steps>
+  <Step title="Pick a template">
+    **Template** lists the templates your channel has approved, each with its language and category.
+  </Step>
+  <Step title="Fill in its values">
+    A template's text has numbered placeholders. Enter a **Value for** each one, and check **Preview**, which is what the contact will read.
+  </Step>
+  <Step title="Send">
+    Click **Send template**. The message is added to the contact's conversation as sent by you, with the label *Template: name*, and shows *Sent*, *Delivered* or *Read* as the channel reports it. The task is marked followed up and leaves **Missed**.
+  </Step>
+</Steps>
+
+The channel may charge for template messages, so check your channel's pricing. When the contact answers, their reply opens a new conversation window and continues the session as any message does.
+
+If the dialog says the workflow's session has no template sending set up, turn it on in **Workflow setup → Sessions → Templates**. See [Send a template to a contact](/workflows/conversation-sessions#send-a-template-to-a-contact).
 
 ## In progress: watch and control runs
 
