@@ -57,6 +57,7 @@
         "expanded": true,
         "pages": [
           "introduction/what-is-agentruntime",
+          "platform/first-run",
           "platform/quickstart",
           "platform/key-concepts"
         ]
