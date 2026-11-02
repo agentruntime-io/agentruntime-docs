@@ -16,7 +16,7 @@ A strip of four chips runs across the top. Each chip shows a count; click one to
 | Chip | What the list shows |
 |---|---|
 | **Needs you** | Human tasks waiting for a person: approvals, replies, and questions from agents. List title: **Needs your attention**. |
-| **Missed** | Tasks that nobody answered before their timeout, from the last 7 days, that nobody has followed up yet |
+| **Missed** | Tasks that nobody answered before their timeout, and replies that didn't reach the contact, from the last 7 days, that nobody has followed up yet |
 | **In progress** | Runs that are running, starting, queued, paused, or stopping. List title: **In progress**. |
 | **Issues today** | Runs that failed, were stopped, or were cancelled in the last 24 hours. List title: **Stopped with errors**. |
 
@@ -56,7 +56,9 @@ Click **View** on any row to open the run in a side panel (see [Look at a run](#
 
 A task can close on its own when its timeout runs out: it was handed back to the agent, approved or rejected automatically, could not be escalated, or simply expired. The person who should have answered may never know. The **Missed** list keeps these for 7 days.
 
-Each row shows the workflow, how the task ended (for example **Handed back**, **Approved automatically**, **Rejected automatically**, **Not escalated (no backup approvers)**, **Expired**), how long it waited, and the last messages the contact sent while they waited.
+A hand-off you answered also comes back here when your reply doesn't reach the contact. The channel accepts a reply and reports a minute or so later that it wasn't delivered. On WhatsApp this happens when more than 24 hours have passed since the contact's last message: only an approved template can reach them then. The row shows **Reply not delivered** and the reason.
+
+Each row shows the workflow, how the task ended (for example **Handed back**, **Approved automatically**, **Rejected automatically**, **Not escalated (no backup approvers)**, **Expired**, **Reply not delivered**), how long it waited or why the reply wasn't delivered, and the last messages the contact sent while they waited.
 
 - **Conversation** opens the contact's thread (read-only).
 - **View** opens the run.
