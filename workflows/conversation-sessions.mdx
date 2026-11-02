@@ -273,6 +273,56 @@ If the choices tool fails, for example because WhatsApp rejects a button title t
 
 In the Console, the conversation shows the options under the question, marked *Sent as a numbered list in the text* when they went out as text, and the run's events list them after the message.
 
+## Messages your workflow starts
+
+A session starts with a message from the contact. Some conversations start with you: an order shipped, a booking reminder. A workflow sends those with an `mcp` step, on WhatsApp a [template message](/connectors/whatsapp#templates), usually from a workflow that isn't a session.
+
+By default that message is not part of the contact's conversation. When they reply ("yes, deliver it"), the agent answering them sees only the reply and doesn't know what it answers. To fix that, tell the step it is messaging a contact. The message is then recorded in their conversation, and the session their reply starts or joins sees it.
+
+In Workflow Studio, open the step (for example `whatsapp_send_template_message`), turn on **Record in the contact's conversation**, and fill in:
+
+| Field | What to enter |
+|---|---|
+| **To** | The contact's address. On WhatsApp it is their phone number, and Studio fills it from the tool's `to` argument. It can be a template such as `{{input.customer_phone}}`. |
+| **Text** | What the contact saw. A template's own wording is kept by Meta, so write it here, with the same values the template carries. It can use templates too. |
+| **Template** | Optional. The template's name, shown as a label. For `whatsapp_send_template_message`, Studio fills it from `template_name`. |
+
+In the workflow JSON it is the step's `contact_message`:
+
+```json
+{
+  "id": "notify-customer",
+  "type": "mcp",
+  "instance_id": "YOUR_WHATSAPP_INSTANCE_ID",
+  "tool_name": "whatsapp_send_template_message",
+  "tool_args": {
+    "to": "{{input.customer_phone}}",
+    "template_name": "order_shipped",
+    "language_code": "en_US",
+    "body_parameters": [{ "type": "text", "text": "{{input.order_id}}" }]
+  },
+  "contact_message": {
+    "to": "{{input.customer_phone}}",
+    "text": "Your order {{input.order_id}} has shipped. Reply here if you have questions.",
+    "template": "order_shipped"
+  }
+}
+```
+
+What happens:
+
+- After the tool call succeeds, the message is added to the contact's conversation as a message from the workflow. If the call fails, nothing is recorded.
+- If recording fails, the step still succeeds, because the message was already sent. The failure is logged.
+- The message does not start a session. The contact's reply does, as usual, and the agent then sees your message in the conversation so far.
+- In the Console, **Open the conversation** shows the message with a *Template: order_shipped* label and its delivery state.
+- A step in a loop records one message per item.
+
+Studio warns when **To** or **Text** is empty, because nothing is recorded without both.
+
+<Note>
+  The conversation is the one between the contact and the number your connection sends from, so the step needs a connection that names its sending number. The contact's number is read as digits: `+94 71 228 0951` and `94712280951` are the same contact. If WhatsApp later reports the contact under a different number than the one you sent to, their reply opens a separate conversation.
+</Note>
+
 ## Recipes
 
 Each recipe is a combination of the settings above. Durations are in minutes in the Console and seconds in JSON.
@@ -349,6 +399,7 @@ POST /v1/workflows/{id}/command
 | Every agent answers the contact | No step has **Talks in the conversation** on. Turn it on for the front-desk agent only. |
 | The conversation closed too soon | **Close after idle** is blank or `0`, which means the default of 30 minutes. Set a longer value (see [Recipes](#recipes)). |
 | A person's reply is rejected by WhatsApp | More than 24 hours passed since the contact's last message. Use an approved template message. |
+| The agent doesn't know what the contact is replying to | Your workflow sent them a template or other message first, and the step doesn't record it. Turn on **Record in the contact's conversation** (see [Messages your workflow starts](#messages-your-workflow-starts)). |
 | A template value is missing from the agent's prompt | An unfilled template is left out and listed under `unresolved_inputs` in the step result. Write prompts against `{{input.text}}` and fields every message carries. |
 
 ## Related

@@ -151,6 +151,10 @@ Install each from **MCP → Add connectors** (click the connector, then **Add to
 
 Each item in `body_parameters` is an object with a `text` value, one per placeholder in your template, in order.
 
+### Let your assistant see the message (optional)
+
+If a [conversation session](/workflows/conversation-sessions) answers your customers' replies, for example the [WhatsApp customer chat](/guides/whatsapp-customer-chat) assistant, turn on **Record in the contact's conversation** on the send step. Set **To** to the number you send to, **Text** to what the customer saw, and **Template** to the template's name. When the customer answers "yes, deliver it", the assistant then knows what they are answering. See [Messages your workflow starts](/workflows/conversation-sessions#messages-your-workflow-starts).
+
 ## Full workflow
 
 Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE_SHOPIFY_INSTANCE` and `REPLACE_WHATSAPP_INSTANCE` with the ids of your `shopify` and `whatsapp` instances. Change `template_name`, `language_code`, and `body_parameters` to match your template.
