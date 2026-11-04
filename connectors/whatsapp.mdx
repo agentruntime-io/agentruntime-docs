@@ -32,6 +32,25 @@ AgentRuntime supports two connection paths. Use **Connect with Meta**: it is the
   </Step>
 </Steps>
 
+### Keep your number on the WhatsApp Business app
+
+If you already answer customers from the **WhatsApp Business app** on your phone, you can connect that number and keep using the app. Without this, connecting moves the number to the API and the phone app stops working for it.
+
+<Steps>
+  <Step title="Start the signup for an app number">
+    In **Connections** → **Add from template** → **WhatsApp** → **Connect with Meta**, click **Connect a number on the WhatsApp Business app** and follow Meta's steps in the popup. Meta asks you to confirm in the app on your phone.
+  </Step>
+  <Step title="Install the MCP instance">
+    As above: add the **whatsapp** connector to the workspace and wire the new connection.
+  </Step>
+</Steps>
+
+Once connected:
+
+- **Your replies from the phone show in the conversation.** In the Console they appear as *WhatsApp Business app*. Agents see them in the contact's history as a person's messages.
+- **The workflow waits while you answer.** After you reply from the app, the workflow leaves that contact alone for 30 minutes. Their messages are still kept in the conversation, and the agent sees them when it answers again. When you create the inbound webhook, set the wait under **When you reply from the WhatsApp Business app**; 0 turns it off.
+- Messages sent from some linked devices are not passed to AgentRuntime, and Meta does not offer this in every country. Check Meta's WhatsApp Business app onboarding documentation.
+
 ### Manual credentials (Paste API keys)
 
 If you use your own Meta app and already have a System User token and IDs from Meta Business Manager, you can connect it to **send** messages.
