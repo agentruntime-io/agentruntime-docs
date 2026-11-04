@@ -15,14 +15,16 @@ The **whatsapp** MCP adapter works with Meta's WhatsApp Cloud API. Send text, ph
 
 AgentRuntime supports two connection paths. Use **Connect with Meta**: it is the only path that receives incoming messages.
 
-### Embedded signup (recommended)
+### Connect with Meta (recommended)
+
+Most businesses already answer customers from the **WhatsApp Business app** on a phone. Connect that number and keep using the app: AgentRuntime receives the messages too.
 
 <Steps>
   <Step title="Open Connections">
     In the [Console](https://console.agentruntime.io), go to **Connections** and click **Add from template**.
   </Step>
-  <Step title="Start embedded signup">
-    On the **WhatsApp** row, click **Connect**, open **Connect with Meta**, and click **Connect WhatsApp Business**. Complete Meta's signup in the popup: you authorize the app and select your business phone number.
+  <Step title="Start the signup">
+    On the **WhatsApp** row, click **Connect**, open **Connect with Meta**, and click **Connect a number on the WhatsApp Business app**. Follow Meta's steps in the popup: you authorize the app, select your business and number, and confirm in the WhatsApp Business app on your phone.
   </Step>
   <Step title="Complete registration">
     AgentRuntime stores the access token, WhatsApp Business Account ID, and phone number ID for you. The token is never shown in the browser.
@@ -32,24 +34,15 @@ AgentRuntime supports two connection paths. Use **Connect with Meta**: it is the
   </Step>
 </Steps>
 
-### Keep your number on the WhatsApp Business app
-
-If you already answer customers from the **WhatsApp Business app** on your phone, you can connect that number and keep using the app. Without this, connecting moves the number to the API and the phone app stops working for it.
-
-<Steps>
-  <Step title="Start the signup for an app number">
-    In **Connections** → **Add from template** → **WhatsApp** → **Connect with Meta**, click **Connect a number on the WhatsApp Business app** and follow Meta's steps in the popup. Meta asks you to confirm in the app on your phone.
-  </Step>
-  <Step title="Install the MCP instance">
-    As above: add the **whatsapp** connector to the workspace and wire the new connection.
-  </Step>
-</Steps>
-
 Once connected:
 
 - **Your replies from the phone show in the conversation.** In the Console they appear as *WhatsApp Business app*. Agents see them in the contact's history as a person's messages.
 - **The workflow waits while you answer.** After you reply from the app, the workflow leaves that contact alone for 30 minutes. Their messages are still kept in the conversation, and the agent sees them when it answers again. When you create the inbound webhook, set the wait under **When you reply from the WhatsApp Business app**; 0 turns it off.
 - Messages sent from some linked devices are not passed to AgentRuntime, and Meta does not offer this in every country. Check Meta's WhatsApp Business app onboarding documentation.
+
+#### A number without the phone app (advanced)
+
+Under **Advanced: a number without the phone app**, **Connect a number for AgentRuntime only** is for a new number that is not on WhatsApp yet, or for moving a number off the WhatsApp Business app. Afterwards the number works only through AgentRuntime: the WhatsApp Business app on your phone stops working for it, and you read and answer in the Console. Install the MCP instance the same way.
 
 ### Manual credentials (Paste API keys)
 
