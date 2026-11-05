@@ -169,8 +169,11 @@ Write prompts against the latest message (`{{input.text}}`) and let the agent re
 A human step with **Hand off the conversation to a person** turned on takes over the chat while its task is open:
 
 - The task shows the messages the agent answered when it handed off under **Before the hand-off**, and the contact's messages since then under **New since handoff** (the newest four, with **Show earlier** for the rest), so the person sees everything without opening the chat. Files, voice notes, and locations show in place.
-- The person answers in the task's reply box, with text, files, or both. The reply is sent to the contact as the person who wrote it. **Don't reply** closes the task without sending anything.
-- When the person replies, the messages that arrived meanwhile count as answered, and the session waits for the contact again. If the task times out instead, the agent takes the conversation back and answers those messages.
+- The person answers in the task's reply box, with text, files, or both. The reply is sent to the contact as the person who wrote it.
+- When the person replies, the messages that arrived meanwhile count as answered, and the session waits for the contact again.
+- **Hand back to the agent** gives the conversation back without replying. Nothing is sent to the contact, the conversation shows *A team member handed the conversation back*, and the agent answers the messages that arrived during the hand-off. Use it when the contact says they no longer need a person, or when the agent can handle what they asked next. If nothing arrived meanwhile, the session simply waits for the contact's next message.
+- **Don't reply** closes the task without sending anything, and the messages that arrived meanwhile are **not** answered: the agent only answers the contact's next message. Use it when a message needs no answer at all.
+- If the task times out instead (with **Hand the conversation back** as the timeout), the agent takes the conversation back and answers the messages that arrived meanwhile, the same as **Hand back to the agent**.
 
 To give the person a reply box, add a `response` to the step's `task_payload`:
 

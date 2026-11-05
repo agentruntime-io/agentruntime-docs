@@ -146,6 +146,8 @@ Add a `response` to `task_payload` to give the person a reply box instead of **A
 
 The text they write becomes the step result under `field`: `{{steps.<step-id>.result.reply}}`. **Send** completes the task with their reply. **Don't reply** completes it without one. In a [conversation session](/workflows/conversation-sessions), the reply is also sent to the customer as the person who wrote it.
 
+A task that has a conversation to return to also shows **Hand back to the agent**. It completes the step without a reply (`{{steps.<step-id>.result.handed_back}}` is `true`), sends nothing to the customer, and gives the conversation back so the agent answers the messages that arrived while the task was open. **Don't reply** drops those messages. See [Hand off to a person](/workflows/conversation-sessions#hand-off-to-a-person).
+
 ## Questions from agents
 
 An agent that is stuck can ask a person instead of guessing. The question shows in **Needs you** as **Question from the agent**, with an answer box (**Send answer**) and **End run**. Your answer goes back to the agent, which continues. An agent can also carry on with an assumption and ask you to check it (**The agent's assumption**: **Looks right**, **Dismiss**, **Correct it**). You control this per agent step with **Agent may ask a person**, **Max questions per run**, and **Answer within (minutes, optional)**. See [Autonomous episodes](/workflows/autonomous-episodes).
