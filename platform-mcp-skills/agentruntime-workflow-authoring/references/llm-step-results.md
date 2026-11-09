@@ -58,4 +58,4 @@ Without this, validate may warn `lua_fixture_runtime` on steps that depend on LL
 
 ## Credentials
 
-`model_ref` values like `direct.openai.gpt-4o-mini` require tenant LLM keys (`llm_provider_keys_catalog`). Dry-run does not consume credits; live runs do.
+`model_ref` values like `direct.openai.gpt-4o-mini` need a model account: the platform's, or a workspace connection switched on for models (`llm_provider_keys_catalog` lists both). Dry-run does not consume credits; live runs do.
