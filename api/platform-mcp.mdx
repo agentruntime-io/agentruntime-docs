@@ -148,10 +148,11 @@ A run that reaches a human step stays **running** until someone completes the ta
 |------|--------------|
 | `inbound_webhooks_list`, `inbound_webhooks_create`, `inbound_webhooks_update`, `inbound_webhooks_delete` | Manage inbound webhooks |
 | `analytics_live_runs`, `analytics_success_rate`, `analytics_execution_duration`, `analytics_runs_count`, `analytics_steps_executed`, `analytics_credits_consumed`, `analytics_runs_timeseries`, `analytics_usage_timeseries` | Read analytics |
-| `pats_*`, `llm_provider_keys_*` | Manage API keys and LLM provider keys |
+| `pats_*` | Manage API keys |
+| `llm_provider_keys_catalog`, `connection_uses_list`, `connection_uses_set` | See which accounts models can use (the platform's and your workspace's), and switch a connection on for models or as the default voice account. Your own provider keys are [connections](/ai/llm-providers): add or rotate them with the connection tools |
 
 <Note>
-  Tools that create or reveal secrets (new API keys, webhook signing secrets, LLM provider keys, connection credentials) are sensitive. They may be turned off in your workspace's Platform MCP. If the assistant says a tool is not available, use the Console for that task.
+  Tools that create or reveal secrets (new API keys, webhook signing secrets, connection credentials) are sensitive. They may be turned off in your workspace's Platform MCP. If the assistant says a tool is not available, use the Console for that task.
 </Note>
 
 ## Which copy of a workflow runs
