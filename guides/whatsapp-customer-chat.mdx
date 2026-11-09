@@ -184,7 +184,8 @@ Save the workflow. Inbound messages run its **Live** copy, so you do not need to
 5. Send a photo with a caption, then a voice note. The run shows them as *[image: …]* and *[voice note]*, and **Open the conversation** shows the photo and plays the voice note.
 6. Reply from a task with a file attached. The customer receives the text, then the file.
 7. Ask *What sizes do you have?* If the assistant offers sizes, they arrive as buttons under its reply. Tap one: the run shows your pick as the next message, and the conversation shows the options under the question.
-8. To test the timeout, hand off again and leave the task alone. After 15 minutes the run shows *No reply in time; the conversation is handed back*, and the assistant answers the waiting messages.
+8. To test **Hand back to the agent**, hand off again, then write *I don't need a person after all* from the phone. On the task, click **Hand back to the agent**. Nothing is sent from you, the run shows *A team member handed the conversation back*, and the assistant answers the message that arrived while the task was open. (**Don't reply** would have closed the task and left that message unanswered.)
+9. To test the timeout, hand off again and leave the task alone. After 15 minutes the run shows *No reply in time; the conversation is handed back*, and the assistant answers the waiting messages.
 
 All of this is one run. After 30 minutes without messages it closes as **Success**, and the next message starts a new session.
 
@@ -285,7 +286,7 @@ This needs the **Templates** step in [step 3](#3-turn-on-sessions). Templates wh
 - **No staff:** remove the **Staff reply** step and the `action` field. The assistant answers everything.
 - **Back-office lookups:** add an order-lookup agent with **Talks in the conversation** off and let the assistant hand work to it. The customer only ever hears from the assistant. See [Autonomous episodes](/workflows/autonomous-episodes).
 - **Different wording for waiting customers:** change **Replies while nobody has answered**, or add more `on_message` entries.
-- **Staff have longer to answer:** raise the human step's timeout, or choose **Keep waiting** so the chat stays with staff until someone replies.
+- **Staff have longer to answer:** raise the human step's timeout, or choose **Keep waiting** so the chat stays with staff until someone replies. Staff can still click **Hand back to the agent** on the task when the customer no longer needs a person.
 
 ## Full workflow JSON
 
@@ -379,7 +380,8 @@ Replace the instance id, agent id, and step ids with your own:
 | The customer gets no reply | **Reply channel** has a connection and send tool, and the WhatsApp MCP instance is active. A staff reply more than 24 hours after the customer's last message is reported as not delivered: [send a template](#reach-a-customer-after-the-24-hour-window) instead. |
 | The customer receives the agent's internal summary | Set **Reply field** to `reply` on the assistant step. |
 | A back-office agent messages the customer | Turn on **Talks in the conversation** only on customer-facing agents. With none turned on, every agent answers. |
-| A waiting customer hears nothing for a long time | Add **Replies while nobody has answered**, and set a timeout with **Hand the conversation back**. |
+| A waiting customer hears nothing for a long time | Add **Replies while nobody has answered**, and set a timeout with **Hand the conversation back**. Staff can end the wait early with **Hand back to the agent**. |
+| The customer said they don't need a person, but only the automatic replies came | While a task is open every message goes to staff. Click **Hand back to the agent** on the task so the assistant answers. The button shows when the hand-off step has a step to give the conversation back to (by default, the step that handed off). |
 | A staff file shows *not sent* | Set **Files → File send tool** to `whatsapp_send_media` in the Sessions tab. |
 | A file shows *failed* | Check the type and size against the table in [Photos, voice notes, and files](#photos-voice-notes-and-files). |
 | Options arrive as numbered lines instead of buttons | The message's delivery says why: no **Choices tool** in the Sessions tab, more options than the tools show, or WhatsApp rejected the call (often a title over 20 characters). |
