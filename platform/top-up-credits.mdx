@@ -1,0 +1,99 @@
+---
+title: Add credits
+sidebarTitle: Add credits (top up)
+description: How to top up your workspace credits, what the checkout shows before you pay, how to split a top-up between model and platform credits, and how to move credits.
+---
+
+This page is for workspace admins who pay for AgentRuntime. You will learn how to add credits, what you see before you pay, and how to move credits between the two kinds. For what the two kinds are, see [Plans and credits](/platform/plans-and-credits).
+
+Top-up credits do not expire. You keep them when a trial ends and when you cancel a plan.
+
+<Note>
+  You need the workspace admin role (`tenant_admin`) or billing write access. If **Add credits** is disabled, ask an admin.
+</Note>
+
+## Add credits
+
+<Steps>
+  <Step title="Open Billing Overview">
+    Go to **Settings → Billing Overview**. In the **Credits** box, click **Add credits**.
+  </Step>
+  <Step title="Choose an amount">
+    Click a **Quick amount**, or type an **Amount (USD)**. The amount must be inside the top-up limits in [Current values](/platform/plans-and-credits#current-values).
+
+    If the amount is outside the limits, the dialog tells you why before you pay. For example: "The minimum top-up is …" or "The maximum top-up is …".
+  </Step>
+  <Step title="Choose the split">
+    Move the **Models / Platform** slider to choose how much of your payment becomes model credits and how much becomes platform credits. It shows both amounts as you move it. The Console remembers your choice for next time.
+  </Step>
+  <Step title="Check what you get">
+    The dialog shows the result in plain words before you pay, in this form: "You pay [amount]. You get [amount] of model credits and [amount] of platform credits."
+  </Step>
+  <Step title="Pay">
+    Check the **Billing email** and **Name**. Choose **Use saved default** to pay with the card on file, or **Use a different card for this top-up**. Then click **Pay [amount] and add credits**.
+
+    **You should see:** the message "Top-up submitted: Your balance will update in a moment." Your balances then go up under **Settings → Billing Overview → Credits**.
+  </Step>
+</Steps>
+
+Your card is charged the amount you typed. Your bank may ask you to confirm the payment first. See [Bank confirmation (3-D Secure)](/platform/bank-confirmation).
+
+## What the checkout shows
+
+The checkout shows the credits you will get, not only the dollars you pay. This matters for model credits.
+
+- **Platform credits** are added at face value.
+- **Model credits** buy slightly less than the dollars you put in. The checkout shows the exact amount before you pay, so you always know what you get.
+
+The same rule is used for every payment method and in every country.
+
+<Note>
+  If you subscribe to a plan, the model credits that come with the plan are included in the plan price.
+</Note>
+
+## Top-up limits
+
+There is a smallest and a largest top-up, and a limit for how much one person can top up in 24 hours. The numbers are in [Current values](/platform/plans-and-credits#current-values).
+
+- If you reach the daily limit, the dialog says: "You have reached today's top-up limit. Try again tomorrow, or contact us if you need more."
+- If you can still top up a smaller amount today, it says how much more you can add.
+- If you need more than the limits allow, [contact us](https://agentruntime.io/contact).
+
+## Move credits between the two kinds {#move-credits-between-the-two-kinds}
+
+If one kind runs out and you have top-up credits of the other kind, you can move them.
+
+<Steps>
+  <Step title="Open Move credits">
+    On **Settings → Billing Overview**, click **Move credits** in the **Credits** box. A kind with none left also offers a **Move credits** button.
+  </Step>
+  <Step title="Choose the direction and amount">
+    Pick **From** the kind you want to take credits out of. The other kind is filled in under **To**. Type an **Amount (USD)**, or click **All**.
+  </Step>
+  <Step title="Check the result and confirm">
+    The dialog shows the result before you confirm, for example "[amount] of platform credits become [amount] of model credits." Click **Move credits**.
+  </Step>
+</Steps>
+
+Rules for moving credits:
+
+- **Only top-up credits can move.** Plan credits, trial credits and referral rewards stay where they are. The dialog tells you how much of a kind cannot move.
+- **Moving model credits to platform credits** is one for one.
+- **Moving platform credits to model credits** gives slightly fewer model credits, the same as buying model credits in a top-up. The dialog shows the exact amount before you confirm.
+
+## Check that credits arrived
+
+Credits are added when the payment is confirmed. If the balance has not changed after a few seconds, refresh the page. If it still looks wrong, see [Billing troubleshooting](/platform/billing-troubleshooting#where-did-my-credits-go).
+
+Each top-up also appears as a **Credit top-up** row in your [billing history](/platform/billing-history-and-invoices).
+
+## Refunds
+
+Refund and credit expiry rules are in the [Billing and Credits Policy](https://agentruntime.io/legal/billing). If you think a payment was a mistake, contact [support](mailto:support@agentruntime.io) with the date and amount.
+
+## Next steps
+
+- [Plans and credits](/platform/plans-and-credits)
+- [Bank confirmation (3-D Secure)](/platform/bank-confirmation)
+- [Billing history and invoices](/platform/billing-history-and-invoices)
+- [Billing troubleshooting](/platform/billing-troubleshooting)

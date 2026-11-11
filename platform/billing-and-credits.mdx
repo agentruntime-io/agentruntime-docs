@@ -1,27 +1,22 @@
 ---
 title: Billing and credits
-description: How plans, trials, credits and pay-as-you-go top-ups work in AgentRuntime, and where to manage them in the Console.
+description: Where to manage your plan, credits, payment card and billing history in the Console, and a guide to every billing page.
 ---
 
-This page is for people who pay for AgentRuntime or want to understand what uses credits. You will learn what credits are, how to see your balance, and how to add more.
+This page is for people who pay for AgentRuntime or want to understand what uses credits. You will learn where billing lives in the Console, who can change it, and where to find the details.
 
 <Note>
-  Billing is in early access. Plans, prices and how usage is counted in credits are still being finalised and may change. The **Plans** tab in the Console always shows what applies to your workspace today.
+  Billing is in early access. Plans, prices and how usage is counted in credits may change. [Plans and credits](/platform/plans-and-credits) holds the current prices and amounts, and the **Plans** tab in the Console always shows what applies to your workspace today.
 </Note>
 
 ## Credits in one minute
 
-AgentRuntime measures usage in **credits**. When your workflows run, they use credits from your workspace balance. If the balance reaches zero, new runs are refused until you add credits or change your plan.
+AgentRuntime measures usage in **credits**. When your workflows run, they use credits from your workspace balance. There are two kinds:
 
-Your balance is made of three pools. AgentRuntime always uses them in this order:
+- **Model credits** pay for AI model calls that AgentRuntime pays the provider for.
+- **Platform credits** pay for what AgentRuntime itself does, such as running workflow steps.
 
-1. **Trial** — credits granted during a free trial
-2. **Included** — credits that come with your subscription
-3. **Pay-as-you-go (PAYG)** — credits you bought with a top-up
-
-Pay-as-you-go credits stay with you when you change plans, when a trial ends, and when you cancel a subscription. Unused trial and included credits end when the trial or subscription ends.
-
-Credits alone do not keep a workspace running: it also needs an active trial or plan. Without one, the workspace is **suspended** (see [When a trial or plan ends](#when-a-trial-or-plan-ends)).
+Credits come from a free trial, from your plan, from top-ups you buy, and from referral rewards. Top-up credits do not expire. See [Plans and credits](/platform/plans-and-credits) for the details and the current numbers.
 
 ## Where to manage billing
 
@@ -29,96 +24,66 @@ Open **Settings** in the [Console](https://console.agentruntime.io). Billing has
 
 | Tab | What you can do |
 |-----|-----------------|
-| **Billing Overview** | See your subscription, add or manage your payment card, and click **Add credits** |
-| **Plans** | Compare plans, start a trial, upgrade, downgrade or cancel. Enter a **Promo or referral code** here. |
+| **Billing Overview** | See your plan, credits and card, add credits, move credits, read your billing history, and see who is billed |
+| **Plans** | Compare plans, start a trial, subscribe, upgrade, downgrade or cancel. Enter a **Promo or referral code** here. |
 | **Usage & History** | See **Credits remaining** and the **Usage history** list |
 
-<Frame caption="Billing Overview: your plan, payment card and invoices">
-  <img src="/images/platform/billing-overview.png" alt="The Billing Overview tab with a Trial active banner and an Add payment method button, the current plan Pro with a trial end date and a View plans button, Payment showing No card on file with Add card and Add credits buttons, and an Invoices list" />
-</Frame>
+{/* Screenshot pending: re-add a Frame with images/platform/billing-overview.png (Acme Demo, 1600x940) once recorded. The old image shows the layout before the redesign and was taken out on purpose. */}
 
-Billing Overview also has a **More billing options** section (billing contact, who pays, and payer overrides).
+**Billing Overview** has:
 
-Everyone with project access can look at plans and usage. Only workspace **Admins** and **Owners** can change plans, manage the card, add credits or apply codes. If the buttons are disabled, ask an admin.
+- **An alert at the top**, only when something needs you: a payment that is past due, a payment waiting for your bank, a trial that is running or has ended, or a subscription that is ending.
+- **A summary row** with three boxes: **Plan** (the plan name, a status label such as **Active**, **Trial** or **Ending**, and the next date), **Credits** (your balance, with **Add credits**) and **Payment method** (your card, with **Add card** or **Manage card**). A line under it says who is billed.
+- **Billing history**, one line per payment. See [Billing history and invoices](/platform/billing-history-and-invoices).
+- **Billing contact and who pays**, a section you can open to see the billing contact and switch between workspace billing and personal billing.
 
-## Plans
+## Who can change billing
 
-The **Plans** tab lists the plans you can choose. Each plan card shows its price, what it includes and whether it has a free trial. Paid plans show **Add a card before changing plans** until a card is on file.
+Everyone with project access can look at plans and usage. Only workspace admins (`tenant_admin`) and people with billing write access can change plans, manage the card, add credits or apply codes. If the buttons are disabled, ask an admin.
 
-A card that says **Paid subscription only — no trial on this plan** has no trial. For a custom contract, [contact us](https://agentruntime.io/contact).
+## Billing guide
 
-## Start a trial or subscribe
-
-<Steps>
-  <Step title="Open Plans">
-    Go to **Settings → Plans**. You need the workspace **Admin** or **Owner** role.
-  </Step>
-  <Step title="Pick a plan">
-    Use the button on the plan card. It reads **Start trial**, **Upgrade**, **Downgrade** or **Switch**, depending on your current plan.
-  </Step>
-  <Step title="Add a card if asked">
-    Follow the prompts to add a payment card. Payments are processed by Stripe.
-
-    **You should see:** your new plan marked as current, and your credit balance updated.
-  </Step>
-</Steps>
-
-When a trial is active, a banner shows when it ends. The banner has an **Add payment method** button: add a card before the trial ends to keep your plan. Otherwise the workspace is suspended when the trial ends, and the trial credits expire.
-
-## Change or cancel a plan
-
-- **Upgrades** apply immediately.
-- **Downgrades** apply at the end of the billing period.
-- **Cancel subscription** ends your plan at the end of the period by default, so you keep access until then. The cancel dialog shows the options. After that, the workspace is suspended.
-
-## When a trial or plan ends {#when-a-trial-or-plan-ends}
-
-A workspace is **suspended** when its trial ends without a card, or when its plan is cancelled and the period is over. While it is suspended:
-
-- Workflows don't run and tools can't be used, even if the workspace still has pay-as-you-go credits. Starting a run is refused with "This subscription is not active. Update billing or subscribe again to resume workflow runs."
-- Your workflows, connections and data are kept.
-
-To continue, add a card and choose a plan under **Billing → Plans**. Your pay-as-you-go credits are still there when you do.
-
-If a payment fails instead, runs stop until you pay the open invoice in **Billing**.
-
-## Add credits (pay-as-you-go)
-
-<Steps>
-  <Step title="Open Billing Overview">
-    Go to **Settings → Billing Overview**. Make sure a card is saved (**Add card** or **Manage card**).
-  </Step>
-  <Step title="Click Add credits">
-    The **Add PAYG credits** dialog opens.
-  </Step>
-  <Step title="Choose an amount">
-    Pick a **Quick amount** ($10, $25 or $50) or type an **Amount (USD)**. The dialog shows how many credits you get.
-  </Step>
-  <Step title="Confirm">
-    Confirm the payment.
-
-    **You should see:** "Top-up submitted" and, within a moment, a higher balance under **Settings → Usage & History → Credits remaining**.
-  </Step>
-</Steps>
+<CardGroup cols={2}>
+  <Card title="Plans and credits" icon="layers" href="/platform/plans-and-credits">
+    The two kinds of credit, where credits come from, and all current prices and amounts.
+  </Card>
+  <Card title="Free trial" icon="clock" href="/platform/trials">
+    What the trial includes and what happens when it ends.
+  </Card>
+  <Card title="Subscribe, change plan and cancel" icon="sliders-horizontal" href="/platform/subscribe-and-change-plan">
+    When each change takes effect.
+  </Card>
+  <Card title="Add credits" icon="zap" href="/platform/top-up-credits">
+    Top up, split a top-up, move credits and see the limits.
+  </Card>
+  <Card title="Bank confirmation (3-D Secure)" icon="shield-check" href="/platform/bank-confirmation">
+    What to do when your bank asks you to confirm a payment.
+  </Card>
+  <Card title="Payment methods" icon="credit-card" href="/platform/payment-methods">
+    Add or update a card and see who is billed.
+  </Card>
+  <Card title="Billing history and invoices" icon="file-text" href="/platform/billing-history-and-invoices">
+    How to read each row and status.
+  </Card>
+  <Card title="Taxes on your payments" icon="globe" href="/platform/taxes">
+    What is charged today and what to expect.
+  </Card>
+  <Card title="Referrals and affiliates" icon="users" href="/platform/referrals-and-affiliates">
+    Share a code and earn referral rewards.
+  </Card>
+  <Card title="Billing FAQ" icon="circle-help" href="/platform/billing-faq">
+    Short answers to common questions.
+  </Card>
+  <Card title="Billing troubleshooting" icon="life-buoy" href="/platform/billing-troubleshooting">
+    Declined cards, past due payments, missing credits.
+  </Card>
+</CardGroup>
 
 ## See what you used
 
 Open **Settings → Usage & History**. **Credits remaining** shows your balance. **Usage history** lists each charge with its date.
 
- **Analytics** also shows credits used over time, next to your run counts. See [Analytics](/platform/analytics).
-
-## Promo and referral codes
-
-Workspace admins can open **Have a code?** on **Settings → Plans**, enter a **Promo or referral code**, and click **Apply**. The Console shows a preview of the discount or referral benefit. See [Referrals and affiliates](/platform/referrals-and-affiliates).
-
-## Common problems
-
-| Problem | What to try |
-|---------|-------------|
-| Runs fail with **Insufficient credits** | Add credits under **Billing Overview** or move to a bigger plan. |
-| **Add credits** or **Add card** is disabled | You need the workspace **Admin** or **Owner** role. |
-| Payment fails | Open **Manage card** and update your card. A banner appears when a payment is past due. |
-| Balance did not change after a top-up | Wait a moment and refresh **Usage & History**. If it is still wrong, contact [support](mailto:support@agentruntime.io) with the time of the payment. |
+**Analytics** also shows credits used over time, next to your run counts. See [Analytics](/platform/analytics).
 
 ## For developers
 
@@ -126,6 +91,7 @@ You can read billing data from the [API](/api/reference#billing-endpoints), for 
 
 ## Next steps
 
+- [Plans and credits](/platform/plans-and-credits)
+- [Billing troubleshooting](/platform/billing-troubleshooting)
 - [Analytics](/platform/analytics)
-- [Troubleshooting](/platform/troubleshooting)
 - Legal terms: [Billing and Credits Policy](https://agentruntime.io/legal/billing)

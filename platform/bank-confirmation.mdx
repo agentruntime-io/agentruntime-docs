@@ -1,0 +1,85 @@
+---
+title: Bank confirmation (3-D Secure)
+description: What to do when your bank asks you to confirm a card payment, and what happens if you do not finish it or it expires.
+---
+
+This page is for workspace admins who pay for AgentRuntime by card. You will learn when your bank asks you to confirm a payment, what you see in the Console, and what to do if the payment needs confirming, fails or expires.
+
+## What a bank confirmation is
+
+Some banks, especially in Europe and the UK, ask you to approve a card payment before they let it through. This is also called **3-D Secure**. Your bank opens a window or sends a prompt to its app. You approve the payment there.
+
+Whether your bank asks depends on your bank and your card. AgentRuntime cannot turn it on or off.
+
+## When it can happen
+
+A bank confirmation can be needed when you:
+
+- subscribe to a plan
+- upgrade a plan
+- start paying before a trial ends (**Start billing now**)
+- pay a renewal
+- pay an open invoice
+- add credits
+
+## What you see
+
+When you start a payment that needs confirming, the Console opens the **Confirm your payment** dialog. It shows the amount and what will happen once the payment goes through:
+
+| You were doing | What the dialog says |
+|----------------|----------------------|
+| Subscribing | "Your bank needs you to confirm this payment. Your plan starts as soon as it goes through." |
+| Upgrading | "Your bank needs you to confirm this payment. Your plan changes as soon as it goes through; until then you stay on your current plan." |
+| Paying before the trial ends | "Your bank needs you to confirm this payment. Your trial goes on until it does." |
+| Paying a renewal or an open invoice | "Your bank needs you to confirm this payment to keep your subscription current." |
+
+Click **Confirm payment**, then finish the step with your bank.
+
+If you add credits, you do not see a separate dialog. Your bank's window opens from the **Add credits** dialog when you click **Pay**.
+
+## Nothing happens until you confirm
+
+Until the bank step is done:
+
+- **Nothing is charged** and nothing is added to your workspace.
+- A new subscription has not started. No plan credits are given.
+- An upgrade has not happened. You stay on your current plan.
+- A trial keeps going.
+- Top-up credits are not added.
+
+## If you leave and come back
+
+If you close the dialog without confirming, the payment waits. The Console shows a notice at the top of the page and on **Settings → Billing Overview**:
+
+> **Your bank needs you to confirm this payment.**
+
+Click **Confirm payment** in the notice to open the dialog again. Members who are not billing admins see the notice with "Ask a billing admin to confirm it."
+
+For a renewal, confirm soon. A renewal that is waiting for your bank is treated like an unpaid invoice, and workflow runs can be paused until it is paid.
+
+## If the bank step is not completed
+
+If you close your bank's window, do not finish the step, or the step fails, the Console says:
+
+> The bank step wasn't completed, so nothing was charged. You can try again, with this card or another.
+
+You can try the same payment again. Use **Confirm payment**, **Subscribe**, **Upgrade** or **Add credits**, depending on what you were doing. A top-up that was not completed also shows as a **Credit top-up** row with the status **Failed** in your [billing history](/platform/billing-history-and-invoices).
+
+If your bank confirms the step but then refuses the payment, the dialog says "Your bank did not accept that payment. Enter another card to try again." Enter a different card and try again.
+
+## If the payment expires
+
+A payment that is waiting for your bank does not wait for ever. If you do not confirm it within about a day, it expires. Nothing is charged. When you press **Confirm payment** on an expired payment, the Console says:
+
+> This payment expired before it was confirmed, so nothing was charged and your plan has not changed. If you still want the change, start it again.
+
+The notice then goes away. Start the subscribe, upgrade or top-up again.
+
+If you press **Subscribe** again while an earlier attempt is still waiting, the earlier attempt is cancelled and a new one starts. If a few attempts are made within a minute, the Console asks you to wait a minute before trying again.
+
+## Next steps
+
+- [Subscribe, change plan and cancel](/platform/subscribe-and-change-plan)
+- [Add credits](/platform/top-up-credits)
+- [Payment methods](/platform/payment-methods)
+- [Billing troubleshooting](/platform/billing-troubleshooting)

@@ -1,0 +1,133 @@
+---
+title: Billing troubleshooting
+description: Fix a declined card, an unfinished bank step, a past due payment, a cancelled subscription, missing credits and other billing problems.
+---
+
+This page is for workspace admins. Find your problem in the list, then follow the steps. For problems with runs and tools that are not about billing, see [Troubleshooting](/platform/troubleshooting).
+
+## Quick guide
+
+| What you see | Go to |
+|--------------|-------|
+| "The payment did not go through" or the card is refused | [Card declined](#card-declined) |
+| "The bank step wasn't completed" | [Bank step not completed](#bank-step-not-completed) |
+| "This payment expired before it was confirmed" | [Payment expired](#payment-expired) |
+| **Payment past due** | [Payment past due](#payment-past-due) |
+| **Subscription ending**, or runs refused after cancelling | [Cancelled subscription](#cancelled-subscription) |
+| Credits are lower than you expect, or gone | [Where did my credits go?](#where-did-my-credits-go) |
+| A top-up did not add credits | [A top-up did not add credits](#a-top-up-did-not-add-credits) |
+| Runs fail with a credits message | [Not enough credits](#not-enough-credits) |
+| A button is disabled | [Buttons are disabled](#buttons-are-disabled) |
+| A code is refused, or a trial will not start | [Codes and trials](#codes-and-trials) |
+
+## Card declined
+
+**What happens:** A subscribe, upgrade or top-up does not go ahead. The Console says, for a plan change: "The payment did not go through, so your plan was not changed. Update your payment method and try again." Nothing is charged, and your plan and credits stay as they were.
+
+**What to do:**
+
+1. Check the card number, expiry and security code.
+2. Open **Settings → Billing Overview** and click **Manage card** to update the card. Or enter a different card in the dialog.
+3. If it is declined again, ask your bank why. A bank can refuse a payment for its own reasons.
+
+See [Payment methods](/platform/payment-methods).
+
+## Bank step not completed
+
+**What happens:** Your bank asked you to confirm the payment and the step was closed, abandoned or failed. The Console says:
+
+> The bank step wasn't completed, so nothing was charged. You can try again, with this card or another.
+
+**What to do:** Try the payment again. If a **Confirm payment** notice is showing, click it. If your bank confirms and then refuses, enter another card. A top-up that was not finished shows in **Billing history** as **Credit top-up** with **Failed**. No credits were added.
+
+See [Bank confirmation (3-D Secure)](/platform/bank-confirmation).
+
+## Payment expired
+
+**What happens:** A payment that waited for your bank was not confirmed within about a day. Nothing was charged and nothing changed. The Console says:
+
+> This payment expired before it was confirmed, so nothing was charged and your plan has not changed. If you still want the change, start it again.
+
+**What to do:** Start the subscribe, upgrade or top-up again.
+
+## Payment past due {#payment-past-due}
+
+**What happens:** A renewal could not be collected. The plan shows **Payment past due**, and an alert says: "Your [plan] invoice could not be collected, so workflow runs are paused. Pay it now, or update your card if the charge failed."
+
+**What to do:**
+
+1. Click **Pay now** in the alert. The **Pay subscription invoice** dialog opens.
+2. Pay with the saved card or enter a new one. Click **Update card** first if the saved card is the problem.
+3. If your bank asks, confirm the payment.
+
+**You should see:** "Payment submitted: Your subscription will show as current in a moment." Runs then resume.
+
+If the invoice is still unpaid after several automatic retries, the subscription is cancelled. See [Cancelled subscription](#cancelled-subscription).
+
+If the alert instead says "Your bank needs you to confirm this payment", the payment is waiting for your bank. Click **Confirm payment**.
+
+## Cancelled subscription
+
+**While the cancellation is waiting:** The **Subscription ending** notice shows the date you keep access until. You keep your plan and its credits until then. Click **Keep my subscription** to carry on. Plan changes are not available until the cancellation is cleared.
+
+**After the plan has ended:**
+
+- Unused plan and trial credits have ended. Top-up credits are kept.
+- The workspace keeps running while it has top-up credits.
+- With none left, a run is refused with: "This subscription is not active. Update billing or subscribe again to resume workflow runs."
+
+**What to do:** Add credits, or go to **Settings → Plans** and subscribe again. Your workflows, connections and data are kept.
+
+See [Subscribe, change plan and cancel](/platform/subscribe-and-change-plan#after-a-plan-or-trial-ends).
+
+## Where did my credits go? {#where-did-my-credits-go}
+
+Check these in order:
+
+1. **They were used.** Open **Settings → Usage & History**. **Usage history** lists each charge.
+2. **They expired.** Trial credits end with the trial. Plan credits end at the end of the billing period. Referral rewards expire after a set time. Top-up credits do not expire.
+3. **Your plan ended.** Unused plan and trial credits end when a plan or trial ends. Top-up credits are kept.
+4. **You have two kinds of credit.** A balance in one kind does not pay for the other. Check both lines under **Credits** on **Billing Overview**. You can move top-up credits between them. See [Add credits](/platform/top-up-credits#move-credits-between-the-two-kinds).
+5. **Another workspace shares your payer.** Open **Billing contact and who pays** to see the workspaces that bill to the same payer.
+
+If the numbers still look wrong, contact [support](mailto:support@agentruntime.io) with the workspace name and the time you noticed.
+
+## A top-up did not add credits
+
+- Wait a few seconds and refresh. Credits are added when the payment is confirmed.
+- Look in **Billing history**. A **Credit top-up** row with **Paid** means the payment went through. A row with **Failed** means nothing was charged and no credits were added.
+- If your bank asked for a confirmation and you did not finish it, nothing was charged. Try again.
+- If the row says **Paid** and the balance has not changed after a few minutes, contact [support](mailto:support@agentruntime.io) with the time of the payment.
+
+## Not enough credits {#not-enough-credits}
+
+**What you see:** Runs or model calls fail with a message such as "This workspace does not have enough credits for this action. Add credits or upgrade your plan in Billing." When one kind is empty, the message names it: "This workspace has no model credits left for this action. Move platform credits to model credits, or add credits, in Billing."
+
+**What to do:** Open **Settings → Billing Overview** and click **Add credits**. If the other kind still has top-up credits, click **Move credits**. Or move to a bigger plan under **Plans**.
+
+## Buttons are disabled {#buttons-are-disabled}
+
+**Add credits**, **Add card**, **Manage card**, and plan buttons are disabled for people who are not workspace admins (`tenant_admin`) and do not have billing write access. Ask an admin.
+
+If the Console says "Payments are not available in this environment", the page cannot reach the payment form. Reload the page, or contact [support](mailto:support@agentruntime.io).
+
+## Codes and trials {#codes-and-trials}
+
+| Message | What it means |
+|---------|---------------|
+| "You have already used the free trials available to your account." | Each person can start a limited number of trials across all their workspaces. Subscribe or add credits instead. |
+| "That code isn't valid. Check it and try again." | The code is mistyped, unknown or not active. |
+| "Friend referral codes are applied when you create a workspace, not on the billing page." | A friend's code can only be used when signing up with the signup link. |
+| "You can't use your own code." | A code cannot be applied by the person who owns it. |
+| "Plan changes are unavailable while cancellation is pending." | Click **Keep my subscription**, or wait for the plan to end. |
+| "Subscribe was tried several times within a minute. Wait a minute, then try again." | Too many attempts in a short time. Wait, then try once more. |
+
+## Still stuck?
+
+Contact [support](mailto:support@agentruntime.io). Tell us the workspace name, what you were doing, the exact message you saw and the time.
+
+## Next steps
+
+- [Billing FAQ](/platform/billing-faq)
+- [Billing and credits](/platform/billing-and-credits)
+- [Troubleshooting](/platform/troubleshooting)
