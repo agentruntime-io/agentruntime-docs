@@ -1,0 +1,62 @@
+---
+title: Payment methods
+description: How to add, update and use a payment card, and who is billed for a workspace.
+---
+
+This page is for workspace admins. You will learn how to add or update a payment card and how to read who is billed.
+
+<Note>
+  You need the workspace admin role (`tenant_admin`) or billing write access to add or change a card. If **Add card** is disabled, ask an admin.
+</Note>
+
+## Cards
+
+You pay by card. Cards are handled by Stripe, our payment provider. The card form is a secure Stripe form: AgentRuntime never sees or stores your full card number.
+
+The card on file is used for subscriptions, renewals and top-ups. The **Payment method** box on **Settings → Billing Overview** shows the card brand, the last digits and when it expires. If there is no card, it says **No card on file**.
+
+## Add a card
+
+<Steps>
+  <Step title="Open Billing Overview">
+    Go to **Settings → Billing Overview**. In the **Payment method** box, click **Add card**.
+  </Step>
+  <Step title="Enter the card">
+    The **Add payment method** dialog shows a secure card form powered by Stripe. Enter the card details and click **Save payment method**.
+
+    **You should see:** the message "Payment method saved: Your card is ready for billing." The card shows in the **Payment method** box.
+  </Step>
+</Steps>
+
+Your bank may ask you to confirm the card or a later payment. See [Bank confirmation (3-D Secure)](/platform/bank-confirmation).
+
+## Update or replace a card
+
+Click **Manage card** in the **Payment method** box. The **Update payment method** dialog works the same way. Update the card before it expires, or when a payment fails.
+
+You can also pay one top-up with a different card without saving it. In the **Add credits** dialog, choose **Use a different card for this top-up**.
+
+## When a card is declined
+
+If your card is declined:
+
+- A subscribe or upgrade does not go ahead. The Console says: "The payment did not go through, so your plan was not changed. Update your payment method and try again."
+- A renewal that fails turns the plan to **Payment past due**. See [Billing troubleshooting](/platform/billing-troubleshooting#payment-past-due).
+
+Try another card, or ask your bank why the payment was declined.
+
+## Who is billed
+
+Under the summary on **Billing Overview**, one line says who pays:
+
+- **Billed to this workspace**: the workspace has its own billing.
+- **Billed to** a person's name, with **personal billing**: usage is billed to that person's billing profile.
+
+Click **Change** to go to **Billing contact and who pays**. There you can see the billing contact, switch between workspace billing and personal billing, and see other workspaces that share the same payer. Invoices go to the billing contact's email address. If none is set, the Console shows a reminder: "Add a billing email in onboarding to receive invoices."
+
+## Next steps
+
+- [Subscribe, change plan and cancel](/platform/subscribe-and-change-plan)
+- [Add credits](/platform/top-up-credits)
+- [Billing history and invoices](/platform/billing-history-and-invoices)
+- [Billing troubleshooting](/platform/billing-troubleshooting)

@@ -70,17 +70,34 @@
           "platform/settings",
           "platform/user-management",
           "platform/roles-permissions",
-          "platform/billing-and-credits",
           "platform/apps",
           "platform/databases-and-storage",
           "platform/analytics",
           "platform/operate",
           "platform/security-and-compliance",
-          "platform/referrals-and-affiliates",
           "platform/feature-availability",
           "platform/shortcuts-and-links",
           "platform/limits",
           "platform/troubleshooting"
+        ]
+      },
+      {
+        "group": "Billing",
+        "icon": "credit-card",
+        "expanded": true,
+        "pages": [
+          "platform/billing-and-credits",
+          "platform/plans-and-credits",
+          "platform/trials",
+          "platform/subscribe-and-change-plan",
+          "platform/top-up-credits",
+          "platform/bank-confirmation",
+          "platform/payment-methods",
+          "platform/billing-history-and-invoices",
+          "platform/taxes",
+          "platform/referrals-and-affiliates",
+          "platform/billing-faq",
+          "platform/billing-troubleshooting"
         ]
       },
       {

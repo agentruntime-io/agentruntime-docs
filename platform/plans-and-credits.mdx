@@ -1,0 +1,137 @@
+---
+title: Plans and credits
+description: The two kinds of credit, where credits come from, when they expire, and the current prices, included credits, trial and top-up limits.
+---
+
+{/*
+  CURRENT LAUNCH VALUES, SUBJECT TO CHANGE.
+
+  Every price, credit amount, limit and duration used by the billing pages is kept in the tables under
+  "Current values" at the bottom of THIS page and nowhere else. The other billing pages link here and carry no
+  numbers on purpose, so a price change is an edit to this one file.
+
+  Source of the values: the pricing decisions recorded on 2026-11-11 (section E of the billing decisions sheet in the
+  monorepo: four plans, yearly price ten times monthly, half-and-half plan credits, trial credits, top-up limits,
+  referral rewards) and the referral settings in the billing settings reference. The Stripe plan data and the
+  settings must match these tables when the values change.
+*/}
+
+This page explains what credits are and where they come from. It also lists the current prices and amounts. Every other billing page links here for numbers.
+
+<Note>
+  Billing is in early access. The values in [Current values](#current-values) are the current launch values and are subject to change. The **Plans** tab in the Console always shows what you can buy today.
+</Note>
+
+## Credits in one minute
+
+AgentRuntime counts usage in **credits**. When a workflow runs, it uses credits from your workspace. If a kind of credit you need runs out, new runs or model calls that need it are refused until you add credits or move some from the other kind.
+
+Credit balances are shown in US dollars.
+
+## The two kinds of credit
+
+A workspace has two kinds of credit. Each one pays for a different thing.
+
+| Kind | What it pays for | How it is used up |
+|------|------------------|-------------------|
+| **Model credits** | AI model calls that AgentRuntime pays the model provider for (hosted models) | At the model provider's price for the tokens you use |
+| **Platform credits** | What AgentRuntime itself does, such as running workflow steps and other platform actions | At the price of each action |
+
+Some things to know:
+
+- A run needs platform credits. A call to a hosted model also needs model credits. A run that does both uses both.
+- If you use **your own model provider key**, the provider bills you for the model. AgentRuntime does not charge model credits for those calls. The platform part of the run still uses platform credits.
+- Anything a model provider charges AgentRuntime for on your behalf uses model credits. Everything else AgentRuntime does uses platform credits.
+- Hosted models can be used on every plan, and during a trial. The only requirement is that you have model credits left.
+
+## Where credits come from
+
+Every credit you hold is either model credit or platform credit.
+
+| Source | Which kind | When it ends |
+|--------|-----------|--------------|
+| **Free trial** | Both | When the trial ends |
+| **Plan** | Both. Each plan includes some of each. | At the end of the billing period. A yearly plan gives a year of credits at the start and they end when the year ends. |
+| **Top-up** | You choose how a top-up is split between the two kinds | They do not expire. You keep them when a trial or plan ends and when you cancel. |
+| **Referral reward** | Platform credits | After the time shown in [Current values](#current-values) |
+
+How much each source gives is in [Current values](#current-values). To add credits yourself, see [Add credits](/platform/top-up-credits).
+
+## Which credits are used first
+
+Inside each kind, AgentRuntime uses credits in this order:
+
+1. **Trial** credits
+2. **Plan** credits, and referral rewards, which behave like plan credits
+3. **Top-up** credits
+
+A call never uses the other kind. Model credits are never spent on a workflow step, and platform credits are never spent on a model call.
+
+## When a kind of credit runs low or runs out
+
+- The Console shows **Running low** under a kind of credit that is nearly used up.
+- If a run or model call needs a kind you have none of, it is refused with a message that names the kind and offers a way forward. For example: "This workspace has no model credits left for this action. Move platform credits to model credits, or add credits, in Billing."
+- You can fix this by adding credits, or by moving top-up credits from the other kind. See [Add credits](/platform/top-up-credits#move-credits-between-the-two-kinds).
+
+## What happens to credits when a plan or trial ends
+
+- **Trial and plan credits** that are unused end when the trial ends, when the plan is cancelled and the period is over, or when the billing period ends.
+- **Top-up credits** are kept.
+
+A workspace that has no active trial or plan keeps running as long as it has top-up credits. With none left, new runs are refused until you add credits or subscribe. Your workflows, connections and data are kept. See [Subscribe, change plan and cancel](/platform/subscribe-and-change-plan#after-a-plan-or-trial-ends).
+
+## Current values
+
+All amounts are in US dollars. Tax is not part of these amounts; see [Taxes on your payments](/platform/taxes).
+
+### Plans
+
+You can pay monthly or yearly. A yearly plan costs ten times the monthly price. Each plan includes the same amount of model credits and platform credits.
+
+| Plan | Monthly price | Yearly price | Included each month | Included for a yearly plan, at the start of the year |
+|------|---------------|--------------|---------------------|-----------------------------------------------------|
+| **Pro** | $10 | $100 | $5 model credits and $5 platform credits | $60 model credits and $60 platform credits |
+| **Plus** | $20 | $200 | $10 model credits and $10 platform credits | $120 model credits and $120 platform credits |
+| **Max** | $100 | $1,000 | $50 model credits and $50 platform credits | $600 model credits and $600 platform credits |
+| **Scale** | $200 | $2,000 | $100 model credits and $100 platform credits | $1,200 model credits and $1,200 platform credits |
+
+For a custom contract, [contact us](https://agentruntime.io/contact). The enterprise plan is sold by sales.
+
+There is no limit on the number of members on any plan. Plans differ only in price and credits.
+
+### Free trial
+
+| | |
+|---|---|
+| **Plan** | Pro |
+| **Length** | 14 days |
+| **Credits** | $10 platform credits and $2 model credits |
+| **Card needed to start** | No |
+| **Trials per person** | Up to 3, across all the workspaces you own |
+
+### Adding credits (top-ups)
+
+| | |
+|---|---|
+| **Smallest top-up** | $5 |
+| **Largest top-up** | $1,000 |
+| **Most you can top up in 24 hours** | $5,000 for each person who pays |
+| **Need more** | [Contact us](https://agentruntime.io/contact) |
+
+### Referral rewards
+
+| | |
+|---|---|
+| **Reward** | $1 of platform credits for you and $1 for your friend |
+| **When it is paid** | After your friend's first payment, once that payment is at least $5. Rewards are credited once a week. |
+| **Expires** | 90 days after it is credited |
+| **Limits** | A friend is rewarded once, however many workspaces they create. One code can reward up to 25 friends. |
+
+See [Referrals and affiliates](/platform/referrals-and-affiliates).
+
+## Next steps
+
+- [Billing and credits](/platform/billing-and-credits)
+- [Add credits](/platform/top-up-credits)
+- [Free trial](/platform/trials)
+- [Subscribe, change plan and cancel](/platform/subscribe-and-change-plan)
