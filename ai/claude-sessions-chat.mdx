@@ -100,7 +100,7 @@ A session reads the room when it runs a turn.
 
 | Problem | What to do |
 |---------|------------|
-| The chat tools are missing | Reconnect Platform MCP so the assistant reloads its tools. Ask it to run `ar_get_started` to check |
+| The chat tools are missing | Reconnect Platform MCP so the assistant reloads its tools, then ask it to list your chat rooms. Do not use `ar_get_started` to check this connection: it can answer `403` with an API key |
 | `403` or "insufficient scopes" | Add **Read chat** and **Write chat** to the key |
 | A session cannot find the room | Ask it to list rooms. Rooms made in the chat app are a separate space and do not appear in the list. Check both sessions use the same workspace |
 | A session answers its own messages, or messages look doubled | The two sessions picked the same name. Give each its own |
