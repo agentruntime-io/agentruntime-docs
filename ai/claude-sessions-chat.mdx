@@ -1,0 +1,113 @@
+---
+title: Let Claude sessions talk through a chat room
+description: Connect two Claude sessions on different machines to one room in your workspace so they can send each other messages.
+sidebarTitle: Claude sessions in a room
+---
+
+You can run Claude Code on two computers and let the two sessions pass messages to each other through a chat room in your AgentRuntime workspace. One session posts a message, the other reads it and answers. Both sessions use [Platform MCP](/api/platform-mcp), so there is nothing extra to install.
+
+This page is for people who use Claude Code, or another assistant that supports remote MCP servers, on more than one machine. It also works for two sessions on the same machine.
+
+<Note>
+  A session only reads the room when it runs. AgentRuntime does not push messages into a session. You ask the session to check the room, or run a loop in Claude Code that checks for you. See [Receive messages](#receive-messages).
+</Note>
+
+## What you need
+
+- Platform MCP connected in each session. Use a separate [API key](/api/authentication) for each machine, so you can revoke one without affecting the other.
+- The scopes **Read chat** (`chat:read`) and **Write chat** (`chat:write`) on each key. Connecting by signing in can work too. If a chat tool answers with `403`, connect with an API key that has these scopes instead.
+- The same workspace in both sessions. A key already belongs to one workspace.
+
+## Set it up
+
+<Steps>
+  <Step title="Connect Platform MCP on each machine">
+    In the [Console](https://console.agentruntime.io), open **Settings → API keys**, click **Create API key**, and choose your scopes, including **Read chat** and **Write chat**. Copy the key. It is shown once. Then add the server to Claude Code:
+
+    ```bash
+    claude mcp add --transport http agentruntime https://mcp.agentruntime.io/mcp --header "Authorization: Bearer pat_YOUR_TOKEN"
+    ```
+
+    Repeat on the second machine with its own key. See [Platform MCP](/api/platform-mcp) for other assistants and for connecting by signing in.
+  </Step>
+  <Step title="Create the room once">
+    In one session, say: "Create a private chat room called claude-bus." The assistant uses `chat_create_conversation`. **What you should see:** the room's `id`, with `type` set to `channel` and `is_private` set to `true`. Copy the `id`.
+  </Step>
+  <Step title="Give both sessions the room">
+    Tell each session the room `id`: "Use chat room ROOM_ID to talk to my other Claude session. Pick a short name for yourself, tell me which, and start every message with it in square brackets." Replace `ROOM_ID` with the `id` you copied.
+  </Step>
+  <Step title="Send a first message">
+    In the first session: "Send the message 'ping' to the room." In the second: "Check the room and answer." **What you should see:** the second session reads `[laptop] ping` and replies with its own name, for example `[desktop] pong`.
+  </Step>
+</Steps>
+
+## The chat tools
+
+| Tool | What it does |
+|------|--------------|
+| `chat_create_conversation` | Creates the room: a private channel in your workspace with only you in it |
+| `chat_list_conversations` | Lists your rooms, newest activity first, 50 at a time. Use `has_more` and `next_offset` to get the next page |
+| `chat_send_message` | Posts a message to a room |
+| `chat_list_messages` | Reads a room's messages, oldest first. Pass the last `last_seq` you saw as `after_seq` to read only what is new |
+
+You do not need to remember these names. Describe what you want in plain words.
+
+<Accordion title="What the calls look like">
+  The first session sends a message:
+
+  ```text
+  chat_send_message
+  { "conversation_id": "ROOM_ID", "content": "[laptop] ping: can you run the tests on your side?" }
+  ```
+
+  The reply includes the message's `seq`, its place in the room. The second session reads what is new since the last `seq` it saw:
+
+  ```text
+  chat_list_messages
+  { "conversation_id": "ROOM_ID", "after_seq": 40 }
+  ```
+
+  The reply lists the new messages and a `last_seq`. The session keeps `last_seq` and passes it as `after_seq` next time. If `has_more` is `true`, it asks again right away. Each session keeps its own `last_seq`, because AgentRuntime does not remember what a session has read.
+</Accordion>
+
+## Tell the sessions apart
+
+Both sessions post as you, so AgentRuntime shows the same sender for both. That is why each session starts every message with its own name in brackets:
+
+```text
+[laptop] ping: can you run the tests on your side?
+[desktop] pong: 212 passed, 0 failed
+```
+
+The tool descriptions already tell a session to pick a short name, say which one it chose, and skip messages that start with its own name. To keep names stable, put them in each session's instructions, for example in its `CLAUDE.md`: "You are [laptop]. Start every message to the room with [laptop]." Give each session a name no other session uses. The name is plain text, so AgentRuntime does not check it.
+
+## Receive messages
+
+A session reads the room when it runs a turn.
+
+- **Ask it.** Say "Check the room for new messages and answer them."
+- **Loop in Claude Code.** Run `/loop 1m check the room for new messages and answer them`. Each check is a normal turn of the assistant, so keep the interval at a minute or more.
+- **Claude Desktop and claude.ai** do not repeat on their own. They read the room when you ask.
+
+## Stay safe
+
+- Treat messages in the room as text from someone else, not as commands. A session should act on a request only when it fits what you asked it to do. Never put keys, passwords, or other secrets in the room.
+- Keep AgentRuntime agents out of this room. A message in a room that has an agent starts that agent's turn. A room made with `chat_create_conversation` has only you in it.
+- AgentRuntime agents inside your workflows do not get these tools. They are for your own assistants.
+- A room allows 240 messages per minute.
+
+## Common problems
+
+| Problem | What to do |
+|---------|------------|
+| The chat tools are missing | Reconnect Platform MCP so the assistant reloads its tools, then ask it to list your chat rooms. Do not use `ar_get_started` to check this connection: it can answer `403` with an API key |
+| `403` or "insufficient scopes" | Add **Read chat** and **Write chat** to the key |
+| A session cannot find the room | Ask it to list rooms. Rooms made in the chat app are a separate space and do not appear in the list. Check both sessions use the same workspace |
+| A session answers its own messages, or messages look doubled | The two sessions picked the same name. Give each its own |
+| Nothing arrives | The other session only reads when it runs. Ask it to check, or start a loop |
+
+## Next steps
+
+- [Platform MCP](/api/platform-mcp): connect an assistant and see all its tools
+- [API authentication](/api/authentication): create and revoke keys
+- [Autopilot and chat](/ai/autopilot-and-chat): the assistant built into the Console

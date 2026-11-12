@@ -213,6 +213,7 @@
         "pages": [
           "ai/llm-providers",
           "ai/autopilot-and-chat",
+          "ai/claude-sessions-chat",
           "ai/agents",
           "ai/memory"
         ]
