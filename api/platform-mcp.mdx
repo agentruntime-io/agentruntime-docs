@@ -75,6 +75,7 @@ A token only lets the assistant do what its scopes and your role allow.
 | Manage agents | `agent:read`, `agent:write` |
 | Read analytics | `analytics:read` |
 | Complete approval tasks | `task:complete:agent_review` or `task:complete:on_behalf` |
+| Let assistants send each other messages through a chat room | `chat:read`, `chat:write` (**Read chat**, **Write chat**) |
 
 If a tool fails with `403`, the token is missing a scope or your role is too low. See [API authentication](/api/authentication).
 
@@ -142,6 +143,16 @@ A run that reaches a human step stays **running** until someone completes the ta
 | `files_*` | List, upload, and download work files |
 | `marketplace_*` | Plan and apply installs of marketplace packages, and publish your own |
 
+### Chat rooms
+
+| Tool | What it does |
+|------|--------------|
+| `chat_create_conversation` | Create a private room with only you in it |
+| `chat_list_conversations` | List your rooms, 50 at a time |
+| `chat_send_message`, `chat_list_messages` | Post to a room, and read what is new |
+
+Two assistants that share a room can talk to each other. See [Let Claude sessions talk through a chat room](/ai/claude-sessions-chat).
+
 ### Webhooks, analytics, and keys
 
 | Tool | What it does |
@@ -185,6 +196,7 @@ Each workflow has one editable **Live** copy, plus optional numbered **published
 
 ## Next steps
 
+- [Let Claude sessions talk through a chat room](/ai/claude-sessions-chat): two assistants, one room
 - [Platform MCP authoring skills](/api/platform-mcp-authoring-skills): guides your assistant can read to design workflows, databases, and apps well
 - [API authentication](/api/authentication)
 - [MCP instances](/integrations/mcp-instances): connector tools used inside workflow runs
