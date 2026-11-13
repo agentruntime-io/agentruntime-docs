@@ -52,7 +52,7 @@ sequenceDiagram
 
 <Steps>
   <Step title="Create an API key">
-    In the Console, open **Settings → API keys** and create a key from the **Embedded Connect** template. Keep it **only on your server**, for example in an environment variable. Never put it in a browser or mobile app. See [API authentication](/api/authentication).
+    In the Console, open **Settings → API keys** and create a key from the **Embedded Connect** template. It grants `connect:write` (end users, segments, connect links and your webhook), `connect:execute` and `workflow:run` (run workflows as your end users), and nothing else. Only workspace owners and admins can create it. If your server also calls MCP tools directly, add `mcp:execute`; runs you start through the API don't need it. Keep the key **only on your server**, for example in an environment variable. Never put it in a browser or mobile app. See [API authentication](/api/authentication).
   </Step>
   <Step title="Optional: show your own name on Google's consent screen">
     By default Google's consent screen shows AgentRuntime. To show your own app instead, create an OAuth client in Google Cloud Console. Then open **Settings → MCP & Integrations**, find **Google OAuth application**, and enter the **OAuth client ID** and **OAuth client secret**. Add the redirect URI shown on that page to your Google OAuth client.

@@ -33,7 +33,7 @@ curl -X POST "https://api.agentruntime.io/v1/workflows/WORKFLOW_ID/command" \
   -d '{"command": "start", "params": {"trigger_payload": {"customer_id": "123"}}}'
 ```
 
-The token needs `workflow:run` (and `mcp:execute` if the workflow has MCP steps). The reply contains a `run_id` you can use to follow the run. More samples are in [API examples](/api/examples).
+The token needs `workflow:run`. The reply contains a `run_id` you can use to follow the run. More samples are in [API examples](/api/examples).
 
 ## What the API covers
 
