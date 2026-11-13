@@ -64,7 +64,7 @@ A step's `type` is one of `mcp`, `lua`, `llm`, `human`, `agent`, `for_each`, `wh
 
 ## Start a run
 
-**Needs:** the `workflow:run` scope (add `mcp:execute` if the workflow has MCP steps).
+**Needs:** the `workflow:run` scope. Runs you start this way don't need `mcp:execute`, even when the workflow has MCP steps.
 
 `POST /v1/workflows/{id}/command`
 
@@ -265,7 +265,7 @@ curl -sS "$AR_API/v1/billing/usage" -H "Authorization: Bearer $AR_TOKEN"
 | `403` | Add the missing scope to the token, or ask for a higher role |
 | `409 revision_conflict` when updating a workflow | Someone saved a newer version. Read the workflow again and re-apply your change |
 | `422` when creating or validating a workflow | The graph has an error. The response says which step. See [Dry run](/workflows/dry-run) |
-| Run starts but an MCP step fails | The token is missing `mcp:execute`, or the instance has no connection. See [MCP instances](/integrations/mcp-instances) |
+| Run starts but an MCP step fails | The instance has no working connection. See [MCP instances](/integrations/mcp-instances) |
 
 ## Next steps
 

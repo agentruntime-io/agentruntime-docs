@@ -46,7 +46,7 @@ A token can never do more than you can. If your role is `project_viewer`, a toke
     | `workflow:read` | List workflows, runs, events, and pending tasks |
     | `workflow:run` | Start, pause, resume, and stop runs, and validate workflows |
     | `workflow:edit` | Create, change, and archive workflows |
-    | `mcp:execute` | Run MCP tools. Needed together with `workflow:run` for workflows that have MCP steps |
+    | `mcp:execute` | Call MCP tools directly, and run MCP steps from schedules and webhooks that use the token. Runs you start through the API don't need it |
     | `mcp:read` / `mcp:write` | Read, or change, connections, MCP servers, and instances |
     | `task:complete:agent_review` | Approve or reject a task as a designated approver agent |
     | `task:complete:on_behalf` | Approve or reject a task for a person who delegated it |
@@ -71,8 +71,8 @@ A template is a ready-made set of scopes for a common job. In the **Create API k
 | Template | What it grants | Scopes | Suggested name |
 |----------|----------------|--------|----------------|
 | **All** | Every scope your role can grant | All of them | None |
-| **Embedded Connect** | Host connect popups, receive connection webhooks, and run workflows per end user | `mcp:read`, `mcp:write`, `workflow:run`, `mcp:execute` | `Embedded Connect — production` |
-| **Embedded Connect (connect only)** | Connect links and partner webhooks only, with no workflow execution | `mcp:read`, `mcp:write` | `Embedded Connect — connect` |
+| **Embedded Connect** | Host connect popups, receive connection webhooks, and run workflows per end user | `connect:write`, `connect:execute`, `workflow:run` | `Embedded Connect — production` |
+| **Embedded Connect (connect only)** | End users, connect links and partner webhooks only, with no workflow runs | `connect:write` | `Embedded Connect — connect` |
 | **Run workflows** | Start runs through the API for workflows that already exist | `workflow:read`, `workflow:run`, `mcp:execute` | `Workflow automation` |
 | **Inbound webhooks** | Trigger workflows from external HTTP webhooks | `workflow:run`, `mcp:execute`, `webhook:manage` | `Inbound webhooks` |
 | **Usage export** | Read-only usage and billing reports. Add workflow scopes if the key also runs workflows. | `billing:read` | `Usage export` |
@@ -89,7 +89,7 @@ Three scopes are for [Embedded Connect](/integrations/embedded-connect). They ap
 | `connect:write` | **Manage end users** | Manage end users, segments, connect links and settings, for example `POST /v1/connect/link`, `PUT /v1/principals/{id}` and `PUT /v1/embedded-connect/settings` |
 | `connect:execute` | **Run as end users** | Run workflows as end users. Use it with `workflow:run`, and send `external_user_id` or `segment_id` on `POST /v1/workflows/{id}/command` |
 
-The two scopes next to them, `mcp:read` (**View connections**) and `mcp:write` (**Manage connections**), cover connections in general. For end users and connect links, the hints in the dialog say to prefer `connect:read` and `connect:write`. The **Embedded Connect** and **Embedded Connect (connect only)** templates use `mcp:read` and `mcp:write`. They do not include the `connect:*` scopes.
+The two scopes next to them, `mcp:read` (**View connections**) and `mcp:write` (**Manage connections**), cover connections in general. For end users and connect links, the hints in the dialog say to prefer `connect:read` and `connect:write`. The **Embedded Connect** template uses `connect:write`, `connect:execute` and `workflow:run`. **Embedded Connect (connect only)** uses `connect:write`, which includes everything `connect:read` does. Neither includes `mcp:*` scopes, so a partner's key can't change your MCP servers, tools or connections. If your backend also calls MCP tools directly, add `mcp:execute` yourself. Only workspace owners and admins can grant the `connect:*` scopes. Keys you made earlier keep their scopes.
 
 The dialog notes that Embedded Connect partner webhooks use `connect:write`. The `webhook:manage` scope is only for [inbound webhooks](/integrations/inbound-webhooks).
 
@@ -135,7 +135,8 @@ Systems that start runs through an [inbound webhook](/integrations/inbound-webho
 |---------|---------------|
 | `401` on every call | The token is mistyped, revoked, or missing the `Bearer ` prefix |
 | `403` on a call that should work | The token is missing a scope, or your role is too low. Compare against the [API reference](/api/reference) |
-| Runs start but MCP steps fail | Add `mcp:execute` to the token |
+| A schedule or webhook run of a workflow with MCP steps fails to start | Add `mcp:execute` to the key it uses |
+| Runs start but an MCP step fails | Check the tool's connection. See [MCP instances](/integrations/mcp-instances) |
 | I cannot create a key | Only members who are allowed to create API keys can. Ask a workspace admin |
 | The AI assistant shows the wrong workspace | Ask it to list your workspaces and switch, or reconnect |
 
