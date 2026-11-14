@@ -31,7 +31,7 @@ The palette lists pages only. It has the same pages as the Console sidebar, in t
 |---|---|
 | **Core** | **Overview**, **Command Center**, **Workflow Studio**, **Agents**, **Apps**, **Operate**, **Work** |
 | **Integrations** | **MCP**, **Hosted apps**, **Connections**, **Databases**, **Storage**, **Models**, **Marketplace**, **Tools** |
-| **Administration** | **Vault**. This group appears only for people with admin-level access. |
+| **Administration** | **Secrets**. Every member sees it; what is inside depends on your role. |
 | **Workspace** | **Analytics**, **Settings** |
 | **Account** | **Profile** |
 
@@ -171,9 +171,9 @@ https://console.agentruntime.io/operate?tab=runs&status=failed,stopped,cancelled
 | **Connections** | `/connections?connection=<connection-id>` | Opens the details of that connection. The Console adds this to the address when you open a connection. If the ID is not in this workspace, you see "Connection not found". |
 | **MCP** | `/mcp?instance=<instance-id>` | Opens the details panel of that MCP instance. The Console adds this to the address when you open an instance. |
 | **Work** | `/work?task=<task-id>` or `/work?file=<file-id>` | Selects that task, or that file. Selecting one clears the other. |
-| **Vault** | `/vault?scope=<scope>&path=<folder>` | Opens a folder in the Vault. `scope` is `tenant` (**Workspace**), `project` or `user`. Without a valid `scope`, `tenant` is used. `path` is the folder inside that scope, for example `providers/llm`. |
+| **Secrets** | `/vault?scope=<tab>&path=<folder>` | Opens a tab of the Secrets page. `scope` is `user` (**My secrets**), `shared` (**Shared with me**), `project` (**This project**) or `tenant` (**Workspace**). Without a valid `scope`, the first tab you have opens. `path` is the folder inside the project or workspace tab. |
 
-In these links, put `https://console.agentruntime.io` in front of the path. The **Team & Members** and **Audit log** tabs open only for people who may use them. Everyone else lands on **General**. **Vault** shows "Vault access required" to people who cannot view it.
+In these links, put `https://console.agentruntime.io` in front of the path. The **Team & Members** and **Audit log** tabs open only for people who may use them. Everyone else lands on **General**. **Secrets** shows "You don't have access to secrets" to guests.
 
 ## Common problems
 
