@@ -13,20 +13,23 @@ In the [Console](https://console.agentruntime.io) sidebar, click **Settings**. T
   <img src="/images/platform/settings-general.png" alt="The Settings page with the tab list on the left (General, API keys, Inbound webhooks, Principals, My access, Delegation, Team and Members, Audit log, Billing Overview, Plans, Usage and History, MCP and Integrations) and the General tab open, showing Name, Handle, Workspace ID and a Danger zone" />
 </Frame>
 
-| Tab | What it is for |
-|-----|----------------|
-| **General** | Workspace name, handle and ID, plus the danger zone |
-| **API keys** | Keys for scripts, CI and integrations |
-| **Inbound webhooks** | Webhook subscriptions that start workflows |
-| **Principals** | End users who connected through Embedded Connect |
-| **My access** | Your own roles in this workspace |
-| **Delegation** | Let someone else approve on your behalf |
-| **Team & Members** | Invites, members, sign-in policy and domain verification (admins) |
-| **Audit log** | Admin actions in this workspace (admins) |
-| **Billing Overview** | Subscription, payment card and **Add credits** |
-| **Plans** | Compare plans and change your plan |
-| **Usage & History** | Credits remaining and usage history |
-| **MCP & Integrations** | Connector diagnostics |
+The tabs are in three groups.
+
+| Group | Tab | What it is for |
+|-------|-----|----------------|
+| **You** | **My access** | Your own roles in this workspace |
+| **You** | **Delegation** | Let someone else approve on your behalf |
+| **Workspace** | **General** | Workspace name, handle and ID, plus the danger zone |
+| **Workspace** | **Safe actions** | When agents must ask for approval and what they may say aloud during a conversation (see [Safe actions](#safe-actions)) |
+| **Workspace** | **CI sign-in** | Sign-in for CI systems (admins). These docs do not cover this tab yet. |
+| **Workspace** | **Team & Members** | Invites, members, sign-in policy and domain verification (admins) |
+| **Workspace** | **Audit log** | Admin actions: invites, membership, access policy and domain verification |
+| **Developers** | **API keys** | Keys for scripts, CI and integrations |
+| **Developers** | **Inbound webhooks** | Webhook subscriptions that start workflows |
+| **Developers** | **Principals** | End users who connected through Embedded Connect |
+| **Developers** | **Integrations** | Your own Google and TikTok OAuth apps, and connector diagnostics |
+
+Billing is not part of Settings. Open **Billing** in the sidebar for your plan, credits, card and usage. See [Billing and credits](/platform/billing-and-credits).
 
 ## General
 
@@ -46,15 +49,32 @@ To choose which project opens by default, use the project switcher. Open the **�
 
 ## API keys
 
-Open **Settings → API keys** and click **Create API key**. Copy the secret straight away, because it is shown only once. Revoke a key at any time from the same list. API keys are personal access tokens and work with the [API](/api/authentication) and [Platform MCP](/api/platform-mcp). Treat them like passwords.
+Open **Settings → API keys** and click **Create API key**. With no keys yet, the page says **No active API keys** and tells you to create one for scripts, CI or integrations that call the AgentRuntime API, and to copy the secret once, because it will not be shown again. Revoke a key at any time from the same list. API keys are personal access tokens and work with the [API](/api/authentication) and [Platform MCP](/api/platform-mcp). Treat them like passwords. The page calls them "secrets", which is a different thing from the **Secrets** page in the sidebar.
+
+A workspace **Member** sees the **Create API key** button too, together with the message "You don't have access to that. Ask a workspace admin if you need this permission." The click is refused.
 
 ## Inbound webhooks
 
-**Settings → Inbound webhooks** lists the webhook subscriptions in your workspace. You create a subscription from a workflow in Workflow Studio. See [Inbound webhooks](/integrations/inbound-webhooks).
+**Settings → Inbound webhooks** lists the webhook subscriptions in your workspace. You cannot create one here: the page only links to Workflow Studio. Open a workflow, click **Setup**, and add an inbound trigger on the **Inbound** tab. The page text says "Manage all webhooks in Operate". That page is now called **Runs**. See [Inbound webhooks](/integrations/inbound-webhooks).
 
 ## Principals
 
 **Settings → Principals** lists the end users of your own product who connected their accounts through Embedded Connect. Only workspace admins can see it. See [Embedded Connect](/integrations/embedded-connect).
+
+## Safe actions
+
+**Settings → Safe actions** controls how agents act while someone is talking to them: when they must ask for approval, and what they may say aloud. Agent authors can only tighten these rules for their own agent. The tab has:
+
+- **Money threshold**: changes above this amount need approval, even if they could be undone. Leave it empty for no limit. The page does not show a currency, so check it before you rely on a value.
+- **Tools that need two people**: add tool names. For these, one person asks and a second person approves.
+- **Allow spoken approvals**: when off, a change that cannot be undone, made during a call, waits for an approval outside the call.
+- **Allow personal data in a group call**.
+- **Approvers** and **Approver role** (**Workspace admins** by default).
+- **Discard** and **Save**.
+
+<Note>
+  These settings are about voice-call behaviour, such as "spoken approvals" and "group call". Voice is not available in production, so the tab is shown in every workspace for a feature you cannot use yet.
+</Note>
 
 ## My access and Delegation
 
@@ -65,7 +85,7 @@ Open **Settings → API keys** and click **Create API key**. Copy the secret str
 
 Admins use **Settings → Team & Members** to:
 
-- invite people by email and set their workspace role (**Member**, **Admin** or **Owner**)
+- invite people by email and set their workspace role (**Member**, **Admin** or **Owner**). The invite form is far down the page. The tab is one long page with about ten sections, all open at once.
 - group members into **Teams**, and create child workspaces under **Workspace hierarchy**
 - see current members, change roles and remove people
 - choose how people may join: **Allow self-serve signups**, **Require invites**, **Auto-join matching domains**
@@ -75,9 +95,21 @@ Admins use **Settings → Team & Members** to:
 
 [User management](/platform/user-management) walks through these tasks step by step.
 
+## Audit log
+
+**Settings → Audit log** lists admin actions in the workspace: invites, membership changes, access policy and domain verification. You can filter by **Action**, **Actor**, **From** and **To**, click **Refresh** and **Export CSV**. A row shows the action (for example **User assigned to workspace**), when it happened, the **Actor** and the **Target** (both as email addresses), and the raw details as JSON.
+
+<Warning>
+  **The Audit log does not record approvals, rejections, model changes or publishes.** It covers admin actions only. To see who approved or rejected a task, look at the run. A workspace **Member** can also open the Audit log.
+</Warning>
+
+## Integrations
+
+**Settings → Integrations** has a **Google OAuth application** card and a **TikTok OAuth application** card. Each lets you use your own OAuth client instead of AgentRuntime's: it shows a redirect URI to copy, **Display name**, **Client ID**, **Client secret** and a **Use workspace OAuth app** switch. The client secret is stored in the vault only. Below them, **MCP diagnostics** shows live checks for connectors: **MCP instances**, **MCP tool catalog** and **MCP connections**. The wording there mentions internal header names (`X-Tenant-Id`, `X-Project-Id`) and is meant for support. A workspace **Member** can see this tab without a role notice.
+
 ## Billing, Plans and Usage
 
-These three tabs manage credits and subscriptions. See [Billing and credits](/platform/billing-and-credits).
+Billing is its own page, **Billing**, in the sidebar. See [Billing and credits](/platform/billing-and-credits).
 
 ## Sign-in methods
 
@@ -85,7 +117,7 @@ People sign in to the Console with email and password (with email verification) 
 
 ## Secrets
 
-**Secrets** is in the sidebar under **Administration**. Every member can open it. It has up to four tabs, and you see only the ones you may use:
+**Secrets** is in the sidebar under **Admin**. Every member can open it. It has up to four tabs, and you see only the ones you may use:
 
 - **My secrets**: yours alone. Keep an API key or a password for your own agents and tools.
 - **Shared with me**: secrets other people chose to share with you.

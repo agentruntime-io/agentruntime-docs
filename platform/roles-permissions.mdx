@@ -24,6 +24,34 @@ A workspace email invite sets only the workspace role. It does not attach a proj
 
 In the API, the workspace admin role is called `tenant_admin`.
 
+### Role names in the Console and in these docs
+
+The Console labels the workspace role **Member**, **Admin** or **Owner**, and the project roles **Project admin**, **Contributor** and **Project viewer**. These docs use the role slugs when they describe permissions:
+
+| Console label | Role slug |
+|---|---|
+| **Admin** and **Owner** (workspace) | `tenant_admin` |
+| **Project admin** | `project_admin` |
+| **Contributor**. A workspace **Member** gets this role on public projects by default. | `project_contributor` |
+| **Project viewer** | `project_viewer` |
+
+<Note>
+  **You cannot easily make an existing member view-only.** On **Settings → Team & Members → Current members**, the role menu on a member's row offers only **Member**, **Admin** and **Owner**. **Project members** lists only people who already have an explicit project role, and has no **Add** button. The one place that attaches a project role is **Create user**, and that needs a DNS-verified workspace domain. So a colleague who accepts an email invite gets **Contributor** access to public projects, and the Console gives you no obvious way to lower it to **Project viewer**. If you need view-only access, make the project private and add people to it with the role you want, or ask support.
+</Note>
+
+## What a Member sees
+
+Pages that need more than a workspace **Member** role are handled in three different ways:
+
+| Page | What a **Member** sees |
+|---|---|
+| **Settings → Team & Members** and **CI sign-in** | The tabs are hidden. If you open `/settings?tab=team` by address, the Console quietly takes you to **General**, with no message. |
+| **Settings → General** | Read-only text: only workspace owners and tenant admins can change the workspace name or handle, and only workspace administrators can request workspace deletion. |
+| **Settings → API keys** | The page opens and **Create API key** is shown, with the message "You don't have access to that. Ask a workspace admin if you need this permission." A click on the button is then refused. |
+| **Settings → Integrations** | Fully visible, including the Google and TikTok OAuth application forms, with no role notice. Whether **Save** is refused was not tested. |
+| **Settings → Audit log** | Visible. It lists who was invited and by whom. |
+| **Billing** | Visible. **Add credits**, **Move credits** and **Add card** are disabled. See [Billing and credits](/platform/billing-and-credits#what-a-member-sees). |
+
 ## Project roles
 
 <CardGroup cols={3}>
@@ -50,7 +78,7 @@ In the API, the workspace admin role is called `tenant_admin`.
 | Delete workflows, agents and connections | | | ✓ |
 | Manage project members | | | ✓ |
 
-Changing a plan, adding credits and similar billing actions need a workspace **Admin** or **Owner**, not a project role. See [Billing and credits](/platform/billing-and-credits).
+Changing a plan, adding credits and similar billing actions need a workspace **Admin** or **Owner**, not a project role. A workspace **Member** can open **Billing**, but **Add credits**, **Move credits** and **Add card** are disabled for them. See [Billing and credits](/platform/billing-and-credits).
 
 ## Public and private projects
 

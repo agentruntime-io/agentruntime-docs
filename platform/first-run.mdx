@@ -32,9 +32,28 @@ After that, **Overview** shows your workspace's metrics instead. To come back to
     **You should see:** each step turn green as it finishes, and the run's events in the panel under the canvas.
   </Step>
   <Step title="Answer the task, if the run asks for one">
-    Some recipes wait for a person. The panel under the canvas then shows the task with its buttons, and the task also appears in [Command Center](/workflows/command-center). Answer it in either place and the run carries on.
+    Some recipes wait for a person. You can answer in either of two places, and the run carries on after either:
+
+    - **In Studio.** The panel under the canvas shows the task with **Approve** and **Reject** buttons. Click **View Draft a reply** next to them to read the reply the AI wrote.
+    - **In Command Center.** The task also appears there, with a badge on **Command Center** in the sidebar. See [Command Center](/workflows/command-center).
+
+    <Warning>
+      **Command Center does not show the reply.** Its row and side panel only say **Approve this reply**. To read the draft before you decide, click **Open in Studio**, or answer from the panel under the canvas in Studio.
+    </Warning>
   </Step>
 </Steps>
+
+<Frame caption="The run paused in Studio, with Approve and Reject at the bottom">
+  <img src="/images/workflows/studio-run-waiting-for-approval.png" alt="Workflow Studio with the run paused: Draft a reply shows Success, Approve the reply shows Running and Mark it sent shows Pending. Under the canvas an orange bar reads Run paused, 1 approval waiting, with an Approve button and a Reject button" />
+</Frame>
+
+<Frame caption="The same task in Command Center">
+  <img src="/images/workflows/command-center-approval-row.png" alt="Command Center with the counters 1 Needs you, 0 Missed, 1 In progress and 0 Issues today, and one row, Approve before it goes out, labelled Approval, with the line Approve this reply and the buttons View, Approve and Reject" />
+</Frame>
+
+<Note>
+  While a run waits for approval, Studio shows the step as **Running**, the run as **Paused**, and the bar under the canvas says **1 approval waiting**. These all mean the same thing: the run is waiting for you. The **Resume** button in the toolbar is not the way to answer. Use **Approve** or **Reject**.
+</Note>
 
 | Recipe | What it does | What you do |
 |---|---|---|
@@ -44,6 +63,14 @@ After that, **Overview** shows your workspace's metrics instead. To come back to
 
 <Frame caption="Approve before it goes out, waiting for approval">
   <img src="/images/platform/get-started-recipe-approval.png" alt="Workflow Studio with the three steps Draft a reply (Success), Approve the reply (Running) and Mark it sent (Pending), and under the canvas the bar Run paused, 1 approval waiting, with Approve and Reject buttons" />
+</Frame>
+
+<Warning>
+  **A rejected approval ends the run as Success.** If you click **Reject** on **Approve the reply**, **Mark it sent** does not run, so nothing is "sent". The run still finishes with a green **Success** in **Runs** and in Studio, and **Analytics** counts it as a success. What happens after a rejection is set by the **When rejected** setting on the Human step. See [Human tasks](/workflows/human-tasks).
+</Warning>
+
+<Frame caption="A rejected run in Studio">
+  <img src="/images/workflows/studio-rejected-run.png" alt="Workflow Studio showing a finished run: Draft a reply is marked Success, Approve the reply is marked Skipped and Mark it sent is marked Skipped, and the run chip at the top left reads Success" />
 </Frame>
 
 A recipe is an ordinary workflow. Change its steps, its prompt or its sample input as you like. [Workflow Studio](/workflows/studio) shows how.
@@ -102,6 +129,12 @@ Both recipes run on a schedule, and a schedule runs with an API key from **Setti
 - If your workspace already has an active key that can run workflows, the recipe uses it without asking.
 - If not, the Console asks **Create an API key for schedules?** Click **Create key and continue** to create a key named **Schedules** and finish the setup. The key can read and run workflows and call their tools. **Cancel** stops without creating anything.
 - If you are not allowed to create API keys, you see **This recipe needs an API key**. Ask a workspace admin to create one, or to start the recipe for you.
+
+## Double-clicking Run starts two runs
+
+Clicking **Run** twice quickly starts two runs in the same second, and each one creates its own approval task. Click **Run** once and wait. If you started two by accident, reject or stop the extra one.
+
+{/* TODO screenshot: Command Center with two identical approval rows after a double-click on Run (needs a fresh capture; the two rows look the same and show no time) */}
 
 ## Other ways to start
 

@@ -1,0 +1,85 @@
+---
+title: Invite a teammate
+sidebarTitle: Invite a teammate
+description: Invite someone to your workspace, share the invite link, and accept the invite. Includes the extra Accept step in the workspace switcher and what each role can see.
+---
+
+You invite people from **Settings → Team & Members**. The person you invite must accept the invite in the Console before they are in your workspace.
+
+**Who this is for:** workspace owners and admins who add colleagues. To manage members later, see [User management](/platform/user-management).
+
+## Send the invite
+
+<Steps>
+  <Step title="Open Team & Members">
+    Open **Settings** and click **Team & Members**. Members who are not admins do not see this tab.
+  </Step>
+  <Step title="Enter the email and pick a role">
+    Type the person's email address. Leave **Workspace role** on **Member**, or choose another role (see below). Click **Invite to workspace**.
+
+    **You should see:** a new row under **Pending invites** with the email, a **Pending** badge, the role, "Invited less than a minute ago", and "Expires in 2 days". The row has **Copy link** and **Delete**.
+  </Step>
+  <Step title="Share the link if the email does not arrive">
+    Click **Copy link** and send the link yourself. It is tied to the invited email address. Click **Delete** to cancel the invite.
+  </Step>
+</Steps>
+
+<Note>
+  The invite form has two buttons that look alike. **Invite to workspace** sends an invite to any email address. **Create user** creates the account for the person, and needs a workspace domain you have verified. If you do not have a verified domain, use **Invite to workspace**.
+</Note>
+
+{/* TODO screenshot: Pending invites row with Copy link and Delete */}
+
+## Accept the invite (the invited person)
+
+Opening the link does not add you to the workspace. You must also accept the invite in the workspace switcher.
+
+<Steps>
+  <Step title="Open the link">
+    You see **You're almost in**, the workspace handle, **Valid**, an expiry date, and **Join workspace**. The page does not name who invited you or the role.
+  </Step>
+  <Step title="Click Join workspace">
+    If you already have a workspace, the Console opens the **Overview** of that workspace and shows no message. This is expected, but you are not yet in the new one.
+  </Step>
+  <Step title="Open the workspace switcher and click Accept">
+    Open the workspace switcher. Under **Invites** you see the workspace with an **Accept** button. Click it.
+
+    **You should see:** the switcher now shows the new workspace as active, with its default project.
+  </Step>
+</Steps>
+
+<Warning>
+  **Join workspace** does not complete the join. If a colleague says the link did nothing, ask them to open the workspace switcher and click **Accept** under **Invites**. The invite expires after 2 days, so ask for a new one if it is too late.
+</Warning>
+
+## Roles in the invite form
+
+The **Workspace role** list offers three roles:
+
+| Role in the Console | What it means |
+|---|---|
+| **Member** | The default. Members join public projects at the default contributor role (`project_contributor`). |
+| **Admin** | Manages the workspace, for example members and settings. |
+| **Owner** | Full control. A workspace needs at least one owner. |
+
+The documentation's four role slugs (`tenant_admin`, `project_admin`, `project_contributor`, `project_viewer`) are broader than what the Console offers. The Console does not let you make an existing member view-only (`project_viewer`). See [Roles and permissions](/platform/roles-permissions).
+
+## What a Member sees
+
+A member can use the Console, but some pages behave differently:
+
+| Area | What a Member sees |
+|---|---|
+| **Settings** | **Team & Members** and **CI sign-in** are hidden. A direct link to a hidden tab sends the member to **General**, without a message. |
+| **Settings → General** | Read-only: "Only workspace owners and tenant admins can change the workspace name or handle." |
+| **Settings → API keys** | The **Create API key** button is shown, but the page says "You don't have access to that. Ask a workspace admin if you need this permission." |
+| **Settings → Integrations** | Visible. The Google and TikTok sign-in setup forms can be opened. |
+| **Billing** | Visible, including plan, balances, history, and who is billed. **Add credits**, **Move credits**, and **Add card** are disabled. Hover to read "Billing admin permission required". |
+| **Audit log** | Visible. It lists who was invited and by whom. |
+
+## Next steps
+
+- [User management](/platform/user-management)
+- [Roles and permissions](/platform/roles-permissions)
+- [Settings](/platform/settings)
+- [Your profile and account](/platform/your-profile-and-account): you need another owner before you can delete your account.

@@ -18,27 +18,31 @@ Press **Ctrl+K** (**Cmd+K** on a Mac) on any page in the Console. A search box o
     Press **Ctrl+K** (**Cmd+K** on a Mac).
   </Step>
   <Step title="Type to find a page">
-    Type part of a page name, its short description, or its path, for example `operate`. If nothing matches, the palette says "No matching page".
+    Type part of a page name, its short description, or its path, for example `runs`. If nothing matches, the palette says "No matching page".
   </Step>
   <Step title="Open it">
     Use the up and down arrow keys to move, then press **Enter**. Press **Esc** to close the palette without going anywhere. Pressing **Ctrl+K** (**Cmd+K**) again also closes it.
   </Step>
 </Steps>
 
-The palette lists pages only. It has the same pages as the Console sidebar, in the same groups, plus **Profile**:
+The palette lists pages only. It has the same pages as the Console sidebar, in the same groups, plus a **More** group:
 
 | Group | Pages |
 |---|---|
-| **Core** | **Overview**, **Command Center**, **Workflow Studio**, **Agents**, **Apps**, **Operate**, **Work** |
-| **Integrations** | **MCP**, **Hosted apps**, **Connections**, **Databases**, **Storage**, **Models**, **Marketplace**, **Tools** |
-| **Administration** | **Secrets**. Every member sees it; what is inside depends on your role. |
-| **Workspace** | **Analytics**, **Settings** |
-| **Account** | **Profile** |
+| No heading | **Overview**, **Command Center** |
+| **Build** | **Workflows**, **Agents**, **Apps**, **Marketplace** |
+| **Run** | **Runs**, **Analytics** |
+| **Connect** | **MCP**, **Hosted apps**, **Connections**, **Models**, **Tools** |
+| **Data** | **Databases**, **Storage**, plus **Knowledge**, **Memory** and **Sync** marked **Soon** in the sidebar (not listed in the palette until they are live) |
+| **Admin** | **Secrets**, **Billing**, **Settings**. **Secrets** shows only when you have access to it; what is inside depends on your role. |
+| **More** | **Work**, and **Referrals** when the referral program is on for your workspace |
 
-**Workflow Studio** opens the last workflow you opened in this browser tab, or the workflow list if you have not opened one. The palette does not search inside pages, so it cannot find a single workflow, run or agent by name.
+Which pages appear depends on what is turned on for your workspace.
+
+**Workflows** opens the last workflow you opened in this browser tab, or the workflow list if you have not opened one. The palette does not search inside pages, so it cannot find a single workflow, run or agent by name.
 
 <Frame caption="The command palette (Ctrl+K)">
-  <img src="/images/platform/command-palette.png" alt="The command palette with a Search pages and go box and the Core pages listed: Overview, Command Center, Workflow Studio, Agents, Apps, Operate and Work, with navigate, open, close and Ctrl K toggle hints" />
+  <img src="/images/platform/command-palette.png" alt="The command palette with a Search pages and go box and the Core pages listed: Overview, Command Center, Workflow Studio, Agents, Apps, Operate and Work (the screenshot predates the current sidebar groups), with navigate, open, close and Ctrl K toggle hints" />
 </Frame>
 
 ## Workflow Studio shortcuts
@@ -127,9 +131,9 @@ https://console.agentruntime.io/workflow/<workflow-id>?run=<run-id>&tab=timeline
 
 Without `tab`, Command Center opens on the first list that has something in it.
 
-### Operate links
+### Runs links
 
-Links to [Operate](/platform/operate) can carry a tab and filters. The quickest way to get one is to set the filters on the page and click **Copy link**. To build one by hand, start from:
+Links to the [Runs](/platform/operate) page can carry a tab and filters. The quickest way to get one is to set the filters on the page and click **Copy link**. To build one by hand, start from:
 
 ```
 https://console.agentruntime.io/operate
@@ -138,7 +142,7 @@ https://console.agentruntime.io/operate
 | Setting | Values | What it does |
 |---|---|---|
 | `tab` | `runs`, `schedules`, `webhooks` | Opens that tab. Without it, **Runs** opens. |
-| `project_id` | A project ID | Filters to that project. Without it, Operate opens on the project picked in the sidebar. |
+| `project_id` | A project ID | Filters to that project. Without it, the Runs page opens on the project picked in the sidebar. |
 | `status` | A list of run statuses separated by commas (see below) | Sets the **Status** filter on the **Runs** tab |
 | `workflow_id` | A workflow ID | Sets the **Workflow** filter |
 | `agent_id` | An agent ID | Sets the **Agent** filter |
@@ -167,7 +171,7 @@ https://console.agentruntime.io/operate?tab=runs&status=failed,stopped,cancelled
 
 | Page | Link | What it does |
 |---|---|---|
-| **Settings** | `/settings?tab=<tab>` | Opens a tab of [Settings](/platform/settings). Values: `general`, `apiKeys`, `inboundWebhooks`, `principals`, `access`, `delegation`, `team`, `audit`, `billing`, `plans`, `usage`, `mcp`. They match **General**, **API keys**, **Inbound webhooks**, **Principals**, **My access**, **Delegation**, **Team & Members**, **Audit log**, **Billing Overview**, **Plans**, **Usage & History** and **MCP & Integrations**. |
+| **Settings** | `/settings?tab=<tab>` | Opens a tab of [Settings](/platform/settings). Values: `general`, `safeActions`, `ciSignIn`, `team`, `audit`, `access`, `delegation`, `apiKeys`, `inboundWebhooks`, `principals`, `integrations`. They match **General**, **Safe actions**, **CI sign-in**, **Team & Members**, **Audit log**, **My access**, **Delegation**, **API keys**, **Inbound webhooks**, **Principals** and **Integrations**. Billing has its own page: `/billing?tab=plans` and `/billing?tab=usage` open **Plans** and **Usage**, and `/billing` opens **Overview**. Old `/settings?tab=billing`, `plans` and `usage` links redirect there. |
 | **Connections** | `/connections?connection=<connection-id>` | Opens the details of that connection. The Console adds this to the address when you open a connection. If the ID is not in this workspace, you see "Connection not found". |
 | **MCP** | `/mcp?instance=<instance-id>` | Opens the details panel of that MCP instance. The Console adds this to the address when you open an instance. |
 | **Work** | `/work?task=<task-id>` or `/work?file=<file-id>` | Selects that task, or that file. Selecting one clears the other. |
@@ -182,12 +186,12 @@ In these links, put `https://console.agentruntime.io` in front of the path. The 
 | **Delete** does nothing on the canvas | Click the step first so it is selected, and make sure your cursor is not in a text box. **Backspace** never deletes a step. |
 | A Studio link opens on **Events**, not the tab you chose | Check that `tab` is one of `events`, `timeline`, `context`, `logs` or `dryrun`. |
 | A Command Center link with `run_id` opens the normal page | The run has no task waiting. The link opens the **View** panel only for runs that wait for a person. |
-| The **Status** filter looks blank after you open an Operate link | The `status` value does not match a choice in the table above. The filter still applies. |
+| The **Status** filter looks blank after you open a Runs link | The `status` value does not match a choice in the table above. The filter still applies. |
 | A link says an item was not found | The item may belong to another workspace, or someone deleted it. The person who opens the link needs access to the workspace and project. |
 
 ## Next steps
 
 - [Workflow Studio](/workflows/studio): the canvas, undo and redo, and the run view
-- [Operate](/platform/operate): runs, schedules and webhooks across the workspace
+- [Runs](/platform/operate): runs, schedules and webhooks across the workspace
 - [Command Center](/workflows/command-center): answer tasks and control runs
 - [Settings](/platform/settings): a tour of every Settings tab

@@ -57,9 +57,11 @@
         "expanded": true,
         "pages": [
           "introduction/what-is-agentruntime",
+          "platform/sign-up-and-verify",
           "platform/first-run",
           "platform/quickstart",
-          "platform/key-concepts"
+          "platform/key-concepts",
+          "platform/console-tour"
         ]
       },
       {
@@ -79,6 +81,18 @@
           "platform/shortcuts-and-links",
           "platform/limits",
           "platform/troubleshooting"
+        ]
+      },
+      {
+        "group": "Account",
+        "icon": "user",
+        "expanded": true,
+        "pages": [
+          "platform/your-profile-and-account",
+          "platform/dark-theme-and-preferences",
+          "platform/notifications-and-credits-panel",
+          "platform/invite-a-teammate",
+          "platform/phone-and-tablet"
         ]
       },
       {
@@ -106,13 +120,18 @@
         "expanded": true,
         "pages": [
           "workflows/build-your-first-workflow",
+          "workflows/create-a-workflow",
           "workflows/studio",
           "workflows/step-types",
           "workflows/how-runs-execute",
           "workflows/template-intellisense",
           "workflows/lua",
           "workflows/dry-run",
+          "workflows/dry-run-before-publish",
           "workflows/run-setup",
+          "workflows/variables-and-inputs",
+          "workflows/share-a-workflow",
+          "workflows/run-from-code",
           "workflows/external-triggers",
           "workflows/trigger-run-identity",
           "workflows/command-center",

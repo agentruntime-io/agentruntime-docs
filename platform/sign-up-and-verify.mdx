@@ -1,0 +1,83 @@
+---
+title: Sign up and verify your email
+sidebarTitle: Sign up and verify
+description: Create your AgentRuntime account, confirm your email, sign in a second time, and name your first workspace.
+---
+
+Creating an account takes a few minutes. You confirm your email, sign in once more, and name your workspace. This page walks through the screens in the order you see them.
+
+**Who this is for:** anyone creating a new AgentRuntime account with an email address.
+
+<Note>
+  This page describes the sequence as it works on 2026-11-19. The email confirmation uses a separate sign-in screen, and you sign in twice. Expect the screens to change as the sign-up flow is simplified.
+</Note>
+
+## Steps
+
+<Steps>
+  <Step title="Create your account">
+    Go to the [Console](https://console.agentruntime.io) and create an account with your email address and a password.
+
+    {/* TODO verify on a throwaway account: the exact message shown after Create Account was not captured in the 2026-11-19 sweep. */}
+    **You should see:** a confirmation email arrive in your inbox.
+  </Step>
+  <Step title="Open the confirmation email">
+    Open the email with the subject **Finish setting up your AgentRuntime account** and click **Continue**. If the button does not work, copy the link printed under it into your browser.
+
+    **You should see:** a sign-in page that looks different from the rest of the Console. This is the account service that confirms your email.
+  </Step>
+  <Step title="Click through the three confirmation screens">
+    After **Continue**, you see these screens in turn:
+
+    1. A page headed **Perform the following action(s)**. It does not mention your email. Continue.
+    2. A page that says **Account updated** with **You're all set**. It shows both **Continue to AgentRuntime** and a **Redirecting...** message. You can click the button or wait.
+    3. A Console page that says **Email verified** with **Go to sign in**.
+
+    **You should see:** **Email verified**. Your account is confirmed, but you are not signed in yet.
+  </Step>
+  <Step title="Sign in again">
+    Click **Go to sign in** and sign in with the email and password you just created.
+
+    **You should see:** the onboarding page, with a step badge that reads **2 Workspace**. There is no step 1 badge.
+  </Step>
+  <Step title="Name your workspace">
+    Under **Workspace**, check the workspace name. The field shows a name taken from your email address as a grey placeholder. The Console creates the workspace with this name, so type your own if you prefer.
+
+    Click the button to continue. The button reads **Provisioning...** while the workspace is set up, and the page may already say **Workspace created** with **Opening your dashboard...**.
+
+    **You should see:** the Console **Overview** with the **Get started** recipes and a product tour. The welcome line shows your username and your role, for example **project admin**.
+  </Step>
+</Steps>
+
+## What each screen is for
+
+| Screen | What it does |
+|---|---|
+| Confirmation email | Proves the address is yours. The link works from any browser. |
+| **Perform the following action(s)** | The account service finishing the email check. |
+| **Account updated** | Confirms the check. You can wait for **Redirecting...** or click **Continue to AgentRuntime**. |
+| **Email verified** | Returns you to the Console. You must sign in here. |
+| Onboarding **Workspace** | Creates your first [workspace](/platform/key-concepts) and a default project. |
+
+<Warning>
+  The confirmation pages are on a separate sign-in service, and they can show the name of the environment instead of the Console branding. You are on the right page if you arrived from the link in your AgentRuntime email.
+</Warning>
+
+{/* TODO screenshot: the Email verified page with Go to sign in, taken on a throwaway account */}
+{/* TODO screenshot: the onboarding Workspace step */}
+
+## If something goes wrong
+
+| Problem | What to try |
+|---|---|
+| No email arrives | Check your spam folder. The sender is shown as **AgentRuntime**. |
+| The link in the email does nothing | Copy the long link under the **Continue** button into your browser. |
+| You land on **Go to sign in** and do not know what to do | This is expected. Sign in with the email and password you chose. |
+
+For other sign-in problems, see [Troubleshooting](/platform/troubleshooting).
+
+## Next steps
+
+- [Run your first workflow](/platform/first-run): a working workflow in about a minute.
+- [Console tour](/platform/console-tour): what every sidebar item does.
+- [Your profile and account](/platform/your-profile-and-account): change your username and password.

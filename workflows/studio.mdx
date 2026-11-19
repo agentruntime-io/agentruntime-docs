@@ -20,16 +20,26 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
 
 <Steps>
   <Step title="Create the workflow">
-    In the Console sidebar, open **Workflow Studio**, then click **Create workflow**. If Studio opens the last workflow you worked on instead of the list, click the back arrow in the toolbar (**Back to all workflows**) first. The **Find a workflow recipe** dialog opens. Type a name in **Workflow name** if you want one, then click **Blank canvas** for an empty canvas (or pick a recipe to start from).
+    In the Console sidebar, open **Workflows**, then click **Create workflow**. If Studio opens the last workflow you worked on instead of the list, click the back arrow in the toolbar (**Back to all workflows**) first. The **Find a workflow recipe** dialog opens. Type a name in **Workflow name** if you want one, then click **Blank canvas** for an empty canvas (or pick a recipe to start from).
 
-    You should see the canvas, a toolbar along the top, and a green chip that reads **Live** with a "saved" time.
+    You should see the canvas, a toolbar along the top, and a green chip that reads **Live** with a "saved" time. **Live** is the copy you are editing, not a sign that the workflow is in use. See [Live copy and published versions](#live-copy-and-published-versions).
+
+    On a blank canvas, a card asks **What should this workflow do?** with a text box, a **Build it** button, example chips (**Draft → approve → send**, **Summarize and notify**, **Simple 2-step starter**) and an **or pick a recipe** link.
+
+    <Warning>
+      **The Copilot cannot add steps to the canvas yet.** **Build it** and the example chips send your sentence to the Copilot in the chat panel. In testing, the canvas stayed empty: the Copilot answered with a plan to follow by hand, and in one case it left the canvas for the workflow list. An example chip sends its text straight away instead of putting it in the box. To get steps on the canvas, drag them from the palette or pick a recipe.
+    </Warning>
+
+    <Frame caption="A recipe workflow open in Studio, before its first run">
+      <img src="/images/workflows/studio-new-recipe.png" alt="Workflow Studio with the recipe Approve before it goes out: the toolbar shows History, a green Live saved 11s ago chip, 3 nodes, Publish, Share, Setup, Run and Dry-run, the palette on the left lists eight built-in steps, and the canvas shows Draft a reply, Approve the reply and Mark it sent, all Pending, with No runs yet in the run panel" />
+    </Frame>
 
     <Frame caption="Workflow Studio with a workflow open: toolbar on top, step palette on the left, canvas in the middle, run panel at the bottom">
       <img src="/images/workflows/studio-overview.png" alt="Workflow Studio showing the toolbar with Publish, Share, Setup, Run and Dry-run, the step palette on the left, a three-step workflow on the canvas, and the run panel with the Events, Timeline, Context, Full Logs and Dry Run tabs at the bottom" />
     </Frame>
   </Step>
   <Step title="Add steps">
-    Add steps from the step palette and drag them onto the canvas. The palette has three sections. **Built-in** lists the step types: **Agent**, **External agent (Cursor Cloud)**, **For each**, **Human**, **LLM**, **Lua**, **While** and **Workflow**. Tools from your connected integrations are listed under **Platform connectors** and **Hosted apps**. To add a connector, click **Browse connectors** above the list. An empty section also shows its own button, **Browse platform connectors** or **Browse hosted apps**. See [Step types](/workflows/step-types) for what each built-in step does.
+    Add steps from the step palette and drag them onto the canvas. (A single click also adds a step, but it always lands in the same spot, so several clicks stack steps on top of each other. Drag them apart or click **Auto layout**.) The palette has three sections. **Built-in** lists the step types: **Agent**, **External agent (Cursor Cloud)**, **For each**, **Human**, **LLM**, **Lua**, **While** and **Workflow**. Tools from your connected integrations are listed under **Platform connectors** and **Hosted apps**. To add a connector, click **Browse connectors** above the list. An empty section also shows its own button, **Browse platform connectors** or **Browse hosted apps**. See [Step types](/workflows/step-types) for what each built-in step does.
 
     <Frame caption="The step palette">
       <img src="/images/workflows/studio-palette.png" alt="The step palette with a search box and Browse connectors, the Built-in section listing Agent, External agent (Cursor Cloud), For each, Human, LLM, Lua, While and Workflow, then empty Platform connectors and Hosted apps sections with Browse buttons" />
@@ -39,22 +49,107 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
     Draw a line from one step to the next. A step starts when the steps it depends on have finished. Steps that do not depend on each other run at the same time.
   </Step>
   <Step title="Fill in each step">
-    Click a step to open its settings. To use data from an earlier step or from the run's start input, type `{{` and pick a suggestion. See [Template intellisense](/workflows/template-intellisense).
+    Click a step to open its settings. To use data from an earlier step or from the run's start input, type `{{` and pick a suggestion. See [Template intellisense](/workflows/template-intellisense) and [Variables panel](#variables-panel).
   </Step>
   <Step title="Dry-run it">
     Click **Dry-run** in the toolbar. A dry-run checks the workflow without calling any tool or model. Results appear in the **Dry Run** tab of the run panel at the bottom. See [Dry-run validation](/workflows/dry-run).
+
+    <Warning>
+      **A dry-run does not execute anything, but the canvas shows every step as Success.** The green **Success** badges after a dry-run look the same as after a real run. Nothing ran and nobody was asked to approve. The proof is in the **Dry Run** tab: it reads **Dry-run passed** with **no issues** and the time, and lists the checks performed (graph, step config, Lua syntax, step types, agent settings, MCP resolve, dependencies, skip conditions, MCP bindings, tool catalog and templates). **Copy report** and **JSON** copy the result. Run a dry-run before you publish.
+    </Warning>
   </Step>
   <Step title="Set the starting input (optional)">
-    Click **Setup** to open **Workflow setup**. On the **Manual** tab, choose where the run starts and type the input values. See [Run setup](/workflows/run-setup).
+    Click **Setup** to open **Workflow setup**. See [The Setup dialog](#the-setup-dialog) below and [Run setup](/workflows/run-setup).
   </Step>
   <Step title="Run it">
-    Click **Run**. Studio saves your latest edits first, then starts a run of your **Live** copy. Watch the steps in the **Events** and **Timeline** tabs of the run panel.
+    Click **Run**. Studio saves your latest edits first, then starts a run of your **Live** copy. Watch the steps in the **Events** and **Timeline** tabs of the run panel. Click **Run** once and wait: a double-click starts two runs in the same second, and any approval step then creates two tasks.
   </Step>
 </Steps>
 
 <Note>
   You do not have to publish to run or test. Studio saves your edits automatically, and **Run** always runs the latest saved edits. Publish when you want a frozen copy that does not change.
 </Note>
+
+## The Setup dialog
+
+Click **Setup** to open **Workflow setup**. The list on the left, headed **TRIGGERS**, shows the seven ways a workflow can start:
+
+| Tab | Shown as | What it is for |
+|---|---|---|
+| **Manual** | Defaults & Run | The values a **Run** from Studio sends |
+| **Inbound** | Webhooks | Start from a web address other tools call |
+| **Events** | Platform | Start when something happens in AgentRuntime |
+| **Cron** | Schedules | Start on a schedule |
+| **Sessions** | Per conversation | Start per customer conversation |
+| **API** | PAT Run | Start with an API key |
+| **Apps** | Used by | The apps that use this workflow |
+
+On **Manual**, from the top:
+
+- **Run target** and **Run as** choose who the run is for. **Workspace** is one run for the whole workspace. **Principal** and **segment** target your embedded end users. **Team** starts one run for each Console team member.
+- **Entry step** is the step the run starts at.
+- **Starting input** lists fields such as `prompt` and `system_prompt`, with their type and where the value comes from (**From step** or **Saved default**).
+- **Shared input** holds the values for `{{input.*}}` in your step templates. In the **Approve before it goes out** recipe, `customer` and `message` are here. To try a different sample, change them here, even though the big text field is under **Starting input**. Scroll down to find them.
+- **Extra keys** with **+ Add field** adds more inputs.
+
+The footer has **Preview JSON**, **Cancel** and **Save defaults**. **Save defaults** only prefills the form. The dialog has no **Run** button: close it and click **Run** in the toolbar. After you add some steps, the **Setup** button can turn orange to say the workflow needs attention, without saying why.
+
+Studio calls the same inputs **Starting input** and **Shared input** here, and **Start inputs** in the [Variables panel](#variables-panel). They all feed `{{input.*}}`.
+
+<Frame caption="The Manual tab of Workflow setup, top">
+  <img src="/images/workflows/studio-setup-dialog.png" alt="The Workflow setup dialog over the Approve before it goes out workflow. The TRIGGERS list on the left shows Manual (Defaults and run), Inbound (Webhooks), Events (Platform), Cron (Schedules), Sessions (Per conversation), API (PAT run) and Apps (Used by). On the right are the note Saved defaults prefill this form only, Run target, Run as set to Workspace, Entry step Draft a reply, and Starting input with prompt and system_prompt, then a Shared input heading cut off at the bottom. Preview JSON, Cancel and Save defaults are in the footer" />
+</Frame>
+
+<Frame caption="Scroll down to find Shared input">
+  <img src="/images/workflows/studio-setup-dialog-inputs.png" alt="The same Workflow setup dialog scrolled down: Starting input with prompt (string, From step) and system_prompt (string), then Shared input with customer (string, Saved default) set to Priya Nair and message (string, Saved default) holding the customer's complaint about order 4821, then Extra keys with an Add field button" />
+</Frame>
+
+
+## Step settings
+
+Click a step to open its settings on the right. An **llm** step shows:
+
+- **Model**, with a note such as **Billing: Platform default** and a **Model details** link.
+- **Temperature**: randomness from 0 to 2. Lower is more focused, higher is more creative. The recipe uses 0.7.
+- **Max output tokens**: the upper bound on the reply length, 1 to 128,000. Large values can slow runs and increase cost. The recipe uses 1024.
+- **Prompt**: the task text. It supports `{{steps.*}}` and `{{input.*}}` templates. Under it, Studio counts the variables it found, and the `(x)` button inserts one.
+- **System prompt (optional)**.
+
+Studio saves a change within about a second. **Save** stays greyed out and the chip reads **Live · saved just now**.
+
+<Frame caption="Step settings for the Draft a reply step">
+  <img src="/images/workflows/studio-step-settings-llm.png" alt="Workflow Studio with the Draft a reply step selected. The right panel shows the model GPT-4o mini with Billing: Platform default, Temperature 0.7, Max output tokens 1024 and the prompt text with two variables detected" />
+</Frame>
+
+### Choose a model
+
+The **Model** list opens a picker with **Platform** and **Workspace** switches, a search box, and a **Browse** column (**Featured**, **All**, **OpenAI**, **Anthropic**, **Google**, **Google Gemini**, **Meta**, **Mistral**). **Platform** uses AgentRuntime's models and bills your credits. **Workspace** uses your own provider keys. See [LLM providers](/ai/llm-providers).
+
+The list shows names such as **GPT-6 Astra**, **GPT-6.1 Sol**, **Gemini 4 Argon** and **Claude Fable 5.1**, without a description, speed or price. A warning triangle next to a model means your workspace has no account for the selected source.
+
+<Note>
+  New recipes use **GPT-4o mini** by default. In testing, that model was recorded but not charged, so the credits panel showed no AI cost. **Claude Haiku 5.5** had a price, so using it did use credits. The credits panel shows whole cents, so a very small cost can read **$0.00**. See [Billing and credits](/platform/billing-and-credits).
+</Note>
+
+<Frame caption="The model picker">
+  <img src="/images/workflows/studio-model-picker.png" alt="The Model list open on Draft a reply, with Platform and Workspace switches, a search box, a list of models with GPT-4o mini ticked and warning triangles on three Gemini models, and a Browse column from Featured to Mistral" />
+</Frame>
+
+### Read a step's output
+
+After a run, click **View** next to the step name in the bar under the canvas (for example **View Draft a reply**) to read what the step produced. The dialog shows the status, the model and the time taken, and **Source**, **Markdown** and **Html** tabs, with **Copy**.
+
+<Frame caption="The output of the Draft a reply step">
+  <img src="/images/workflows/studio-step-output-dialog.png" alt="A dialog titled Draft a reply, marked Completed with the model gpt-4o-mini and 3193 ms, with Source, Markdown and Html tabs, a Copy button, and the text of a reply addressed to Priya" />
+</Frame>
+
+### Variables panel
+
+**Variables** opens **Variable reference**, with a search box and three groups:
+
+- **Start inputs**: the inputs the workflow starts with, each with its type and template path such as `{{input.customer}}`, and a copy button. You can add one here.
+- **Run context**: read-only run details in `{{run.*}}` templates and Lua scripts: `run_id`, `external_id`, `external_user_id`, `principal_id`, `segment_id`, `user_id`, `trigger_type` and `started_at`.
+- **Connection context**: the resolved connection identity in `{{connection.*}}` templates and Lua, filled in at run start.
 
 ## Work on the canvas
 
@@ -131,6 +226,10 @@ Each place that starts a workflow can choose what to run: **Live**, **Last publi
 
 A run that has already started keeps the version it started with. Later edits never change a run in progress.
 
+<Note>
+  **The toolbar badge `Live` means "the copy you are editing", not "in production".** A chip such as **Live · saved 10s ago** appears as soon as Studio auto-saves an edit, and a workflow you have never published shows it too. Nothing is published, shared or used by anyone else until you **Publish**. History says it directly: **Live** is the copy you edit, **Studio Run** and anything set to **Live** use it, and publishing freezes Live as a numbered version that never changes.
+</Note>
+
 ### Publish a version
 
 <Steps>
@@ -138,7 +237,7 @@ A run that has already started keeps the version it started with. Later edits ne
     Click **History** in the toolbar (in a narrow window it is an icon). It has two tabs, **Live revisions** and **Published versions**, and a **Publish…** button. The **Publish** button in the toolbar opens the same dialog directly.
   </Step>
   <Step title="Publish">
-    Click **Publish…**, add a note such as "Added the refund check" if you like, and click **Publish vN**.
+    Click **Publish…**, add a note such as "Added the refund check" if you like, and click **Publish vN**. The dialog reads **Publish vN**: it freezes Live as that version, a published version never changes, and Live stays editable. Anything set to run Live, including Studio **Run**, keeps running Live.
 
     <Frame>
       <img src="/images/workflows/studio-history.png" alt="The History dialog with Live revisions and Published versions tabs, Catalog package… and Publish… buttons, and a list of revisions with Restore buttons" />
@@ -148,9 +247,22 @@ A run that has already started keeps the version it started with. Later edits ne
   </Step>
 </Steps>
 
+<Frame caption="The History dialog">
+  <img src="/images/workflows/studio-history-dialog.png" alt="The History dialog. Its intro reads Live is the copy you edit: Studio Run and anything set to Live run it. Publishing freezes Live as a numbered version that never changes. Under it are the tabs Live revisions and Published versions and two buttons, Catalog package and Publish. The note says saves are grouped into revisions and restoring copies a revision into Live as a new revision, so nothing is lost. Three rows follow: Rev 3 Current from Studio, Rev 2 from API with a Restore button, and Rev 1 Before History started with a Restore button" />
+</Frame>
+
+<Frame caption="Published versions before the first publish">
+  <img src="/images/workflows/studio-history-published.png" alt="The History dialog on the Published versions tab. It says No published versions yet and explains that runs use Live until you publish, and that Publish freezes Live as v1 while callers set to last published keep running it as you keep editing" />
+</Frame>
+
+<Frame caption="The Publish dialog">
+  <img src="/images/workflows/studio-publish-dialog.png" alt="The Publish v1 dialog. It says Freezes Live as v1, a published version never changes, Live stays editable, and anything set to run Live, including Studio Run, keeps running Live. It has an optional Note box with the placeholder What changed in this version, a Cancel button and a Publish v1 button" />
+</Frame>
+
 In **History** you can also:
 
-- **Restore** (Live revisions tab, then **Restore into Live**) to bring an earlier saved state back into Live as a new revision.
+- **Restore** (Live revisions tab, then **Restore into Live**) to bring an earlier saved state back into Live as a new revision. Nothing is lost: restoring copies a revision into Live as a new one. Saves are grouped into revisions, listed as **Rev 3 Current**, **Rev 2** and so on, with the source (for example **Studio** or **API**), who saved it and when. A revision does not say what changed.
+- Open **Published versions** to see your versions. Before the first publish it reads that runs use Live until you publish.
 - **View** or **Compare with Live** on a published version.
 - **Edit from vN** to copy a published version back into Live.
 - **Copy link** to share the link of a published version.
@@ -166,16 +278,28 @@ The right end of the toolbar adapts to your window width. In a wide window you s
 - **Auto layout** (left to right, top to bottom, or grid) and the full-screen button tidy the canvas.
 - **Variables** opens a reference of every template variable available in the workflow.
 
+<Frame caption="The JSON view">
+  <img src="/images/workflows/studio-json-view.png" alt="Workflow Studio in JSON view, headed Workflow JSON with 3 steps and 2 edges, and the buttons Edit script, Reset and Apply to canvas. The editor shows the workflow_id and the first step with its description AI writes a first draft, llm_params, model claude-haiku-5-5, name Draft a reply and the prompt, then the start of the second step with approver set to allow_initiator true and any_member true" />
+</Frame>
+
+The JSON view shows every step's settings, including a plain-language `description` (for example "AI writes a first draft") that the canvas does not show. **Apply to canvas** applies your JSON edits and **Reset** discards them.
+
 In a narrower window these fold into **More** (the `⋯` button). **More** has **Auto layout**, **Fit to screen**, **Variables**, **Export JSON**, **Import** and **View JSON**, but no way to switch to the JSON editor. Widen the window to edit JSON.
 
 ## Share a workflow
 
 Open **Share** in the toolbar, then **Share settings…**. The **Share workflow** dialog asks who you are sharing with:
 
-- **Outside your org:** an unlisted share link. The person signs in and adds their own copy. The link installs your newest **published** version, never unpublished Live edits.
-- **Share with your team:** a link for people who already have access to the project.
-- **Run with an API key:** a ready-made request that starts the workflow. It does not share the workflow itself.
+- **Outside your org:** an unlisted share link, not on the Marketplace. The person signs in to AgentRuntime and adds their own copy to their workspace. The link installs your newest **published** version, never unpublished Live edits. The URL stays the same.
+- **Your team:** the Studio link for people who already have access to the project, with **Copy studio link**.
+- **API / script:** a ready-made request that starts the workflow, in **cURL**, **PowerShell**, **Python**, **Go** or **TypeScript**. It uses a `workflow:run` key from **Settings → API keys** and does not share the workflow itself. The example sends no input, so the run uses your saved defaults from **Setup**.
 - **More options:** **List on Marketplace** or **Export as JSON file**.
+
+<Warning>
+  **Create share link & copy publishes your workflow.** If Live changed since your last publish, creating the **Outside your org** link publishes Live as a new version, and that is the version the other person gets. Check what the workflow contains first: its prompts, step settings and saved sample input (such as a customer name and message) are part of what they install.
+</Warning>
+
+The **Share** menu also has **Copy Studio link (same tenant)**, which does the same as **Copy studio link** on the **Your team** tab.
 
 ### Updates to an installed copy
 
@@ -190,7 +314,15 @@ A workflow you added from a shared package shows **Installed from `<package>` vN
 
 ## Pin and rename a workflow
 
-The workflow list is the page you see in **Workflow Studio** before you open a workflow. From inside a workflow, click the back arrow in the toolbar (its tooltip is "Back to all workflows") to get to it. Each row has an icon that opens the workflow, and a three-dot menu on its right with these items:
+The workflow list is the page you see in **Workflow Studio** before you open a workflow. It shows your workflows on the left and, for the selected one, the number of steps ("nodes on canvas"), **Latest run**, **Open workflow**, **Archive**, **Share** and a **Recent runs** table.
+
+<Frame caption="The workflow list">
+  <img src="/images/workflows/workflows-list.png" alt="The Workflow Studio list for the project tim33 Default Project: a Create workflow button and a search box above one workflow, Approve before it goes out. On the right, a detail card says 3 nodes on canvas with a green Latest run: Success label, the buttons Open workflow, Archive and Share, and a Recent runs table with one successful manual run" />
+</Frame>
+
+{/* TODO screenshot: Share workflow dialog, Outside your org tab (needs a capture that stops before Create share link & copy) */}
+
+From inside a workflow, click the back arrow in the toolbar (its tooltip is "Back to all workflows") to get to it. Each row has an icon that opens the workflow, and a three-dot menu on its right with these items:
 
 | Menu item | What it does |
 |---|---|

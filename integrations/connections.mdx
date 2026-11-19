@@ -9,6 +9,10 @@ Secrets are stored in the Vault. After you save them, the Console does not show 
 
 A connection does nothing by itself. You attach it to a connector through a **config profile** on an [MCP instance](/integrations/mcp-instances), and a workflow step then uses that instance.
 
+<Note>
+  **Connecting an app takes four pages today.** The path is **Connections** (sign in or save the key), then **MCP** (**Add connectors**, then **Add to workspace**), then the instance's **Instance config** (attach the connection to the **active** profile), then Workflow Studio (add an `mcp` step that uses the instance). Each page points you to the next. Finishing the form on **Connections** does not make the connection usable on its own. **Hosted apps** and **Tools** show related lists of the same connectors. In a new workspace, **Hosted apps** lists only **Storage**, a built-in connector marked **First Party** and already connected, and **Tools** is a read-only library with an **Add to Workflow** action. See [MCP instances](/integrations/mcp-instances).
+</Note>
+
 ## Before you begin
 
 - A workspace selected in the Console header. Connections belong to a workspace.
@@ -46,6 +50,10 @@ One Google sign-in can power several Google connectors, so you choose the servic
   </Step>
 </Steps>
 
+<Note>
+  **The Google dialog does not tell you what each service allows.** It lists 16 services (Gmail, Google Drive, Google Sheets, Google Docs, Google Slides, Google Forms, Google Contacts, Google Chat, Google Calendar, Google Tasks, Google Meet, YouTube, Google Search Console, Google Business Profile, Google Analytics and Google Ads), each with a green **· MCP** tag, in one flat list. It says which services the workspace may use, but not whether AgentRuntime can only read, or can also send or delete. For example, ticking Gmail does not say whether sending mail is allowed. The consent screen on Google's side shows the exact permissions. Tick only the services your workflow needs. The dialog says you can change permissions later from the account details.
+</Note>
+
 You should now see the account under **Accounts**. Open it to see **Enabled services** and **Used by MCP instances**. To add a service later, open the account and click **Update permissions**. If Google access stops working (for example, the user revoked it), open the account and click **Reconnect**.
 
 If **Sign in with Google** is missing or **Continue to Google** is disabled, Google sign-in is not set up for your workspace. [Contact support](mailto:support@agentruntime.io).
@@ -66,7 +74,7 @@ Most connectors (Resend, GitHub, Shopify, Postgres, Notion, and more) use a key,
 
 <Steps>
   <Step title="Pick a template or start from scratch">
-    Click **Add from template**. The dialog has a **Search templates…** box, an **Accounts** section (Google, WhatsApp, and Notion), and an **API keys & credentials** list. Find your service in that list and click **Connect** on its row. If it is not listed, close the dialog and click **New custom connection**. A few rows are greyed out and cannot be picked.
+    Click **Add from template**. The first lines read "Platform sign-in or API keys — saved to Vault for this workspace." The dialog has a **Search templates…** box, an **Accounts** section (Google, WhatsApp, and Notion), and an **API keys & credentials** list. Find your service in that list and click **Connect** on its row. If it is not listed, close the dialog and click **New custom connection**. A few rows are greyed out and cannot be picked.
 
     <Frame caption="Add from template: the Accounts section">
       <img src="/images/integrations/connections-add-from-template.png" alt="The Add from template dialog with a Search templates box, the Accounts section listing Google with a Sign in button, and WhatsApp and Notion with Connect buttons, and the start of the API keys and credentials list" />
@@ -77,7 +85,7 @@ Most connectors (Resend, GitHub, Shopify, Postgres, Notion, and more) use a key,
     </Frame>
   </Step>
   <Step title="Enter the credentials">
-    For a template, fill in the fields shown. For a custom connection, enter a **Display name**, then add one row per secret: a key name such as `api_key` and its value. Use **Add field** for more rows. The form also asks **Who can use it**, which starts on **Only me**. See [Choose who can use a connection](#choose-who-can-use-a-connection).
+    For a template, fill in the fields shown. The count next to a service ("3 fields", "2 fields") is the number of boxes you fill in, not a measure of anything else. For a custom connection, enter a **Display name**, then add one row per secret: a key name such as `api_key` and its value. The form gives no example keys, so check the service's own docs for the names it expects. Use **Add field** for more rows. The form also asks **Who can use it**, which starts on **Only me**. See [Choose who can use a connection](#choose-who-can-use-a-connection).
   </Step>
   <Step title="Save">
     Click **Save**. You should see a "Connection saved" message and the connection in **Saved connections**.
