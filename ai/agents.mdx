@@ -101,6 +101,14 @@ For each field, click **Add field** and fill in:
 
 The **Input schema** describes structured input for the agent. The **Output schema** describes the fields the agent must reply with. In a workflow, an `agent` step whose agent has an output schema puts each field on the step result, so later steps can use it. See [Step types](/workflows/step-types#agent-run-an-agent).
 
+<Frame caption="The Create agent page">
+  <img src="/images/platform/agents-create-top.png" alt="The Create agent page with a Display name field, an On switch, a Model picker, Auto-reply and Visibility options, an Instructions (system prompt) box, Platform tool groups and Connectors" />
+</Frame>
+
+<Frame caption="The context budget on the Create agent page">
+  <img src="/images/platform/agents-create-context-budget.png" alt="The Context budget section of the Create agent page: a coloured bar and a legend for System and tools, Memory and summaries, Safety margin, Recent conversation, Reserved output and Free, with token counts and percentages, followed by collapsed Limits and Input and output schemas sections" />
+</Frame>
+
 ## Limits
 
 Limits stop an agent that is stuck in a loop from running for ever. They are a safety net, not a budget to tune tightly: the defaults let an agent do a lot of work in one step. Open the agent and find the **Limits** section.

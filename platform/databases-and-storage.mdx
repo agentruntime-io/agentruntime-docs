@@ -232,6 +232,14 @@ The example uses a placeholder (`YOUR_TOKEN_HERE`) in place of a real key. Repla
   </Step>
 </Steps>
 
+<Frame caption="Storage in a new workspace">
+  <img src="/images/platform/storage-empty.png" alt="The Storage page with the text No files yet and an Upload your first file button" />
+</Frame>
+
+<Frame caption="Storage after an upload">
+  <img src="/images/platform/storage-file-listed.png" alt="The Storage page with one file listed, showing its name, size, type, when it was added and an ID chip, with download and trash icons on the row" />
+</Frame>
+
 | Task | How |
 |------|-----|
 | **Search** | Type in **Search by name, type, or ID…**. It matches the file name, the type, and the ID. |
@@ -239,7 +247,7 @@ The example uses a placeholder (`YOUR_TOKEN_HERE`) in place of a real key. Repla
 | **Delete** | Click the trash icon on a file's row. The file is removed straight away. **There is no confirmation and no undo.** |
 
 <Warning>
-  **Deleting a file cannot be undone, and nothing asks you first.** The download and trash buttons are icon-only and sit next to each other on the row. Agents and workflows read the files here, so removing one by mistake can break a running automation. Check which workflows use a file before you delete it. In testing, no message appeared after the upload or the delete, even though the file list updated.
+  **Deleting a file cannot be undone, and nothing asks you first.** The download and trash buttons are icon-only and sit next to each other on the row. Agents and workflows read the files here, so removing one by mistake can break a running automation. Check which workflows use a file before you delete it. A **File uploaded** message appears about eight seconds after an upload, and **File removed** after a delete, but the delete message has no **Undo**.
 </Warning>
 
 Each row shows the file name, its size, its type, and when it was added, plus a short ID chip. The list shows up to 200 files.
