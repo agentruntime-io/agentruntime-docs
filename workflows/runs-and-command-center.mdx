@@ -13,9 +13,11 @@ A **run** is one execution of a workflow. This page explains how runs start, wha
 |---|---|
 | **Workflow Studio** | Click **Run**. It runs your **draft** with the input from **Workflow setup**. |
 | **API** | `POST /v1/workflows/{id}/command` with `"command": "start"`. See the [API reference](/api/reference). |
-| **Schedule** | A cron schedule you add in **Workflow setup → Cron** |
-| **Inbound webhook** | An outside system sends a signed request. See [Inbound webhooks](/integrations/inbound-webhooks). |
-| **Platform event** | **Workflow setup → Events**, for Embedded Connect events |
+| **Schedule** | A schedule you add in **Workflow setup → Triggers** |
+| **HTTP call** | An outside system sends a signed request to a trigger's URL. See [Triggers](/integrations/triggers). |
+| **App event** | An event in an app you connected, such as a Telegram message or a GitHub event. Added in **Workflow setup → Triggers**. |
+| **Workspace event** | **Workflow setup → Triggers**, for Embedded Connect events |
+| **Phone call** | Someone calls a number that you set up as a trigger. See [External triggers](/workflows/external-triggers#when-someone-calls-a-number). |
 | **Conversation** | A message from a contact joins or starts a [conversation session](/workflows/conversation-sessions) |
 | **Autopilot** | Ask Autopilot in Chat to run a workflow by name |
 

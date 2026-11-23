@@ -60,7 +60,7 @@ A closed session ends as **Success**. That means the run ended cleanly. It does 
     On each agent step that talks to the contact, turn on **Talks in the conversation**. On a human step that takes over the chat, turn on **Hand off the conversation to a person**. The **Steps that talk in the conversation** list in the Sessions tab shows which steps you have marked.
   </Step>
   <Step title="Check which version runs">
-    Session settings are saved with your workflow and apply to your **draft** at once. New messages start sessions on your **draft** unless the webhook or channel route that receives them is set (under **Runs**) to **Last published** or a fixed version. In that case, publish the workflow so live messages use your changes. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
+    Session settings are saved with your workflow and apply to your **draft** at once. New messages start sessions on your **draft** unless the trigger that receives them is set (under **Runs**) to **Last published** or a fixed version. In that case, publish the workflow so live messages use your changes. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
   </Step>
 </Steps>
 
@@ -223,7 +223,7 @@ A message can carry more than text. When a contact sends a photo, video, voice n
 
 Where the run sees them:
 
-- `{{input.attachments}}`, `{{input.location}}` (latitude, longitude, name, address), and `{{input.shared_contacts}}` on the latest WhatsApp message. Messages started from the API carry them in `{{input.message.*}}`.
+- `{{input.channel_message.attachments}}`, `{{input.channel_message.location}}` (latitude, longitude, name, address), and `{{input.channel_message.contacts}}` on the latest WhatsApp message, while **Remember each contact** is on. Messages started from the API carry them in `{{input.message.*}}`.
 - `input.conversation.new_messages`: each message with its `attachments`, `location`, and `contacts`.
 - Agents read a placeholder in the conversation, for example *[image: my cold pizza]*, *[voice note]*, *[document: menu.pdf]*, or *[location: Galle Road]*, together with the caption.
 

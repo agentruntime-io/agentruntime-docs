@@ -1,6 +1,6 @@
 ---
 title: Workflow patterns
-description: "Recipes you can adapt: approve then send, webhook and scheduled runs, handling failures, fan-out over a list, and handing a conversation to a person."
+description: "Recipes you can adapt: approve then send, HTTP-triggered and scheduled runs, handling failures, fan-out over a list, and handing a conversation to a person."
 ---
 
 These patterns combine step types, [Command Center](/workflows/command-center), and triggers into workflows you can adapt. For full graph examples see the [JSON cookbook](/workflows/json-schema-cookbook).
@@ -47,14 +47,14 @@ Approve it from [Command Center](/workflows/command-center) (**Needs you**). If 
   Do not skip the approval for regulated or high-risk messages. Do not set the approval's timeout policy to **Auto-approve** for them either.
 </Warning>
 
-## Inbound webhook triggers {#inbound-webhook-triggers}
+## HTTP triggers {#http-triggers}
 
 Start a workflow from an outside system: a CRM, a payment processor, a monitoring alert.
 
 ```mermaid
 sequenceDiagram
   participant Ext as External system
-  participant WH as Inbound webhook
+  participant WH as HTTP trigger
   participant RT as Workflow
   Ext->>WH: POST signed payload
   WH->>RT: start run with the payload as input
@@ -63,8 +63,8 @@ sequenceDiagram
 ### Build it
 
 1. Create a workflow whose first step checks the `{{input.*}}` fields it needs.
-2. Under **Setup → Inbound**, create a webhook. See [Inbound webhooks](/integrations/inbound-webhooks).
-3. Configure the outside system to `POST` to the webhook's URL, signed with its secret.
+2. Under **Setup → Triggers**, choose **When another system calls a URL**. See [Triggers](/integrations/triggers).
+3. Configure the outside system to `POST` to the trigger's URL, signed with its secret.
 4. The JSON body becomes the run's input.
 
 ### Check input first
@@ -75,7 +75,7 @@ Check required input before calling any tool:
 {
   "id": "validate-input",
   "type": "lua",
-  "name": "Validate webhook payload",
+  "name": "Validate trigger payload",
   "script": "if not input.order_id then error('order_id required') end\nreturn { order_id = input.order_id }",
   "timeout_s": 5
 }
@@ -85,7 +85,7 @@ To skip a step for some inputs only, use `skip_when`. See [Step types](/workflow
 
 ### Be safe to repeat
 
-Senders retry webhooks. Make the workflow safe to run twice for the same event:
+Senders retry requests, and AgentRuntime retries a start that failed. Make the workflow safe to run twice for the same event:
 
 - Look up whether the order or event was already handled (a tool step that queries your data).
 - Put an external id in the tool arguments so a duplicate does not send twice.
@@ -94,12 +94,12 @@ Senders retry webhooks. Make the workflow safe to run twice for the same event:
 
 Run a workflow every morning, hour, or week.
 
-1. Open **Setup → Cron**.
+1. Open **Setup → Triggers** and choose **On a schedule**.
 2. Choose a preset or type a 5-field cron expression, and a timezone.
-3. Choose the start values, which version to run (**Runs**), and an **Automation API key**.
-4. Click **Add schedule**.
+3. Choose the start values and which version to run (**Runs**).
+4. Click **Create trigger**.
 
-See [External triggers](/workflows/external-triggers#cron-schedules). A typical scheduled report is: query data, ask a model to summarise, optionally ask a person to approve, then send.
+See [External triggers](/workflows/external-triggers#on-a-schedule). A typical scheduled report is: query data, ask a model to summarise, optionally ask a person to approve, then send.
 
 ## Handle failures
 
@@ -163,10 +163,10 @@ Several agents can hand work to each other inside one run, and an agent can ask 
 
 | Pattern | Human step? | Trigger |
 |---|---|---|
-| Approve then send | Yes | Manual, API, schedule, or webhook |
-| Webhook automation | Optional | Inbound webhook |
-| Scheduled report | Optional | Cron |
-| Bulk processing | Optional | API or webhook |
+| Approve then send | Yes | Manual, API, schedule, or HTTP trigger |
+| HTTP trigger automation | Optional | HTTP trigger |
+| Scheduled report | Optional | Schedule |
+| Bulk processing | Optional | API or HTTP trigger |
 | Chat assistant | Optional (hand-off) | Conversation sessions |
 
 ## End-to-end guides
@@ -186,5 +186,5 @@ See [all guides](/guides/overview).
 
 - [Command Center](/workflows/command-center)
 - [Human tasks](/workflows/human-tasks)
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Triggers](/integrations/triggers)
 - [Troubleshooting](/platform/troubleshooting)
