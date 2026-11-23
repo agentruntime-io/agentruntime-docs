@@ -10,7 +10,7 @@ This page is for workspace admins and anyone who wants to know where things live
 In the [Console](https://console.agentruntime.io) sidebar, click **Settings**. The tabs are listed down the left side. You see only the tabs your role allows. For example, **Team & Members** and **Audit log** are for admins.
 
 <Frame caption="Settings, General tab: the tab list is on the left">
-  <img src="/images/platform/settings-general.png" alt="The Settings page with the tab list on the left (General, API keys, Inbound webhooks, Principals, My access, Delegation, Team and Members, Audit log, Billing Overview, Plans, Usage and History, MCP and Integrations) and the General tab open, showing Name, Handle, Workspace ID and a Danger zone" />
+  <img src="/images/platform/settings-general.png" alt="The Settings page with the tab list on the left and the General tab open, showing Name, Handle, Workspace ID and a Danger zone. The screenshot is older than the current tab list: use the table below for the tabs you will see" />
 </Frame>
 
 The tabs are in three groups.
@@ -25,7 +25,6 @@ The tabs are in three groups.
 | **Workspace** | **Team & Members** | Invites, members, sign-in policy and domain verification (admins) |
 | **Workspace** | **Audit log** | Admin actions: invites, membership, access policy and domain verification |
 | **Developers** | **API keys** | Keys for scripts, CI and integrations |
-| **Developers** | **Inbound webhooks** | Webhook subscriptions that start workflows |
 | **Developers** | **Principals** | End users who connected through Embedded Connect |
 | **Developers** | **Integrations** | Your own Google and TikTok OAuth apps, and connector diagnostics |
 
@@ -52,10 +51,6 @@ To choose which project opens by default, use the project switcher. Open the **�
 Open **Settings → API keys** and click **Create API key**. With no keys yet, the page says **No active API keys** and tells you to create one for scripts, CI or integrations that call the AgentRuntime API, and to copy the secret once, because it will not be shown again. Revoke a key at any time from the same list. API keys are personal access tokens and work with the [API](/api/authentication) and [Platform MCP](/api/platform-mcp). Treat them like passwords. The page calls them "secrets", which is a different thing from the **Secrets** page in the sidebar.
 
 A workspace **Member** sees the **Create API key** button too, together with the message "You don't have access to that. Ask a workspace admin if you need this permission." The click is refused.
-
-## Inbound webhooks
-
-**Settings → Inbound webhooks** lists the webhook subscriptions in your workspace. You cannot create one here: the page only links to Workflow Studio. Open a workflow, click **Setup**, and add an inbound trigger on the **Inbound** tab. The page text says "Manage all webhooks in Operate". That page is now called **Runs**. See [Inbound webhooks](/integrations/inbound-webhooks).
 
 ## Principals
 

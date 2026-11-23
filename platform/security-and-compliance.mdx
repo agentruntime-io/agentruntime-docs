@@ -13,7 +13,7 @@ It is an overview, not a contract. Binding terms are in the [legal policies](#le
 |--------|--------------------|
 | **Console** | Sign in with email and password (email verification required) or with Google. You stay signed in with a browser session. |
 | **API and Platform MCP** | Personal access tokens (API keys) with scopes. They can never do more than the person who created them. |
-| **Inbound webhooks** | Each request must carry a signature and an automation key. See [Inbound webhooks](/integrations/inbound-webhooks). |
+| **HTTP triggers** | Each request must carry a signature made with the trigger's signing secret. The run executes as a person, whose access is checked again every time the trigger fires. No API key is stored on a trigger. See [Triggers](/integrations/triggers). |
 
 Always call AgentRuntime through `https://api.agentruntime.io`.
 
@@ -22,7 +22,7 @@ Always call AgentRuntime through `https://api.agentruntime.io`.
 | Layer | What it separates |
 |-------|-------------------|
 | **Workspace** | Members, billing, and workspace-wide connections and tools. Workspaces cannot see each other. |
-| **Project** | Workflows, and optionally agents, connections and webhook subscriptions. Private projects are visible only to their members. |
+| **Project** | Workflows, and optionally agents, connections and triggers. Private projects are visible only to their members. |
 | **Roles** | What each person can do. See [Roles and permissions](/platform/roles-permissions). |
 
 Workspace admins can also restrict who may join: require invites, allow only verified company email domains, and review access requests. See [User management](/platform/user-management). Admin actions such as invites, membership changes and access policy changes are recorded in **Settings → Audit log**.
@@ -34,7 +34,7 @@ Workspace admins can also restrict who may join: require invites, allow only ver
 | Tool logins and API keys | **Connections** |
 | AI model provider keys | **Connections** (switched on for models; listed on **Models**) |
 | API keys for scripts and CI | **Settings → API keys**. The secret is shown once. |
-| Webhook signing secrets | Shown once when you create a subscription |
+| HTTP trigger signing secrets | Shown once when you create the trigger, or when you make a new one |
 | Secrets you keep by hand | **Secrets**: saved once, viewed only by people with the right, every view recorded |
 
 Do not put secrets in workflow graphs, Lua scripts or code that runs in a browser. Use connections instead.
@@ -68,9 +68,9 @@ AgentRuntime is not certified for regulated workloads out of the box. Check your
 
 | You are responsible for | AgentRuntime is responsible for |
 |-------------------------|--------------------------------|
-| Keeping API keys and webhook secrets private | Checking permissions on every request |
+| Keeping API keys and signing secrets private | Checking permissions on every request |
 | Giving connections only the access they need | Separating workspaces from each other |
-| What your workflows do and what data they handle | Verifying webhook signatures |
+| What your workflows do and what data they handle | Verifying trigger signatures, and checking again that the person a trigger runs as still has access |
 | What you put into AI prompts | Measuring usage and recording admin actions |
 
 ## Legal policies

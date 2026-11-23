@@ -141,15 +141,18 @@ https://console.agentruntime.io/operate
 
 | Setting | Values | What it does |
 |---|---|---|
-| `tab` | `runs`, `schedules`, `webhooks` | Opens that tab. Without it, **Runs** opens. |
+| `tab` | `runs`, `triggers` | Opens that tab. Without it, **Runs** opens. The page addresses `/triggers`, `/schedules` and `/webhooks` also open the **Triggers** tab. |
 | `project_id` | A project ID | Filters to that project. Without it, the Runs page opens on the project picked in the sidebar. |
 | `status` | A list of run statuses separated by commas (see below) | Sets the **Status** filter on the **Runs** tab |
 | `workflow_id` | A workflow ID | Sets the **Workflow** filter |
 | `agent_id` | An agent ID | Sets the **Agent** filter |
-| `triggered_by` | `chat`, `cron`, `webhook`, `api` or `manual` | Sets the **Source** filter |
+| `triggered_by` | `schedule`, `connector`, `http`, `platform_event`, `phone`, `chat`, `api` or `manual` | Sets the **Started by** filter on the **Runs** tab |
+| `trigger_id` | A trigger ID | Sets the **Trigger** filter on the **Runs** tab |
 | `stale_paused` | `1` | Turns on **Paused > 7 days**. Use it with `status=paused`. |
 | `from`, `to` | A date and time such as `2026-10-01T00:00:00Z` | Limits the runs to a date range |
-| `failed_fires` | `1` | On the **Schedules** tab, opens the **Failed schedule fires (24h)** list |
+| `kind` | `schedule`, `connector`, `http`, `platform_event` or `phone` | Sets the **Kind** filter on the **Triggers** tab |
+| `trigger_status` | `active`, `paused`, `needs_owner` or `needs_attention` | Sets the **State** filter on the **Triggers** tab |
+| `trigger` | A trigger ID | On the **Triggers** tab, opens that trigger's details |
 
 To make the **Status** box show a choice, use one of these values:
 
@@ -164,14 +167,14 @@ To make the **Status** box show a choice, use one of these values:
 For example, runs started by a schedule that failed or were stopped:
 
 ```
-https://console.agentruntime.io/operate?tab=runs&status=failed,stopped,cancelled&triggered_by=cron
+https://console.agentruntime.io/operate?tab=runs&status=failed,stopped,cancelled&triggered_by=schedule
 ```
 
 ### Links to other pages
 
 | Page | Link | What it does |
 |---|---|---|
-| **Settings** | `/settings?tab=<tab>` | Opens a tab of [Settings](/platform/settings). Values: `general`, `safeActions`, `ciSignIn`, `team`, `audit`, `access`, `delegation`, `apiKeys`, `inboundWebhooks`, `principals`, `integrations`. They match **General**, **Safe actions**, **CI sign-in**, **Team & Members**, **Audit log**, **My access**, **Delegation**, **API keys**, **Inbound webhooks**, **Principals** and **Integrations**. Billing has its own page: `/billing?tab=plans` and `/billing?tab=usage` open **Plans** and **Usage**, and `/billing` opens **Overview**. Old `/settings?tab=billing`, `plans` and `usage` links redirect there. |
+| **Settings** | `/settings?tab=<tab>` | Opens a tab of [Settings](/platform/settings). Values: `general`, `safeActions`, `ciSignIn`, `team`, `audit`, `access`, `delegation`, `apiKeys`, `principals`, `integrations`. They match **General**, **Safe actions**, **CI sign-in**, **Team & Members**, **Audit log**, **My access**, **Delegation**, **API keys**, **Principals** and **Integrations**. Billing has its own page: `/billing?tab=plans` and `/billing?tab=usage` open **Plans** and **Usage**, and `/billing` opens **Overview**. Old `/settings?tab=billing`, `plans` and `usage` links redirect there. |
 | **Connections** | `/connections?connection=<connection-id>` | Opens the details of that connection. The Console adds this to the address when you open a connection. If the ID is not in this workspace, you see "Connection not found". |
 | **MCP** | `/mcp?instance=<instance-id>` | Opens the details panel of that MCP instance. The Console adds this to the address when you open an instance. |
 | **Work** | `/work?task=<task-id>` or `/work?file=<file-id>` | Selects that task, or that file. Selecting one clears the other. |
@@ -192,6 +195,6 @@ In these links, put `https://console.agentruntime.io` in front of the path. The 
 ## Next steps
 
 - [Workflow Studio](/workflows/studio): the canvas, undo and redo, and the run view
-- [Runs](/platform/operate): runs, schedules and webhooks across the workspace
+- [Runs](/platform/operate): runs and triggers across the workspace
 - [Command Center](/workflows/command-center): answer tasks and control runs
 - [Settings](/platform/settings): a tour of every Settings tab
