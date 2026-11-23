@@ -172,8 +172,7 @@
           "integrations/custom-mcp-servers",
           "integrations/google-workspace",
           "integrations/authentication",
-          "integrations/inbound-webhooks",
-          "integrations/inbound-webhook-wizard",
+          "integrations/triggers",
           "integrations/embedded-connect",
           "integrations/connector-catalog"
         ]
@@ -303,6 +302,16 @@
     {
       "source": "/guides/writing-docs",
       "destination": "/platform/quickstart",
+      "permanent": true
+    },
+    {
+      "source": "/integrations/inbound-webhooks",
+      "destination": "/integrations/triggers",
+      "permanent": true
+    },
+    {
+      "source": "/integrations/inbound-webhook-wizard",
+      "destination": "/integrations/triggers",
       "permanent": true
     }
   ]

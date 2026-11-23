@@ -1,116 +1,139 @@
 ---
 title: Triggers and run identity
-description: "Choose between schedules, platform events, webhooks, and the API, and decide who each run is for: the workspace, one end user, a segment of end users, or a Console team."
+description: "Choose between schedules, app events, HTTP calls, workspace events, and the API, and decide who each run is for: the workspace, one end user, a segment of end users, or a Console team."
 ---
 
-Every run is **for someone**: the whole workspace, one of your end users, a group of end users, or the members of an internal team. That choice is the run's **identity**. It decides whose connected accounts the run can use.
+Every run has two kinds of identity. The first is **the person it runs as**, which decides what the run is allowed to do. The second is **who the run is for**: the whole workspace, one of your end users, a group of end users, or the members of an internal team. That decides whose connected accounts the run can use.
 
 **Who this is for:** people building workflows for [Embedded Connect](/integrations/embedded-connect), where your own customers (called **principals**) connect their own accounts, and people who want a run to be repeated for each member of a Console team.
 
 **What you will do:** pick the right trigger for your case and set **Run as** correctly.
 
-If your workflow only uses your workspace's own connections, you can skip this page and leave **Run as** on **Workspace**.
+If your workflow only uses your workspace's own connections, you can skip most of this page. Leave the second **Run as** on **Workspace**.
 
 See also [External triggers](/workflows/external-triggers) for how to set each trigger up and [Run setup](/workflows/run-setup) for **Manual** runs.
 
+## Who a trigger runs as
+
+A trigger runs as a **person**, never as an API key. By default that is the person who creates it. A workspace admin can choose another active member in the **Run as** field.
+
+AgentRuntime checks that person's access again every time the trigger fires. If they lose access (they are removed from the workspace or can no longer run the workflow), the trigger pauses with the status **Needs an owner**. A workspace admin opens the trigger and clicks **Run it as me**, or edits it and picks another member. See [Triggers](/integrations/triggers#who-a-trigger-runs-as).
+
+| Trigger | Runs as |
+|---|---|
+| **On a schedule**, **In an app you connected**, **When another system calls a URL**, **When someone calls a number** | The person on the trigger: you, or the member an admin chose |
+| **When something changes in your workspace** | The end user the event is about |
+| **Manual** (the **Run** button) | You |
+| **API** | The person the API key belongs to |
+
 ## The four identities
 
-| Run as | What the run is for | Use it when |
+This second choice is who the run is **for**. In the trigger form, workspace admins see it as another **Run as** field next to the one that picks the person.
+
+| Run is for | What it means | Use it when |
 |---|---|---|
 | **Workspace** | The whole workspace. One run. | The workflow only uses workspace-level connections |
 | **One principal** | One end user (`external_user_id`) | The workflow uses that customer's connected accounts |
 | **Principal segment** | Every end user in a segment. **One run per principal** each time the trigger fires. | The same job for many customers on a schedule |
 | **Console team** | Every member of a Console team. **One run per member** each time. | An internal job for each of your own team members |
 
-In **Workflow setup**, the **Run as** field appears on the **Manual**, **Cron**, **Inbound**, and **API** tabs. Only workspace admins can run as an end user or a segment. The **Events** tab has no **Run as**, because each event already says who it is about.
+In **Workflow setup**, this field appears on the **Manual**, **Triggers**, and **API** tabs. Only workspace admins can run for an end user or a segment. WhatsApp and phone triggers do not offer it. A workspace event has no choice here, because each event already says who it is about.
 
 <Warning>
-  Each trigger keeps its own **Run as**. Changing it on the **Manual** tab does not change a schedule, a webhook, or an event trigger. Saved defaults only pre-fill forms.
+  Each trigger keeps its own **Run as** settings. Changing them on the **Manual** tab does not change a schedule, an HTTP trigger, or an event trigger. Saved defaults only pre-fill forms.
 </Warning>
 
 ## Who sets the identity?
 
-| Trigger | Where | **Run as** shown? | Identity when it fires |
+| Trigger | Where | Run is for | Who sets it |
 |---|---|---|---|
-| **Manual** | **Manual** tab | Yes | What you choose for that run |
-| **Cron** | **Cron** tab | Yes | **Workspace** is one run. **Principal segment** or **Console team** starts one run per member. |
-| **Inbound webhook** | **Inbound** tab | Yes | The webhook's **Run as**, and fields you map from the request |
-| **API** | **API** tab | Example request only | The values in the request (`external_user_id`, `segment_id`, or `team_id`) |
-| **Platform event** | **Events** tab | No | The end user the event is about |
+| **Manual** | **Manual** tab | What you choose for that run | You |
+| **On a schedule** | **Triggers** tab | **Workspace** is one run. **Principal segment** or **Console team** starts one run per member. | The trigger |
+| **When another system calls a URL** | **Triggers** tab | **Workspace**, or the end user, segment or team an admin set on the trigger | The trigger |
+| **In an app you connected** | **Triggers** tab | Same as an HTTP call. WhatsApp triggers do not offer the choice. | The trigger |
+| **When someone calls a number** | **Triggers** tab | Not a choice. The trigger does not offer it. | The trigger |
+| **API** | **API** tab | The values in the request (`external_user_id`, `segment_id`, or `team_id`) | The request |
+| **When something changes in your workspace** | **Triggers** tab | The end user the event is about | The event |
 
 ## Which trigger should I use?
 
 | Goal | Use |
 |---|---|
-| React when one customer connects, disconnects, or is suspended | **Platform event** |
-| The same job on a schedule for many customers | **Cron** with **Principal segment** |
-| A schedule for the whole workspace | **Cron** with **Workspace** (the workflow must not need a customer's connections) |
-| A schedule for each internal team member | **Cron** with **Console team** |
-| An outside system sends you data | **Inbound webhook**, or your backend calls the **API** |
+| React when one customer connects, disconnects, or is suspended | A **workspace event** trigger |
+| The same job on a schedule for many customers | **On a schedule** for a **Principal segment** |
+| A schedule for the whole workspace | **On a schedule** for the **Workspace** (the workflow must not need a customer's connections) |
+| A schedule for each internal team member | **On a schedule** for a **Console team** |
+| An outside system sends you data | **When another system calls a URL**, or your backend calls the **API** |
+| A message arrives in an app you connected | **In an app you connected** |
 | Testing in Studio | **Manual** with **One principal** |
 
 ```text
-Reactive  -> platform events (and many webhooks): 1 event  -> 1 principal
-Batch     -> cron + segment, or cron + team:      1 tick   -> N runs
+Reactive  -> workspace events (and many app triggers): 1 event -> 1 principal
+Batch     -> schedule + segment, or schedule + team:   1 tick  -> N runs
 Ad hoc    -> manual, API
 ```
 
-## Platform events
+## Workspace events
 
-A platform event is about one end user or one connection, so each event starts one run for that end user.
+A workspace event is about one end user or one connection, so each event starts one run for that end user. Only workspace admins can create these triggers.
 
 Rules on the trigger:
 
-- **Platform event**: required. For example **Connection created**.
-- **Connection provider**: optional, and only for **Connection created** and **Connection revoked**. Choose `google_account`, `composio_account`, `whatsapp`, or leave **Any provider (recommended)**.
-- **Principal segment filter**: optional. When set, the workflow runs only if the end user is in that segment.
+- **Events**: tick one or more. For example `connection.created`.
+- **Provider filter**: optional, and only for `connection.created` and `connection.revoked`. Choose `google_account`, `composio_account`, `whatsapp`, or leave it empty for any provider.
+- **Segment filter**: optional. When set, the workflow runs only if the end user is in that segment.
 
 | Event | Typical use | Connection details on the run? |
 |---|---|---|
-| **Principal created** | Set things up before the customer connects anything | No, the customer has not connected yet |
-| **Connection created** | Start a first sync after a customer connects | Yes: `connection_id` and `provider` |
-| **Connection revoked** | Clean up | Yes |
-| **Principal suspended** | Stop scheduled syncs | Yes |
-| **Principal deleted** | Final clean-up | Yes |
+| `principal.created` | Set things up before the customer connects anything | No, the customer has not connected yet |
+| `connection.created` | Start a first sync after a customer connects | Yes: `connection_id` and `provider` |
+| `connection.revoked` | Clean up | Yes |
+| `principal.suspended` | Stop scheduled syncs | Yes |
+| `principal.deleted` | Final clean-up | Yes |
 
 Accounts connected through a **Hosted apps** connector (Gmail, Slack, and others) report the provider `composio_account`, not `google_account`. Use `google_account` only for direct Google sign-in in Embedded Connect.
 
 Example, start a sync when a customer connects an account through a Hosted apps connector:
 
 ```json
+POST /v1/triggers
 {
-  "event_type": "connection.created",
-  "provider_filter": "composio_account",
-  "segment_id": "optional-segment-uuid",
-  "trigger_payload": { "backfill_after": "2026/01/01" },
-  "trigger_steps": {},
-  "excluded_step_ids": []
+  "workflow_id": "WORKFLOW_ID",
+  "name": "First sync",
+  "kind": "platform_event",
+  "event": "connection.created",
+  "filter": { "provider": "composio_account" },
+  "start_input": {
+    "trigger_payload": { "backfill_after": "2026/01/01" },
+    "trigger_steps": {},
+    "excluded_step_ids": []
+  }
 }
 ```
 
-## Cron: segment or team
+## Schedule: segment or team
 
 For tool steps that use each customer's own connection (`connection_resolution: principal`):
 
-- **Workspace** cron makes one run with no end user. That is usually wrong for per-customer work.
-- **Principal segment** cron makes one run for each principal in the segment, every time it fires.
-- **Console team** cron makes one run for each member of the team (teams are under **Settings → Team & Members**), every time it fires. These are your own users, not end users.
+- A **Workspace** schedule makes one run with no end user. That is usually wrong for per-customer work.
+- A **Principal segment** schedule makes one run for each principal in the segment, every time it fires.
+- A **Console team** schedule makes one run for each member of the team (teams are under **Settings → Team & Members**), every time it fires. These are your own users, not end users.
 
 A common Embedded Connect pattern:
 
-1. **On connect:** a **Connection created** platform event, not cron.
-2. **Keep syncing:** cron with **Run as → Principal segment**, for example a segment that requires a connection.
+1. **On connect:** a `connection.created` workspace event trigger, not a schedule.
+2. **Keep syncing:** a schedule run for a **Principal segment**, for example a segment that requires a connection.
 
-## Inbound and API
+## HTTP, app, and API
 
-- **Inbound:** set **Run as** on the webhook, and map fields from the request to `external_user_id` when needed.
+- **HTTP and app triggers:** the trigger runs as a person. If the workflow needs an end user, an admin sets the end user, segment or team on the trigger.
 - **API:** pass `external_user_id`, `segment_id`, or `team_id` in the `params` of `command: start`. See [External triggers](/workflows/external-triggers#start-from-the-api).
 
 ## Provider filter, segment, and team
 
 | Setting | Chooses |
 |---|---|
-| **Connection provider** | Which type of connection (for example `google_account`, `composio_account`, `whatsapp`) on connection events |
+| **Provider filter** | Which type of connection (for example `google_account`, `composio_account`, `whatsapp`) on connection events |
 | **Principal segment** | Which end users (by tags, whether they have a connection, and so on) |
 | **Console team** | Which internal users (team membership) |
 
@@ -118,25 +141,27 @@ Use separate workflows or filters when the set-up differs by provider. Use a seg
 
 ## Checklist for a new automation
 
-1. One customer or many? One: platform event, webhook, or API. Many: cron with a segment or team.
+1. One customer or many? One: workspace event, HTTP or app trigger, or the API. Many: a schedule for a segment or team.
 2. Does a step use a customer's own connection? Then every run needs an end user, so use **One principal** or a **Principal segment**.
-3. Reacting to connect, revoke, or suspend? Use a platform event, not a second webhook.
-4. An outside system sends HTTP? Use **Inbound** or the **API**.
-5. Polling on a timetable? Cron with a segment or team.
+3. Reacting to connect, revoke, or suspend? Use a workspace event, not a second HTTP trigger.
+4. An outside system sends HTTP? Use **When another system calls a URL** or the **API**.
+5. Polling on a timetable? A schedule for a segment or team.
 6. Testing? **Manual** with a test end user.
 7. Save the start values on each trigger itself.
+8. Choose a person who will keep access to the workflow. If they leave, the trigger pauses until an admin runs it as someone else.
 
 ## Common problems
 
 | Problem | What to try |
 |---|---|
-| A tool step says it needs a connected account | The run has no end user. Set **Run as** to **One principal** or **Principal segment**. |
-| The schedule made only one run | **Run as** is **Workspace**. Choose a segment or team to start one run per member. |
+| A tool step says it needs a connected account | The run has no end user. Set who the run is for to **One principal** or **Principal segment**. |
+| The schedule made only one run | The run is for the **Workspace**. Choose a segment or team to start one run per member. |
 | **One principal** and **Principal segment** are missing | Only workspace admins can choose them. |
+| The trigger stopped and says **Needs an owner** | The person it runs as lost access. A workspace admin clicks **Run it as me** on the trigger. |
 
 ## Next steps
 
 - [External triggers](/workflows/external-triggers)
 - [Run setup](/workflows/run-setup)
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Triggers](/integrations/triggers)
 - [Embedded Connect](/integrations/embedded-connect)
