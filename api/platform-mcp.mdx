@@ -153,22 +153,25 @@ A run that reaches a human step stays **running** until someone completes the ta
 
 Two assistants that share a room can talk to each other. See [Let Claude sessions talk through a chat room](/ai/claude-sessions-chat).
 
-### Webhooks, analytics, and keys
+### Triggers, analytics, and keys
 
 | Tool | What it does |
 |------|--------------|
-| `inbound_webhooks_list`, `inbound_webhooks_create`, `inbound_webhooks_update`, `inbound_webhooks_delete` | Manage inbound webhooks |
+| `triggers_catalog` | See what can start a workflow: the kinds of trigger, their events and filters, and the apps you connected |
+| `triggers_list`, `triggers_create`, `triggers_update`, `triggers_delete` | List, create, change, and delete triggers |
+| `triggers_pause`, `triggers_resume` | Stop a trigger, and start it again |
+| `triggers_fires`, `triggers_replay`, `triggers_test` | Read a trigger's activity, run an event again, and send a sample event (this starts a real run) |
 | `analytics_live_runs`, `analytics_success_rate`, `analytics_execution_duration`, `analytics_runs_count`, `analytics_steps_executed`, `analytics_credits_consumed`, `analytics_runs_timeseries`, `analytics_usage_timeseries` | Read analytics |
 | `pats_*` | Manage API keys |
 | `llm_provider_keys_catalog`, `connection_uses_list`, `connection_uses_set` | See which accounts models can use (the platform's and your workspace's), and switch a connection on for models or as the default voice account. Your own provider keys are [connections](/ai/llm-providers): add or rotate them with the connection tools |
 
 <Note>
-  Tools that create or reveal secrets (new API keys, webhook signing secrets, connection credentials) are sensitive. They may be turned off in your workspace's Platform MCP. If the assistant says a tool is not available, use the Console for that task.
+  Tools that create or reveal secrets (new API keys, HTTP trigger signing secrets, connection credentials) are sensitive. They may be turned off in your workspace's Platform MCP. Creating an `http` trigger is one of them, because it returns the signing secret once: it needs the `risk` tool group. Making a new signing secret has no tool. If the assistant says a tool is not available, use the Console for that task.
 </Note>
 
 ## Which copy of a workflow runs
 
-Each workflow has one editable **Live** copy (the **draft** in the Console), plus optional numbered **published versions**. By default, assistant-started runs use Live, so a change the assistant saves is used on the next run, with no publishing step. The assistant reports what ran. Publish and pin a version only when something (a webhook, another workflow) must keep running a stable copy.
+Each workflow has one editable **Live** copy (the **draft** in the Console), plus optional numbered **published versions**. By default, assistant-started runs use Live, so a change the assistant saves is used on the next run, with no publishing step. The assistant reports what ran. Publish and pin a version only when something (a trigger, another workflow) must keep running a stable copy. A trigger's `version` takes `live`, `published`, or a version number.
 
 ## Example requests
 

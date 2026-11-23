@@ -116,7 +116,7 @@ curl -sS "$AR_API/v1/workflows/WORKFLOW_ID/runs/RUN_ID/summary" \
 
 ## Publish a version
 
-You only need this when you want a frozen copy that callers can pin to. Runs and webhooks use the Live copy unless you say otherwise.
+You only need this when you want a frozen copy that callers can pin to. Runs and triggers use the Live copy unless you say otherwise.
 
 **Needs:** the `workflow:edit` scope.
 
@@ -162,30 +162,32 @@ The step result always includes `approved`, and the run carries on. A rejection 
 
 ---
 
-## Create an inbound webhook
+## Create an HTTP trigger
 
-An inbound webhook gives another system a URL it can call to start a workflow.
+An HTTP trigger gives another system a URL it can call to start a workflow.
 
-**Needs:** the `webhook:manage` scope.
+**Needs:** the `webhook:manage` scope, and the `project_contributor` role.
 
-`POST /v1/inbound-webhooks`
+`POST /v1/triggers`
 
 ```bash
-curl -sS -X POST "$AR_API/v1/inbound-webhooks" \
+curl -sS -X POST "$AR_API/v1/triggers" \
   -H "Authorization: Bearer $AR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "workflow_id": "WORKFLOW_ID",
     "name": "form-leads",
-    "automation_bearer": "pat_…"
+    "kind": "http",
+    "event": "request",
+    "version": "live"
   }'
 ```
 
-`automation_bearer` is the API key the runs will act as. You can send `automation_pat_id` (the id of an existing key) instead.
+The trigger runs as you. You do not send an API key for it. A workspace admin can add `"run_as": { "user_id": "..." }` to run it as another member.
 
-**What you should see:** a `201` response with `ingress_url` (the URL to give the sender) and `signing_secret`. The secret is shown **once**. Copy it now.
+**What you should see:** a `201` response with the `trigger`, an `ingress_url` (the URL to give the sender) and a `signing_secret`. The secret is shown **once**. Copy it now. If you lose it, call `POST /v1/triggers/{id}/rotate-secret` for a new one.
 
-### Call the webhook (the sender's side)
+### Call the trigger (the sender's side)
 
 The sender signs the request with the signing secret. It does not send a token.
 
@@ -200,7 +202,15 @@ curl -X POST "$INGRESS_URL" \
   -d "$BODY"
 ```
 
-**What you should see:** `202` and a run started. Sending the same `Idempotency-Key` again returns `200` with `"duplicate": true` instead of starting a second run. See [Inbound webhooks](/integrations/inbound-webhooks) for all responses.
+**What you should see:** `202`, which means the event was accepted. The run starts right after, and the body shows as `{{input.email}}`. Sending the same `Idempotency-Key` again returns `200` with `"duplicate": true` instead of starting a second run. See [Triggers](/integrations/triggers) for all responses.
+
+### Check what happened
+
+```bash
+curl -sS "$AR_API/v1/triggers/TRIGGER_ID/fires" -H "Authorization: Bearer $AR_TOKEN"
+```
+
+**What you should see:** a list of events, newest first. Each has a `status` and, once the run starts, a `run_id`.
 
 ---
 
@@ -270,5 +280,5 @@ curl -sS "$AR_API/v1/billing/usage" -H "Authorization: Bearer $AR_TOKEN"
 ## Next steps
 
 - [API reference](/api/reference): every endpoint and the role it needs
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Triggers](/integrations/triggers)
 - [Platform MCP](/api/platform-mcp): do the same from an AI assistant

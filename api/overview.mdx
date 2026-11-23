@@ -42,7 +42,7 @@ The token needs `workflow:run`. The reply contains a `run_id` you can use to fol
 | Workflows | `/v1/workflows` | Create, edit, publish, validate, and run workflows |
 | Runs | `/v1/runs`, `/v1/workflows/{id}/runs/...` | Follow runs and read their events and results |
 | Human tasks | `/v1/tasks/pending`, `/v1/workflows/.../tasks/...` | List and complete approvals |
-| Webhooks | `/v1/inbound-webhooks` | Let other systems start runs |
+| Triggers | `/v1/triggers`, `/v1/trigger-catalog` | Start runs from schedules, apps, and other systems |
 | Integrations | `/v1/connections`, `/v1/mcp/*` | Manage connections, MCP servers, and instances |
 | AI | `/v1/autopilot/*`, `/v1/memory/*` | Autopilot and memory |
 | Account | `/v1/billing/*`, `/v1/analytics/*`, `/v1/pats` | Usage, billing, analytics, and API keys |
