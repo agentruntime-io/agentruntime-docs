@@ -1,6 +1,6 @@
 ---
 title: Form webhook → Postgres → Resend digest
-description: Save form submissions to Postgres through an inbound webhook, then email your team a daily summary with Resend.
+description: Save form submissions to Postgres through an HTTP trigger, then email your team a daily summary with Resend.
 ---
 
 In this guide you build two small workflows. The first **saves every form submission** to a Postgres table. The second **emails your team a daily summary** of what came in, written by an LLM.
@@ -9,7 +9,7 @@ It is for people who collect leads or requests through a form and want them stor
 
 ```mermaid
 flowchart LR
-  Form[Your form or backend] -->|signed POST| WH[Inbound webhook]
+  Form[Your form or backend] -->|signed POST| WH[HTTP trigger]
   WH --> Validate[Validate input]
   Validate --> Insert[postgres_exec INSERT]
   Cron[Cron schedule, daily] --> Query[postgres_query]
@@ -62,8 +62,8 @@ Install each one from **MCP → Add connectors** (click the connector, then **Ad
   <Step title="Add the Postgres step">
     Add an `mcp` step with the `postgres_exec` tool on your `postgres` instance, to insert a row.
   </Step>
-  <Step title="Add an inbound webhook">
-    Open **Workflow setup → Inbound** and create a subscription for this workflow. Copy the **ingress URL** and the **signing secret** (shown once). See [Inbound webhooks](/integrations/inbound-webhooks).
+  <Step title="Add an HTTP trigger">
+    Open **Workflow setup → Triggers**, click **Add a trigger**, choose **When another system calls a URL**, and click **Create trigger**. Copy the **URL to call** and the **Signing secret** (shown once). See [Triggers](/integrations/triggers).
   </Step>
   <Step title="Send a test">
     Send a signed test request (see below). **What you should see:** a successful run in **Command Center**, and a new row in `form_submissions`.
@@ -71,7 +71,7 @@ Install each one from **MCP → Add connectors** (click the connector, then **Ad
 </Steps>
 
 <Warning>
-  Inbound webhooks only accept requests signed with your signing secret and sent with an `Idempotency-Key` header. Most form tools cannot sign requests this way. Post the form data from your own server code or a small serverless function, which signs it. [Inbound webhooks](/integrations/inbound-webhooks#verify-signatures) shows how.
+  An HTTP trigger only accepts requests signed with its signing secret and sent with an `Idempotency-Key` header. Most form tools cannot sign requests this way. Post the form data from your own server code or a small serverless function, which signs it. [Triggers](/integrations/triggers#verify-signatures) shows how.
 </Warning>
 
 ### Validate step
@@ -137,11 +137,11 @@ Create a second workflow named `form-daily-digest`.
     Add an `mcp` step with `resend_send_email` on your `resend` instance. Use the LLM's text as the `html`.
   </Step>
   <Step title="Schedule it">
-    Open **Workflow setup → Cron**, pick a preset such as **Daily 09:00**, choose a **Timezone**, choose an **Automation API key**, and click **Add schedule**. See [External triggers](/workflows/external-triggers#cron-schedules).
+    Open **Workflow setup → Triggers**, click **Add a trigger**, and choose **On a schedule**. Pick a preset such as **Daily 09:00**, choose a timezone, and click **Create trigger**. It runs as you. See [External triggers](/workflows/external-triggers#on-a-schedule).
   </Step>
 </Steps>
 
-**What you should see:** the schedule under **Active schedules** with the time of the next run.
+**What you should see:** the schedule in the trigger list. Open it to see the time of the next run.
 
 ### Query step
 
@@ -285,7 +285,7 @@ Senders sometimes retry. AgentRuntime ignores a repeated `Idempotency-Key`, so a
 
 | Problem | What to check |
 |---------|---------------|
-| The webhook returns `400` | The signature or `Idempotency-Key` header is missing or wrong. See [Inbound webhooks](/integrations/inbound-webhooks#verify-signatures) |
+| The trigger returns `400` | The signature or `Idempotency-Key` header is missing or wrong. See [Triggers](/integrations/triggers#verify-signatures) |
 | The run fails on **Save submission** | The Postgres instance has no connection, the table does not exist, or the database user cannot `INSERT` |
 | `email required` error | The request body has no `email` field |
 | The digest email never arrives | The Resend domain is not verified, or `to` is not a list |
@@ -300,5 +300,5 @@ Senders sometimes retry. AgentRuntime ignores a repeated `Idempotency-Key`, so a
 ## Next steps
 
 - [Postgres connector](/connectors/postgres) and [Resend connector](/connectors/resend)
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Triggers](/integrations/triggers)
 - [All guides](/guides/overview)

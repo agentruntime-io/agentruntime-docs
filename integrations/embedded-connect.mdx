@@ -153,7 +153,7 @@ When an end user finishes connecting, AgentRuntime sends a `POST` to your webhoo
 }
 ```
 
-Each request has an `X-Agentruntime-Signature` header of the form `t=<unix seconds>,v1=<hex>`. Compute HMAC-SHA256 of `"<t>." + raw body` with your `webhook_secret` and compare it with `v1`. This is the same scheme as [inbound webhooks](/integrations/inbound-webhooks#verify-signatures). Reject requests whose timestamp is far from the current time.
+Each request has an `X-Agentruntime-Signature` header of the form `t=<unix seconds>,v1=<hex>`. Compute HMAC-SHA256 of `"<t>." + raw body` with your `webhook_secret` and compare it with `v1`. This is the same scheme as [HTTP triggers](/integrations/triggers#verify-signatures). Reject requests whose timestamp is far from the current time.
 
 Saving `connection_id` is optional. If your own record disagrees with the webhook about whether a user is connected, trust the webhook.
 
@@ -256,5 +256,5 @@ Two different workspaces can both use `"user_42"`. They do not see each other's 
 - [Connections](/integrations/connections)
 - [Google Workspace](/integrations/google-workspace)
 - [API authentication](/api/authentication)
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Triggers](/integrations/triggers)
 - [Billing and credits](/platform/billing-and-credits)

@@ -37,7 +37,7 @@ Most businesses already answer customers from the **WhatsApp Business app** on a
 Once connected:
 
 - **Your replies from the phone show in the conversation.** In the Console they appear as *WhatsApp Business app*. Agents see them in the contact's history as a person's messages.
-- **The workflow waits while you answer.** After you reply from the app, the workflow leaves that contact alone for 30 minutes. Their messages are still kept in the conversation, and the agent sees them when it answers again. When you create the inbound webhook, set the wait under **When you reply from the WhatsApp Business app**; 0 turns it off.
+- **The workflow waits while you answer.** After you reply from the app, the workflow leaves that contact alone for 30 minutes. Their messages are still kept in the conversation, and the agent sees them when it answers again. When you create the trigger, set the wait under **Conversation**, in **Pause when a person replies (minutes)**; 0 turns it off.
 - Messages sent from some linked devices are not passed to AgentRuntime, and Meta does not offer this in every country. Check Meta's WhatsApp Business app onboarding documentation.
 
 #### A number without the phone app (advanced)
@@ -81,9 +81,9 @@ If you use your own Meta app and already have a System User token and IDs from M
 
 ### Receive messages
 
-To start workflows from incoming WhatsApp messages, open **Workflow setup → Inbound** on the workflow and create a subscription with **Vendor adapter: WhatsApp** and your WhatsApp connection. No webhook URL needs registering with Meta: AgentRuntime routes each message by your business phone number to every workflow subscribed to that connection.
+To start workflows from incoming WhatsApp messages, open **Workflow setup → Triggers** on the workflow, click **Add a trigger**, and choose your WhatsApp connection under **In an app you connected**. No webhook URL needs registering with Meta: AgentRuntime routes each message by your business phone number to every workflow that has a trigger on that connection.
 
-Each message becomes the run's input: `{{input.text}}`, `{{input.from}}` (the customer's number), `{{input.contact_name}}`, `{{input.message_id}}`, `{{input.type}}`, and the raw `{{input.message}}`. Photos, videos, voice notes, documents, and stickers are downloaded when they arrive and stored in your workspace, and the message carries them as `{{input.attachments}}`; a shared location arrives as `{{input.location}}`. See [Files, voice notes, and locations](/workflows/conversation-sessions#files-voice-notes-and-locations). Turn on **Remember each contact** so agent steps see each customer's earlier messages.
+Each message becomes the run's input: `{{input.text}}`, `{{input.from}}` (the customer's number), `{{input.contact_name}}`, `{{input.message_id}}`, `{{input.type}}`, and the raw `{{input.message}}`. Photos, videos, voice notes, documents, and stickers are downloaded when they arrive and stored in your workspace, and the message carries them as `{{input.channel_message.attachments}}`; a shared location arrives as `{{input.channel_message.location}}`. Both are added while **Remember each contact** is on, which is the default. See [Files, voice notes, and locations](/workflows/conversation-sessions#files-voice-notes-and-locations). Turn on **Remember each contact** so agent steps see each customer's earlier messages.
 
 For a back-and-forth chat, turn on [conversation sessions](/workflows/conversation-sessions) so a customer's messages share one run instead of starting a run each.
 

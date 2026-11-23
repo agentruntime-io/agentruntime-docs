@@ -38,7 +38,7 @@ Most production workflows combine a few connectors with LLM and human steps. Sta
 ```mermaid
 flowchart TB
   subgraph ingest [Ingest]
-    WH[Inbound webhook]
+    WH[HTTP trigger]
     WH --> V[Validate]
   end
   subgraph store [Store]

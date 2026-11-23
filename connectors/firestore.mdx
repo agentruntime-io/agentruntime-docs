@@ -38,7 +38,7 @@ The **firestore** connector lets workflows work with a Google Cloud Firestore da
 
 ## What you can build
 
-- **Event log.** An inbound webhook starts a workflow that stores each event with `firestore_add_documents`.
+- **Event log.** An HTTP trigger starts a workflow that stores each event with `firestore_add_documents`.
 - **Profile sync.** After a sign-up, `firestore_update_document` merges profile fields into an existing document, limited by `update_mask`.
 - **Ops dashboard.** `firestore_query_collection` finds open items, and an LLM step turns them into a daily summary.
 - **Rules check.** `firestore_validate_rules` checks a proposed rules file, and the workflow stops if `valid` is `false`.
