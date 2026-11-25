@@ -66,14 +66,14 @@ ORDER BY 1 DESC;
     Start a manual run. **What you should see:** the run succeeds and the email arrives.
   </Step>
   <Step title="Schedule it">
-    Open **Workflow setup → Cron**, choose the **Weekly Mon 09:00** preset (or type a **Cron (5-field)** expression such as `0 8 * * 1`), choose a **Timezone**, choose an **Automation API key**, and click **Add schedule**.
+    Open **Workflow setup → Triggers**, click **Add a trigger**, and choose **On a schedule**. Choose the **Weekly Mon 09:00** preset (or type a five-field cron expression such as `0 8 * * 1`), choose a timezone, and click **Create trigger**. The schedule runs as you.
   </Step>
   <Step title="Optional: add approval">
     For reports that need a sign-off, add a `human` step between the LLM and Gmail steps. See [Approve then send](/workflows/patterns#approve-then-send).
   </Step>
 </Steps>
 
-**What you should see after step 6:** the schedule under **Active schedules**, with the cron expression, timezone, and time of the next run. See [External triggers](/workflows/external-triggers#cron-schedules).
+**What you should see after step 6:** the schedule in the trigger list with its cron expression. Open it to see the time of the next run. See [External triggers](/workflows/external-triggers#on-a-schedule).
 
 ### Query step
 
@@ -178,7 +178,7 @@ Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE
 | The query step fails | The SQL has an error, the table does not exist, or the connection is not wired on the instance |
 | `postgres_query only allows SELECT/CTE queries` | The report must be a `SELECT` or `WITH` query |
 | The email is not sent | Gmail is not turned on for the Google connection, or `to` is not a list |
-| The schedule never runs | Check **Active schedules** for the next run time and timezone, and that the schedule has an **Automation API key** |
+| The schedule never runs | Open the trigger and check **Next run** and the timezone. Read **Activity**, and check the trigger is not **Needs an owner**: the person it runs as must still have access |
 | The summary invents numbers | Tell the LLM in the prompt to use only the data given |
 
 ## Variations
@@ -190,5 +190,5 @@ Paste this into the [JSON editor](/workflows/json-editor), then replace `REPLACE
 ## Next steps
 
 - [Postgres connector](/connectors/postgres) and [Gmail connector](/connectors/gmail)
-- [External triggers](/workflows/external-triggers): schedules, webhooks, and events
+- [External triggers](/workflows/external-triggers): schedules, HTTP calls, app events, and more
 - [All guides](/guides/overview)

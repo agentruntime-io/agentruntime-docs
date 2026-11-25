@@ -1,11 +1,11 @@
 ---
 title: Run setup
-description: Choose where a run starts and what input it gets, from Manual runs, schedules, webhooks, and the API.
+description: Choose where a run starts and what input it gets, from Manual runs, triggers, and the API.
 ---
 
 **Run setup** controls how a workflow starts. You set the **starting input** (the values your steps read as `{{input.*}}`) and, optionally, which steps the run starts from.
 
-**Who this is for:** anyone who runs a workflow by hand or sets up a schedule or webhook for it.
+**Who this is for:** anyone who runs a workflow by hand or sets up a trigger for it.
 
 **What you will do:** start a run with your own input, and save the values as defaults.
 
@@ -16,15 +16,13 @@ In [Workflow Studio](/workflows/studio), click **Setup** in the toolbar. The **W
 | Tab | What it is for |
 |---|---|
 | **Manual** (Defaults & run) | Set the starting input for runs you start by hand |
-| **Inbound** (Webhooks) | Start runs from outside systems with signed webhooks |
-| **Events** (Platform) | Start runs when a platform event happens (Embedded Connect) |
-| **Cron** (Schedules) | Start runs on a schedule |
+| **Triggers** (What starts it) | Start runs on a schedule, from an app you connected, from another system's signed call, from a workspace event (Embedded Connect), or from a phone call. See [External triggers](/workflows/external-triggers). |
 | **Sessions** (Per conversation) | One run per conversation. See [Conversation sessions](/workflows/conversation-sessions). |
 | **API** (PAT run) | A ready-made request to start the workflow with an API key |
 | **Apps** (Used by) | Lists the apps that use this workflow |
 
 <Frame caption="The Manual tab of Workflow setup">
-  <img src="/images/workflows/run-setup-manual.png" alt="The Workflow setup dialog on the Manual tab, with the trigger tabs on the left and, on the right, a note about saved defaults, the Run as setting, the Entry step, the Starting input field, and the Preview JSON, Cancel and Save defaults buttons" />
+  <img src="/images/workflows/run-setup-manual.png" alt="The Workflow setup dialog on the Manual tab, with the trigger tabs on the left (the list predates the single Triggers tab) and, on the right, a note about saved defaults, the Run as setting, the Entry step, the Starting input field, and the Preview JSON, Cancel and Save defaults buttons" />
 </Frame>
 
 The **Manual** tab's footer has **Preview JSON**, **Cancel**, and **Save defaults**. The other tabs only have **Close**, and remind you that **Save defaults** and **Run** belong to the **Manual** tab. The dialog has no **Run** or **Dry-run** button of its own: use **Run** and **Dry-run** in the Studio toolbar.
@@ -52,14 +50,13 @@ The **Manual** tab's footer has **Preview JSON**, **Cancel**, and **Save default
 
 ## Save defaults
 
-**Save defaults** stores the entry step choice and starting input so the forms open pre-filled next time. The tab says it plainly: "Saved defaults prefill this form only." Schedules, platform events and inbound webhooks use the values stored on their own settings when you create them, not the saved defaults.
+**Save defaults** stores the entry step choice and starting input so the forms open pre-filled next time. The tab says it plainly: "Saved defaults prefill this form only." Triggers use the values stored on the trigger itself when you create it, not the saved defaults.
 
-## Schedules, webhooks, and the API
+## Triggers and the API
 
 Each of these keeps its own start values:
 
-- **Cron**: the schedule has the same entry step and starting input as **Manual**, saved on the schedule when you click **Add schedule**. It also asks which version to run (**Runs**) and which **Automation API key** to run as.
-- **Inbound**: you can save fixed start values on a webhook. The data in each request is merged with them, and the request wins if both set the same value.
+- **Triggers**: a trigger has the same entry step and starting input as **Manual**, saved on the trigger when you click **Create trigger**. It also asks which version to run (**Runs**) and who it runs as. A trigger runs as a person, so there is no API key to pick. For an HTTP call, the data in each request is merged over the saved values, and the request wins if both set the same value.
 - **API**: send the complete start input in `trigger_payload` (and `trigger_steps` for per-step values). See [External triggers](/workflows/external-triggers).
 
 ## What the input becomes
@@ -71,7 +68,7 @@ Whatever you type under **Starting input** is available to the steps as `{{input
 | Problem | What to try |
 |---|---|
 | **Run** is greyed out in the toolbar | The canvas is empty, or your role cannot run workflows. See [Workflow Studio](/workflows/studio#common-problems). |
-| A schedule ignores the values you saved with **Save defaults** | Expected. A schedule uses the values saved on the schedule itself. |
+| A trigger ignores the values you saved with **Save defaults** | Expected. A trigger uses the values saved on the trigger itself. |
 | A field is empty at run time | Check that it is included in the form, or set on the step in the canvas. |
 
 ## Next steps

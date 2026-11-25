@@ -227,10 +227,10 @@ For the WhatsApp side, use a [test recipient number](https://developers.facebook
 
 ## Start it when an order ships
 
-To start the workflow automatically, create an [inbound webhook](/integrations/inbound-webhooks) for it and have your own system call it when an order is fulfilled, sending `order_id`.
+To start the workflow automatically, add an [HTTP trigger](/integrations/triggers) to it (**Workflow setup → Triggers**, then **When another system calls a URL**) and have your own system call it when an order is fulfilled, sending `order_id`.
 
 <Warning>
-  Shopify's own webhooks are not signed in the format AgentRuntime expects, so Shopify cannot call an inbound webhook directly. Receive the Shopify webhook in your own server or serverless function, then post `order_id` to the AgentRuntime webhook with the required signature.
+  Shopify's own webhooks are not signed in the format AgentRuntime expects, so Shopify cannot call an HTTP trigger directly. Receive the Shopify webhook in your own server or serverless function, then post `order_id` to the trigger's URL with the required signature.
 </Warning>
 
 ## Common problems

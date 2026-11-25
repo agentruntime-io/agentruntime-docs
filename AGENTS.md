@@ -113,7 +113,7 @@ i18n/
 introduction/     Product overview
 platform/           Workspace setup, settings, members, roles, billing, multi-product billing, analytics, security, referrals, feature availability, troubleshooting
 workflows/          Studio, Command Center, step types, runs, patterns, human tasks, JSON cookbook
-integrations/       Integration setup (connections, MCP, custom MCP, auth, webhooks, webhook wizard, catalog index)
+integrations/       Integration setup (connections, MCP, custom MCP, auth, triggers, catalog index)
 connectors/         One MDX per MCP adapter slug (40 Go connectors)
 guides/             End-to-end multi-connector workflow recipes (index + 5 tutorials)
 ai/                 LLM providers, Autopilot, chat, memory (mark preview if Console UI flag off)

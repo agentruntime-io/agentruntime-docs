@@ -18,7 +18,7 @@ Click a connector to see its version, its tools, and the **Add to workspace** bu
 </Frame>
 
 <Note>
-  Setup that is the same for every connector (connections, instances, webhooks) is explained in the **Integration setup** pages: [Quickstart](/integrations/quickstart), [Connections](/integrations/connections), and [MCP instances](/integrations/mcp-instances). Connector pages cover only that connector.
+  Setup that is the same for every connector (connections, instances, triggers) is explained in the **Integration setup** pages: [Quickstart](/integrations/quickstart), [Connections](/integrations/connections), and [MCP instances](/integrations/mcp-instances). Connector pages cover only that connector.
 </Note>
 
 ## Common patterns
@@ -38,7 +38,7 @@ Most production workflows combine a few connectors with LLM and human steps. Sta
 ```mermaid
 flowchart TB
   subgraph ingest [Ingest]
-    WH[Inbound webhook]
+    WH[HTTP trigger]
     WH --> V[Validate]
   end
   subgraph store [Store]
@@ -57,7 +57,7 @@ flowchart TB
     Five full recipes that chain connectors — copy the step graphs into Workflow Studio.
   </Card>
   <Card title="Workflow patterns" icon="workflow" href="/workflows/patterns">
-    Approve-then-send, retries, for_each, and webhook idempotency.
+    Approve-then-send, retries, for_each, and safe repeats.
   </Card>
 </CardGroup>
 

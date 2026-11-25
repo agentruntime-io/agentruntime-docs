@@ -9,7 +9,7 @@ It is for marketing and sales teams who copy leads between tools by hand today. 
 
 ```mermaid
 flowchart LR
-  Form[Your backend] -->|signed POST| WH[Inbound webhook]
+  Form[Your backend] -->|signed POST| WH[HTTP trigger]
   WH --> Validate[Validate email]
   Validate --> AC[activecampaign_create_contact]
   Validate --> Notion[notion_create_database_item]
@@ -56,12 +56,12 @@ Install each from **MCP → Add connectors** (click the connector, then **Add to
     Add an `mcp` step with `activecampaign_subscribe_or_unsubscribe_contact_from_list` after the contact is created.
   </Step>
   <Step title="Send leads in">
-    Create an [inbound webhook](/integrations/inbound-webhooks) for the workflow (**Workflow setup → Inbound**) and have your own backend call it, as explained below.
+    Add an [HTTP trigger](/integrations/triggers) to the workflow (**Workflow setup → Triggers**, then **When another system calls a URL**) and have your own backend call it, as explained below.
   </Step>
 </Steps>
 
 <Warning>
-  Inbound webhooks only accept requests signed with your signing secret and sent with an `Idempotency-Key` header. A plain browser form cannot do this. Post the lead from your server code or a serverless function. [Inbound webhooks](/integrations/inbound-webhooks#verify-signatures) shows how.
+  An HTTP trigger only accepts requests signed with its signing secret and sent with an `Idempotency-Key` header. A plain browser form cannot do this. Post the lead from your server code or a serverless function. [Triggers](/integrations/triggers#verify-signatures) shows how.
 </Warning>
 
 ### Validate the input
@@ -245,5 +245,5 @@ Start a manual run with:
 ## Next steps
 
 - [ActiveCampaign connector](/connectors/activecampaign) and [Notion connector](/connectors/notion)
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Triggers](/integrations/triggers)
 - [All guides](/guides/overview)

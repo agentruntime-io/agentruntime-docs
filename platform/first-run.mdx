@@ -122,13 +122,9 @@ Under **Make it yours**, sign in once with Google, and two more recipes work wit
 
 Each email is checked once: every check covers the 5 minutes before it starts. If a check does not run, the email from those 5 minutes is not checked later.
 
-### Schedules need an API key
+### The recipes run as you
 
-Both recipes run on a schedule, and a schedule runs with an API key from **Settings → API keys** (see [Authentication](/api/authentication)).
-
-- If your workspace already has an active key that can run workflows, the recipe uses it without asking.
-- If not, the Console asks **Create an API key for schedules?** Click **Create key and continue** to create a key named **Schedules** and finish the setup. The key can read and run workflows and call their tools. **Cancel** stops without creating anything.
-- If you are not allowed to create API keys, you see **This recipe needs an API key**. Ask a workspace admin to create one, or to start the recipe for you.
+Both recipes run on a schedule. Each one adds a schedule [trigger](/integrations/triggers) to the new workflow that runs as you, so there is no API key to create. AgentRuntime checks your access every time the schedule fires. If you lose access to the workspace, the trigger pauses and shows **Needs an owner**. A workspace admin can then click **Run it as me** on it, under **Runs → Triggers**. See [Triggers and run identity](/workflows/trigger-run-identity).
 
 ## Double-clicking Run starts two runs
 
@@ -157,7 +153,6 @@ The **Setup guide** panel in the corner of the Console lists what is left to do:
 |---|---|
 | **Start watching** reads **Connect Gmail first** | Click **Connect Gmail** above it and finish the Google sign-in. |
 | **Schedule it** reads **Connect Gmail and Google Calendar first** | Connect both, then click **Schedule it**. |
-| "This recipe needs an API key" | Ask a workspace admin to create an API key, or to start the recipe. |
 | "Gmail isn't in the app catalog yet." (or Google Calendar) | That Hosted app is not available in your workspace yet. Contact support. |
 | The run fails | Open the step that failed in the run's events. If the workspace is out of credits, see [Billing and credits](/platform/billing-and-credits). For other errors, see [Troubleshooting](/platform/troubleshooting). |
 

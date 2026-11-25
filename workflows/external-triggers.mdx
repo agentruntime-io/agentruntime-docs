@@ -1,21 +1,25 @@
 ---
 title: External triggers
-description: Start workflows on a schedule, from a webhook, from a platform event, or from the API, and what each trigger sends to the run.
+description: Start workflows on a schedule, from an app, from another system's HTTP call, from a workspace event, from a phone call, or from the API, and what each trigger sends to the run.
 ---
 
-A **trigger** starts a workflow without anyone clicking **Run** in Studio. This page covers the four kinds of trigger and what start values each one sends.
+A **trigger** starts a workflow without anyone clicking **Run** in Studio. This page covers each kind of trigger, how to set it up in one place, and what start values it sends.
 
-**Who this is for:** people who want a workflow to run on its own: every morning, when a form is submitted, when a customer connects an account, or when your own code calls it.
+**Who this is for:** people who want a workflow to run on its own: every morning, when a message arrives in an app, when a form is submitted, when a customer connects an account, or when your own code calls it.
 
-**What you will do:** pick a trigger, set it up in **Workflow setup**, and check that it started a run.
+**What you will do:** add a trigger in **Workflow setup**, and check that it started a run.
 
 ## Pick a trigger
 
-| You want | Use | Set up in |
+All triggers except the API are set up on one tab: **Setup → Triggers**. The first question is **What should start this workflow?**
+
+| You want | Choose | Set up in |
 |---|---|---|
-| A run every hour, day, or week | **Cron** schedule | **Setup → Cron** |
-| A run when another system sends you data | **Inbound** webhook | **Setup → Inbound** |
-| A run when something happens in AgentRuntime (a customer connects or disconnects an account) | **Platform event** | **Setup → Events** |
+| A run every hour, day, or week | **On a schedule** | **Setup → Triggers** |
+| A run when something happens in an app you connected, such as a Telegram message or a GitHub event | **In an app you connected** | **Setup → Triggers** |
+| A run when another system sends you data | **When another system calls a URL** | **Setup → Triggers** |
+| A run when something happens in AgentRuntime (a customer connects or disconnects an account) | **When something changes in your workspace** | **Setup → Triggers** |
+| A run when someone calls a phone number | **When someone calls a number** | **Setup → Triggers** |
 | A run from your own code | **API** | **Setup → API** |
 | A run for each message in a chat | [Conversation sessions](/workflows/conversation-sessions) | **Setup → Sessions** |
 
@@ -23,80 +27,111 @@ Every trigger sends its own **start values**: the starting input (`trigger_paylo
 
 Each trigger also chooses **which version** to run: **Draft**, **Last published**, or a fixed version. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
 
-## Cron schedules
+Each trigger **runs as a person**: you, unless a workspace admin chooses another member. There is no API key to pick. AgentRuntime checks that person's access every time the trigger starts a run. See [Triggers and run identity](/workflows/trigger-run-identity).
 
-<Frame caption="The Cron tab: pick a preset or type a cron expression">
-  <img src="/images/workflows/external-triggers-cron-form.png" alt="The Cron tab of Workflow setup with the New cron schedule form: Preset, Cron (5-field) set to 0 9 * * *, Timezone UTC, Run as Workspace, the Entry step and the Starting input" />
-</Frame>
+## Add a trigger
 
 <Steps>
-  <Step title="Open the Cron tab">
-    In Workflow Studio, click **Setup**, then **Cron**.
+  <Step title="Open the Triggers tab">
+    In Workflow Studio, save the workflow, then click **Setup** and open **Triggers**. The list **Starts this workflow** shows the triggers this workflow already has. Click **Add a trigger**. If the workflow has none yet, the question is already open.
   </Step>
-  <Step title="Set the time">
-    Pick a **Preset** (**Every hour**, **Daily 09:00**, **Weekdays 09:00**, **Weekly Mon 09:00**) or type a **Cron (5-field)** expression such as `0 9 * * *`. Choose a **Timezone**.
+  <Step title="Choose what starts it">
+    Under **What should start this workflow?**, pick one of: **On a schedule**, **In an app you connected**, **When another system calls a URL**, **When something changes in your workspace**, **When someone calls a number**. Each app you connected is its own choice, such as **Telegram, @mybot**. An app you have not connected yet is listed under **Connect an app to use more**, with a link to **Connections**.
   </Step>
-  <Step title="Set the start values">
-    Under **Entry step** and **Starting input**, choose the start step and type the starting input, the same as on the **Manual** tab. Leave **Run as** on **Workspace** unless you are running for Embedded Connect end users.
+  <Step title="Fill in the form">
+    The form changes with your choice: the events to listen for (**Start it when**, as checkboxes), filters, and options for that kind. Then every trigger asks for the same things: a **Name** (optional), which version **Runs**, **Run as**, and the start values.
   </Step>
-  <Step title="Choose the version and the key">
-    Under **Runs**, choose **Draft** or **Last published**. Under **Automation API key**, pick the key the run starts under, or create one with the **Create API key** button (the **+** beside the list).
-  </Step>
-  <Step title="Add the schedule">
-    Click **Add schedule**.
+  <Step title="Create it">
+    Click **Create trigger**. If you ticked several events, AgentRuntime creates one trigger for each.
 
-    You should see the schedule under **Active schedules** with the cron expression, the timezone, and the time of the next run.
+    You should see the trigger in the **Starts this workflow** list with the status **Active**. For an HTTP call, a dialog opens first with the URL and signing secret. Copy them before you click **Done**.
   </Step>
 </Steps>
 
-Cron example, every weekday at 09:00 UTC:
+Only the `project_contributor` role and higher can add triggers. With a lower role, the tab says "Contributors can add triggers." To see every trigger in the workspace, open **Runs → Triggers** (see [Check what a trigger did](#check-what-a-trigger-did)).
+
+## On a schedule
+
+Choose **On a schedule**, then:
+
+<Steps>
+  <Step title="Set the time">
+    Pick a **Preset** (**Every hour**, **Daily 09:00**, **Weekdays 09:00**, **Weekly Mon 09:00**) or type a five-field cron expression such as `0 9 * * *`. Choose a timezone.
+  </Step>
+  <Step title="Set the start values">
+    Choose the start step and type the starting input, the same as on the **Manual** tab.
+  </Step>
+  <Step title="Create the trigger">
+    Click **Create trigger**.
+
+    You should see the schedule in the list with its cron expression. Open it to see **Next run**.
+  </Step>
+</Steps>
+
+A schedule that fires every minute shows a warning, because it runs often. If a run is missed, for example during an outage, the schedule's catch-up setting decides whether it still runs late within a grace window, or is skipped. See [Limits and quotas](/platform/limits#schedules).
+
+The same schedule with the API:
 
 ```json
+POST /v1/triggers
 {
-  "cron": "0 9 * * 1-5",
-  "timezone": "UTC",
-  "trigger_steps": {
-    "<start-step-id>": { "limit": 30 }
-  },
-  "excluded_step_ids": []
+  "workflow_id": "WORKFLOW_ID",
+  "name": "Weekday report",
+  "kind": "schedule",
+  "event": "cron",
+  "config": { "cron": "0 9 * * 1-5", "timezone": "UTC" },
+  "start_input": {
+    "trigger_steps": { "<start-step-id>": { "limit": 30 } },
+    "excluded_step_ids": []
+  }
 }
 ```
 
-For workflows that serve many Embedded Connect customers, choose a **Principal segment** (or a Console team) so that each tick starts one run per member. See [Triggers and run identity](/workflows/trigger-run-identity).
+For workflows that serve many Embedded Connect customers, a workspace admin can run a schedule for a **Principal segment** (or a Console team) so that each tick starts one run per member. See [Triggers and run identity](/workflows/trigger-run-identity).
 
-## Inbound webhooks
+## In an app you connected
 
-<Frame caption="The Inbound tab: the New webhook form">
-  <img src="/images/workflows/external-triggers-inbound-form.png" alt="The Inbound tab of Workflow setup with the New webhook form: Label, Webhook purpose set to Start workflow run, Vendor adapter set to Direct caller only, the Entry step and the Starting input" />
-</Frame>
+Choose a connected app, for example **Telegram, @mybot**. Today this covers Telegram, GitHub, Fathom, payments.lk and WhatsApp. Tick the events you want under **Start it when**. Each app also offers its own filters, such as one chat or one repository.
 
-**Webhook purpose** is **Start workflow run** or **Append to agent inbox (mid-turn)**. **Vendor adapter** is **Direct caller only** for your own code, or a connector webhook such as **github**, **telegram** or **whatsapp**.
+How the app learns where to send events depends on the app:
 
-An outside system sends a signed HTTP request to your webhook URL, and AgentRuntime starts a run with the request body as the starting input.
+- **Telegram, GitHub and Fathom:** AgentRuntime registers the webhook for you. There is nothing to copy.
+- **payments.lk:** a dialog called **One more step at the provider** shows a URL and steps to paste into the provider's dashboard.
+- **WhatsApp:** nothing to set up. Messages reach the trigger through your connection. Under **Conversation**, **Remember each contact** keeps one conversation per contact, and **Pause when a person replies (minutes)** holds a contact's messages from the workflow after you answer from the WhatsApp Business app. Empty means 30 minutes; 0 turns it off.
 
-1. Open **Setup → Inbound**, fill in the **New webhook** form (**Label**, **Webhook purpose**, **Vendor adapter**, the entry step and starting input, **Runs**, **Automation API key**), and click **Create subscription**. The Console shows the **Ingress URL (start run)** and the **Signing secret**.
+When you delete the last trigger on a connection, AgentRuntime removes the webhook at the app. More about app triggers, including how to create them with the API, is in [Triggers](/integrations/triggers#triggers-from-connected-apps).
+
+## When another system calls a URL
+
+An outside system sends a signed HTTP request to the trigger's URL, and AgentRuntime starts a run with the request body as the starting input.
+
+1. Choose **When another system calls a URL**, keep **Start a run** under **What a call does**, and click **Create trigger**. The dialog **Trigger created** shows the **URL to call** and the **Signing secret**.
 2. Configure the sender to `POST` JSON to that URL with the signature and an idempotency key.
 3. The JSON body becomes `{{input.*}}`.
 
-If you save fixed start values on the webhook, they are merged with the request body, and the request wins when both set the same value. Senders may retry, so make the workflow safe to run twice for the same event. Full setup, signing, and vendor options are in [Inbound webhooks](/integrations/inbound-webhooks).
+If you save fixed start values on the trigger, they are merged under the request body, and the request wins when both set the same value. Senders may retry, so make the workflow safe to run twice for the same event. Full setup, signing, retries, and the agent inbox option are in [Triggers](/integrations/triggers).
 
-## Platform events
+## When something changes in your workspace
 
-A platform event starts a workflow when something happens to a customer in your workspace. Set it up under **Setup → Events**:
-
-<Frame caption="The Events tab: the New platform event trigger form">
-  <img src="/images/workflows/external-triggers-events-form.png" alt="The Events tab of Workflow setup with the New platform event trigger form: Platform event set to Connection created, Connection provider, Principal segment filter, Runs and Automation API key" />
-</Frame>
+A workspace event starts a workflow when something happens to a customer in your workspace. Tick the events you want:
 
 | Event | When it fires | Credentials on the run? |
 |---|---|---|
-| **Principal created** (`principal.created`) | A new end user appears, before they have connected anything | No |
-| **Connection created** (`connection.created`) | A customer finished connecting an account | Yes |
-| **Connection revoked** (`connection.revoked`) | A customer's connection was removed | Yes |
-| **Principal suspended** (`principal.suspended`) | An end user was suspended | Yes |
-| **Principal deleted** (`principal.deleted`) | An end user was deleted | Yes |
+| `principal.created` | A new end user appears, before they have connected anything | No |
+| `connection.created` | A customer finished connecting an account | Yes |
+| `connection.revoked` | A customer's connection was removed | Yes |
+| `principal.suspended` | An end user was suspended | Yes |
+| `principal.deleted` | An end user was deleted | Yes |
 
-Optional filters: **Connection provider** (only for the two connection events: **Any provider (recommended)**, `google_account`, `composio_account`, or `whatsapp`) and **Principal segment filter**. Each event starts one run for the principal it is about, so there is no **Run as** choice here. The run receives the event's details, such as the connection and provider, as start values.
+Optional filters: the connection provider (only for the two connection events: `google_account`, `composio_account`, or `whatsapp`) and a principal segment. Each event starts one run for the end user it is about, so the run is for that end user rather than for the person who created the trigger. The run receives the event's details, such as the connection and provider, as start values. Only workspace admins can create triggers for these events, because the runs act on behalf of your end users.
+
+## When someone calls a number
+
+<Note>
+  Phone triggers need voice calling, which is not turned on in every workspace yet. See [Feature availability](/platform/feature-availability).
+</Note>
+
+Choose **When someone calls a number**, type the phone number with its country code, for example `+15105550100`, and add an optional greeting. A number can belong to one active trigger at a time. The trigger fires each time the caller speaks, with what they said. Under **Conversation**, **Remember each contact** keeps one conversation per caller.
 
 ## Start from the API
 
@@ -117,18 +152,51 @@ POST /v1/workflows/{id}/command
 
 The **API** tab in **Workflow setup** gives you a ready-made request for your language.
 
+## Check what a trigger did
+
+Open **Runs** in the sidebar and click the **Triggers** tab. It lists every trigger in the workspace. Click a row to open its details.
+
+| In the details | What it does |
+|---|---|
+| **Activity** | Each event the trigger received, with its status and an **Open run** button. **Replay** runs the same event again. |
+| **Test** | Sends a sample event. This **starts a real run**, so the Console asks you to confirm first. |
+| **Pause** / **Resume** | Stops or restarts the trigger without deleting it |
+| **Edit** | Opens the same form you used to create it |
+| **New signing secret** / **Renew route** | For an HTTP call, makes a new signing secret. For an app, makes a new address and registers it again. |
+| **Delete** | Removes the trigger |
+
+An event in **Activity** has one of these statuses:
+
+| Status | Meaning |
+|---|---|
+| **Waiting**, **Starting** | The event was accepted and the run is about to start |
+| **Started** | A run started. Click **Open run**. |
+| **Failed, will retry** | The start did not work this time. AgentRuntime tries again. |
+| **Blocked** | The start was refused, for example because the person it runs as lost access, or the workspace is out of credits. The row says why. |
+| **Held for a person** | A person replied to this contact, so the workflow waits (WhatsApp and phone) |
+| **Gave up** | Every try failed. You can **Replay** the event while it is still stored. |
+
+AgentRuntime keeps an event for 7 days, so **Replay** works for a week. The activity rows are kept for 90 days.
+
+A trigger can show **Needs an owner** when the person it runs as can no longer run it. The details open with a banner and, for workspace admins, a **Run it as me** button. A trigger can show **Needs attention** when an app refused the registration. Click **Show them** on the warning at the top of the **Triggers** tab to list these.
+
+On the **Runs** tab, the **Started by** filter and the **Trigger** filter show only the runs a kind of trigger, or one trigger, started.
+
 ## Common problems
 
 | Problem | What to try |
 |---|---|
-| A schedule did not run | Check **Active schedules** for the next run time and timezone. Check that the **Automation API key** is still active. |
-| The run uses old behaviour | The trigger runs **Last published** or a fixed version. Change **Runs** to **Draft**, or publish and switch it. |
-| A webhook request was rejected | Check the signature secret, and that the sender includes the idempotency key. See [Inbound webhooks](/integrations/inbound-webhooks). |
+| A schedule did not run | Open the trigger. Check **Next run** and the timezone, and read **Activity**. Check that the person it runs as still has access. |
+| The run uses old behaviour | The trigger runs **Last published** or a fixed version. Edit the trigger and change **Runs** to **Draft**, or publish and switch it. |
+| An HTTP request was rejected | Check the signature secret, and that the sender includes the idempotency key. See [Triggers](/integrations/triggers#common-problems). |
+| An app event never arrives | Check the trigger's status. **Needs attention** means the app refused the registration. For payments.lk, check that you pasted the URL into its dashboard. |
 | An input is empty in the run | The trigger did not send it. Look at the run's **Events** and **Context** tabs to see the input it received. |
+| The trigger says **Needs an owner** | The person it runs as lost access. A workspace admin clicks **Run it as me**, or edits the trigger and picks another member. |
 
 ## Next steps
 
+- [Triggers](/integrations/triggers)
 - [Run setup](/workflows/run-setup)
 - [Triggers and run identity](/workflows/trigger-run-identity)
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Runs page](/platform/operate)
 - [API reference](/api/reference)

@@ -272,7 +272,9 @@ You can also start it from code. See [API examples](/api/examples#start-a-run).
 
 **What you should see:** the run pauses at **Approve review comment**. Open [Command Center](/workflows/command-center), read the draft, and click **Approve** or **Reject**. After you approve, the comment appears on the pull request.
 
-To run it automatically when a pull request opens, create an [inbound webhook](/integrations/inbound-webhooks) and choose the **GitHub** vendor adapter.
+To run it automatically when a pull request opens, add a trigger. Open **Workflow setup → Triggers**, click **Add a trigger**, choose your GitHub connection under **In an app you connected**, and tick the pull request event. AgentRuntime registers the webhook with GitHub for you. See [Triggers from connected apps](/integrations/triggers#triggers-from-connected-apps).
+
+GitHub sends its own event body as the run's input, so the fields differ from the `owner`, `repo` and `pr_number` used above. Add a `lua` step at the start that maps GitHub's fields to those names, or change the later steps to read GitHub's fields.
 
 ## Common problems
 

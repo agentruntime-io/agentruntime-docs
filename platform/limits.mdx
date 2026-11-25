@@ -25,8 +25,8 @@ Every workflow platform has limits. This page lists the ones that can stop a run
 | Items in one `for_each` loop | 500 |
 | Items a `for_each` runs at once | 10 by default, 100 at most |
 | Lua script size, and Lua result size | 64 KiB, and 1 MiB |
-| Body of an inbound webhook request | 1 MiB |
-| Inbound webhook requests | 600 per minute for each webhook and sender IP address |
+| Body of an HTTP trigger request | 1 MiB |
+| HTTP trigger requests | 600 per minute for each trigger and sender IP address |
 | One stored file | 100 MiB |
 | One incoming WhatsApp media file | 100 MiB |
 | A conversation session closes after being quiet for | 30 minutes by default |
@@ -139,27 +139,29 @@ AgentRuntime does not apply one general requests-per-minute limit to API calls m
 |---|---|---|---|
 | Sign-in, sign-up, token refresh, and verification requests | 30 requests per minute for each IP address | `429` with `{"error": "rate_limited", "retry_after_seconds": N}` and a `Retry-After` header. | Wait for the number of seconds given, then try again. |
 | Messages in a Console chat conversation | 240 per minute for each person and conversation | `429` with `rate_limit`. | Slow down, or batch your messages. |
-| Inbound webhooks | See [Triggers and webhooks](#triggers-and-webhooks) | `429` with a `Retry-After` header. | Wait, then send again. |
+| HTTP triggers | See [Triggers](#triggers) | `429` with a `Retry-After` header. | Wait, then send again. |
 
-## Triggers and webhooks
+## Triggers
 
-### Inbound webhooks
+### HTTP triggers
 
-These limits apply to requests that other systems send to your `/v1/inbound-webhooks/{subscription_id}` URL. See [Inbound webhooks](/integrations/inbound-webhooks) for how to set one up and sign requests.
+These limits apply to requests that other systems send to your `/v1/triggers/{trigger_id}/events` URL. See [Triggers](/integrations/triggers) for how to set one up and sign requests.
 
 | Limit | Value | What you see when you hit it | What to do |
 |---|---|---|---|
-| Request body size | 1 MiB | `400` with `{"error": "invalid or oversized body"}` | Send a smaller body. Send a reference, such as a file ID or a URL, instead of the data. |
-| Signature timestamp | The `t=` timestamp in `X-Agentruntime-Signature` must be within 5 minutes (300 seconds) of the server's time, in either direction. | `400` with `{"error": "invalid signature"}` | Sign each request with the current time, and keep your server's clock correct. |
-| Request rate | 600 requests per minute for each webhook and sender IP address | `429` with `{"error": "rate limit exceeded"}` and a `Retry-After` header giving the seconds to wait. | Wait for `Retry-After` and send again. Spread bursts out over time. |
-| `Idempotency-Key` | Required on every request. | `400` with "Idempotency-Key header required". A repeat of a key that already started a run returns `200` with `"duplicate": true`. A repeat while the first request is still being handled returns `409` with `idempotency_in_flight`. | Send a new, unique key for each event. Reuse a key only when you retry the same event. |
+| Request body size | 1 MiB | `413` | Send a smaller body. Send a reference, such as a file ID or a URL, instead of the data. |
+| Signature timestamp | The `t=` timestamp in `X-Agentruntime-Signature` must be within 5 minutes (300 seconds) of the server's time, in either direction. | `400` with `invalid_signature` | Sign each request with the current time, and keep your server's clock correct. |
+| Request rate | 600 requests per minute for each trigger and sender IP address | `429` and a `Retry-After` header giving the seconds to wait. | Wait for `Retry-After` and send again. Spread bursts out over time. |
+| `Idempotency-Key` | Required on every request. | `400` with `missing_idempotency_key`. A repeat of a key that was already accepted returns `200` with `"duplicate": true` and starts nothing. | Send a new, unique key for each event. Reuse a key only when you retry the same event. |
+| Retries when a run cannot start | Up to 6 tries over several hours | The event shows in the trigger's **Activity** as **Failed, will retry**, then **Gave up** after the last try. | Fix the cause, then use **Replay** on the event. |
+| How long events are kept | The event body is kept for 7 days. Activity rows are kept for 90 days. | **Replay** is switched off for an event after 7 days. | Replay within a week, or send the event again. |
 
 ### Schedules
 
 | Limit | Value | What you see when you hit it | What to do |
 |---|---|---|---|
 | Shortest interval | A schedule is a five-field cron expression, and schedules are checked once a minute. The shortest repeat is every minute. | Studio marks an every-minute schedule with a "Runs every minute" warning. | Use a longer interval unless you really need every minute. |
-| Late runs | If a scheduled run cannot start within 10 minutes of its time, it is skipped, not run late. You can change the window with `grace_minutes` in the schedule's configuration. Setting `catchup_policy` to `skip_missed` skips every run that is late at all. | The skipped run is recorded with the reason "missed beyond grace" and the window. | Check **Active schedules** and the run list after an outage. Start a missed run by hand if it matters. |
+| Late runs | If a scheduled run cannot start within 10 minutes of its time, it is skipped, not run late. You can change the window with `grace_minutes` in the schedule's configuration. Setting `catchup_policy` to `skip_missed` skips every run that is late at all. | The skipped run is recorded in the trigger's **Activity** with the reason "missed beyond grace" and the window. | Check the trigger's **Activity** and the run list after an outage. Start a missed run by hand if it matters. |
 
 See [External triggers](/workflows/external-triggers) for how to set up schedules.
 
@@ -193,5 +195,5 @@ If a run failed and you are not sure which limit it reached, open the run in [Co
 
 - [Step types](/workflows/step-types)
 - [Human tasks](/workflows/human-tasks)
-- [Inbound webhooks](/integrations/inbound-webhooks)
+- [Triggers](/integrations/triggers)
 - [Troubleshooting](/platform/troubleshooting)

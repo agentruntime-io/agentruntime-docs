@@ -72,14 +72,12 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
 
 ## The Setup dialog
 
-Click **Setup** to open **Workflow setup**. The list on the left, headed **TRIGGERS**, shows the seven ways a workflow can start:
+Click **Setup** to open **Workflow setup**. The list on the left, headed **TRIGGERS**, shows the five ways a workflow can start:
 
 | Tab | Shown as | What it is for |
 |---|---|---|
 | **Manual** | Defaults & Run | The values a **Run** from Studio sends |
-| **Inbound** | Webhooks | Start from a web address other tools call |
-| **Events** | Platform | Start when something happens in AgentRuntime |
-| **Cron** | Schedules | Start on a schedule |
+| **Triggers** | What starts it | Start on a schedule, from an app you connected, from a web address other tools call, from a workspace event, or from a phone call |
 | **Sessions** | Per conversation | Start per customer conversation |
 | **API** | PAT Run | Start with an API key |
 | **Apps** | Used by | The apps that use this workflow |
@@ -97,7 +95,7 @@ The footer has **Preview JSON**, **Cancel** and **Save defaults**. **Save defaul
 Studio calls the same inputs **Starting input** and **Shared input** here, and **Start inputs** in the [Variables panel](#variables-panel). They all feed `{{input.*}}`.
 
 <Frame caption="The Manual tab of Workflow setup, top">
-  <img src="/images/workflows/studio-setup-dialog.png" alt="The Workflow setup dialog over the Approve before it goes out workflow. The TRIGGERS list on the left shows Manual (Defaults and run), Inbound (Webhooks), Events (Platform), Cron (Schedules), Sessions (Per conversation), API (PAT run) and Apps (Used by). On the right are the note Saved defaults prefill this form only, Run target, Run as set to Workspace, Entry step Draft a reply, and Starting input with prompt and system_prompt, then a Shared input heading cut off at the bottom. Preview JSON, Cancel and Save defaults are in the footer" />
+  <img src="/images/workflows/studio-setup-dialog.png" alt="The Workflow setup dialog over the Approve before it goes out workflow, on the Manual tab. The TRIGGERS list on the left predates the single Triggers tab. On the right are the note Saved defaults prefill this form only, Run target, Run as set to Workspace, Entry step Draft a reply, and Starting input with prompt and system_prompt, then a Shared input heading cut off at the bottom. Preview JSON, Cancel and Save defaults are in the footer" />
 </Frame>
 
 <Frame caption="Scroll down to find Shared input">
@@ -222,7 +220,7 @@ Every workflow has one editable copy, called the **draft**, and any number of fr
 | **Draft** | The copy you edit. Studio **Run** uses it. | Every save changes it. |
 | **Published version** | A frozen snapshot of the draft with an optional note. | Never changes. |
 
-Each place that starts a workflow can choose what to run: **Draft**, **Last published** (your newest published version), or a specific version such as **v3**. You see this choice as **Runs** on schedules, webhooks, and event triggers, and in the Share menu. Starting a run from Studio always runs the draft.
+Each place that starts a workflow can choose what to run: **Draft**, **Last published** (your newest published version), or a specific version such as **v3**. You see this choice as **Runs** on every trigger, and in the Share menu. Starting a run from Studio always runs the draft.
 
 A run that has already started keeps the version it started with. Later edits never change a run in progress.
 
@@ -305,7 +303,7 @@ The **Share** menu also has **Copy Studio link (same tenant)**, which does the s
 
 A workflow you added from a shared package shows **Installed from `<package>` vN** in the header. When the publisher releases a new version, a pill such as **v1 → v2** appears. Click it to open **Update to vN**, which shows what the publisher changed, what you changed, and any databases or child workflows that need a choice.
 
-- **Update draft** merges the update into your draft as a new revision. Your triggers, webhooks, connections, and run history stay.
+- **Update draft** merges the update into your draft as a new revision. Your triggers, connections, and run history stay.
 - **Update and publish** does the same and publishes a version straight away.
 - **Add as a new copy instead** leaves this copy untouched.
 - **Replace with theirs** replaces your draft with the publisher's version.

@@ -1,6 +1,6 @@
 ---
 title: API reference
-description: The AgentRuntime REST endpoints for workflows, runs, human tasks, webhooks, connections, MCP, billing, and API keys.
+description: The AgentRuntime REST endpoints for workflows, runs, human tasks, triggers, connections, MCP, billing, and API keys.
 ---
 
 This page lists the public REST endpoints you can call from scripts, CI jobs, and your own apps. It is for developers who already know what they want to automate and need the exact path, method, and permission.
@@ -168,36 +168,66 @@ New event types can appear over time. Ignore types you don't recognise rather th
 
 ---
 
-## Inbound webhooks
+## Triggers
 
-Inbound webhooks let another system start a workflow run. See [Inbound webhooks](/integrations/inbound-webhooks) for setup and for how to sign requests.
+A trigger starts a workflow when something happens: a schedule, an event in a connected app, a signed call from another system, a workspace event, or a phone call. See [Triggers](/integrations/triggers) for setup and for how to sign requests.
 
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
-| `POST` | `/v1/inbound-webhooks` | contributor+ | Create a subscription |
-| `GET` | `/v1/inbound-webhooks` | viewer+ | List subscriptions |
-| `PATCH` | `/v1/inbound-webhooks/{id}` | contributor+ | Change what a subscription runs (Live, published, or a version) |
-| `DELETE` | `/v1/inbound-webhooks/{id}` | contributor+ | Delete a subscription |
-| `POST` | `/v1/inbound-webhooks/{subscription_id}` | Signature | Public ingress: the sender calls this to start a run |
+| `GET` | `/v1/trigger-catalog` | viewer+ | What you can pick: the kinds of trigger, their events and filters, and the apps you have connected |
+| `GET` | `/v1/triggers` | viewer+ | List triggers. Filter with `workflow_id`, `project_id`, `kind`, or `status` |
+| `POST` | `/v1/triggers` | contributor+ | Create a trigger |
+| `GET` | `/v1/triggers/{id}` | viewer+ | Get one trigger, with its health |
+| `PATCH` | `/v1/triggers/{id}` | contributor+ | Change the name, filter, settings, version, start values, or who it runs as |
+| `DELETE` | `/v1/triggers/{id}` | contributor+ | Delete a trigger |
+| `POST` | `/v1/triggers/{id}/pause` | contributor+ | Stop the trigger from starting runs |
+| `POST` | `/v1/triggers/{id}/resume` | contributor+ | Start it again. AgentRuntime checks the person it runs as first. |
+| `POST` | `/v1/triggers/{id}/rotate-secret` | contributor+ | HTTP trigger: make a new signing secret, shown once |
+| `POST` | `/v1/triggers/{id}/rotate-route` | contributor+ | App trigger: make a new address and register it again |
+| `GET` | `/v1/triggers/{id}/fires` | viewer+ | Activity: each event the trigger received, newest first |
+| `POST` | `/v1/triggers/{id}/fires/{fire_id}/replay` | contributor+ | Start a new run from a stored event |
+| `POST` | `/v1/triggers/{id}/test` | contributor+ | Send a sample event. This starts a real run. |
+| `POST` | `/v1/triggers/{trigger_id}/events` | Signature | Public: the sender calls this to start a run (HTTP trigger) |
+| `POST` | `/v1/triggers/{trigger_id}/agent-inbox` | Signature | Public: the sender calls this to add a message to a running agent session |
 
-Create a subscription:
+Create a trigger:
 
 ```json
 {
   "workflow_id": "workflow-uuid",
   "name": "form-leads",
-  "automation_pat_id": "optional-existing-api-key-id",
-  "automation_bearer": "pat_…"
+  "kind": "http",
+  "event": "request",
+  "version": "live"
 }
 ```
 
-The response includes `ingress_url`, `signing_secret` (shown once), and the `subscription`.
+| Field | Description |
+|-------|-------------|
+| `workflow_id` | The workflow to start |
+| `name` | A label for lists and runs (optional) |
+| `kind` | `schedule`, `http`, `connector`, `platform_event`, or `phone` |
+| `event` | One event per trigger. `cron` for a schedule, `request` for HTTP, `utterance` for phone, one of `principal.created`, `principal.suspended`, `principal.deleted`, `connection.created` or `connection.revoked` for a workspace event, or an event the app declares in `GET /v1/trigger-catalog` |
+| `source` | For `connector` only: `{ "server_id": "...", "connection_id": "..." }` |
+| `filter` | Narrows the events, for example `{ "chat_id": ["123"] }`. An empty filter matches every event of that type. The catalog lists each event's filter fields. |
+| `config` | Settings for the kind. Schedule: `cron`, `timezone`, `catchup_policy` (`fire_once_within_grace` or `skip_missed`) and `grace_minutes`. Phone: `number` (with country code) and `greeting`. HTTP: `mode` set to `agent_inbox` to add messages to a running agent session. |
+| `version` | `live` (the default), `published` (the newest published version), or a version number |
+| `start_input` | Fixed start values: `trigger_payload`, `trigger_steps`, and `excluded_step_ids` |
+| `run_as` | `{ "user_id": "..." }`. Leave it out to run as you. Naming someone else needs a workspace admin. |
+| `fan_out` | `{ "team_id": "..." }`, `{ "segment_id": "..." }`, or `{ "external_user_id": "..." }`. Workspace admins only. |
+| `conversation` | For WhatsApp and phone: `{ "enabled": true, "person_reply_hold_s": 1800 }` |
 
-The sender does **not** use a token. Each ingress request needs:
+The response is `201` with the `trigger`. For an HTTP trigger it also has `ingress_url` and `signing_secret`, which is shown **once**. A trigger has a `status` of `active`, `paused`, `needs_owner` (the person it runs as can no longer run it) or `needs_attention` (an app refused the registration). You cannot change `kind`, `event`, `source`, or `workflow_id` with `PATCH`: delete the trigger and create a new one.
+
+Reading triggers needs `workflow:read` or `webhook:read`. Changing them needs `workflow:edit`, `workflow:run` or `webhook:manage`. Creating an HTTP, app or phone trigger, or making a new signing secret, also needs `webhook:manage`. See [Scopes](/integrations/triggers#scopes).
+
+The sender of an HTTP trigger does **not** use a token. Each request needs:
 
 - `X-Agentruntime-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256>`, signed with the `signing_secret`
 - `Idempotency-Key: <unique id per event>`, so retries do not start duplicate runs
 - `Content-Type: application/json`
+
+A `202` answer means the event was accepted, and the run starts right after. Follow it with `GET /v1/triggers/{id}/fires`.
 
 ---
 
