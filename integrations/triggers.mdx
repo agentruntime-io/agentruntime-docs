@@ -58,7 +58,7 @@ The defaults you save with **Save defaults** in Workflow Studio are **not** appl
     Under **What should start this workflow?**, pick **When another system calls a URL**.
   </Step>
   <Step title="Fill in the form">
-    Type a **Name** if you want one. Under **When it is called**, keep **Start a run** for the usual case. Choose which version **Runs** (**Live** or **Last published**). Leave **Run as** on you unless you are a workspace admin and want a different member. Add start values if every run needs a fixed value.
+    Type a **Name** if you want one. Under **What a call does**, keep **Start a run** for the usual case. Choose which version **Runs** (**Draft** or **Last published**). Leave **Run as** on you unless you are a workspace admin and want a different member. Add start values if every run needs a fixed value.
   </Step>
   <Step title="Create it and copy the secret">
     Click **Create trigger**. A dialog called **Trigger created** opens with **URL to call**, **Signing secret** and an **Example call**. Copy the secret now. Click **Done** when you have saved it.
@@ -207,7 +207,7 @@ Make the workflow safe to run twice for the same event: look up whether the orde
 
 ## Agent inbox mode
 
-An HTTP trigger can also add a message to an agent session that is already running, instead of starting a run. In the form, choose **Add a message to a running agent session** under **When it is called**. In the API, set `config.mode` to `agent_inbox`.
+An HTTP trigger can also add a message to an agent session that is already running, instead of starting a run. In the form, choose **Add a message to a running agent session** under **What a call does**. In the API, set `config.mode` to `agent_inbox`.
 
 The sender calls a second URL with the same signature headers:
 
@@ -287,7 +287,7 @@ If you use an API key, it needs these scopes. With a Console session, your role 
 | `404` | The trigger ID is wrong, or the trigger was deleted. |
 | `429` | You are sending too fast. Wait for the `Retry-After` period. |
 | `202`, but no run appears | A `202` only means the event was accepted. Open the trigger's **Activity** to see why the start did not happen, for example that the person it runs as lost access, or that your workspace is out of credits. See [Billing and credits](/platform/billing-and-credits). |
-| The run uses old behavior | The trigger runs **Last published** or a fixed version. Edit the trigger and choose **Live**, or publish and switch it. |
+| The run uses old behavior | The trigger runs **Last published** or a fixed version. Edit the trigger and choose **Draft**, or publish and switch it. |
 | You lost the signing secret | Open the trigger and click **New signing secret**. The new secret is shown once. |
 
 ## Related

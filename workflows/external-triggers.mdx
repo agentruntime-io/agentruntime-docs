@@ -105,7 +105,7 @@ When you delete the last trigger on a connection, AgentRuntime removes the webho
 
 An outside system sends a signed HTTP request to the trigger's URL, and AgentRuntime starts a run with the request body as the starting input.
 
-1. Choose **When another system calls a URL**, keep **Start a run** under **When it is called**, and click **Create trigger**. The dialog **Trigger created** shows the **URL to call** and the **Signing secret**.
+1. Choose **When another system calls a URL**, keep **Start a run** under **What a call does**, and click **Create trigger**. The dialog **Trigger created** shows the **URL to call** and the **Signing secret**.
 2. Configure the sender to `POST` JSON to that URL with the signature and an idempotency key.
 3. The JSON body becomes `{{input.*}}`.
 
