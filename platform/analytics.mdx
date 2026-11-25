@@ -24,7 +24,7 @@ The cards use the **Window** you choose: **This month**, **This week** or **All 
 |------|---------------|
 | **Time automated (human-equivalent)** | An estimate of the manual effort your finished steps saved. It is the first and largest number on the page, but it is a guess, not a measurement: it multiplies your steps by about 3.5 minutes each (the card says "~3.5 min/step blended estimate from metered steps"). Three short sample runs can read as nearly an hour. Compare it with **Compute (wall)**, the real clock time. |
 | **Live runs** | Runs in progress right now. Refreshes about every 25 seconds. |
-| **Success rate** | Share of finished runs that succeeded. Shown once there are at least 3 finished runs. |
+| **Success rate** | Share of runs that succeeded, out of the runs that passed or failed. Shown once at least 3 runs have passed or failed. Until then the card shows **-** and says **Needs 3 finished runs**. |
 | **Compute (wall)** | Total clock time your runs took |
 | **Runs in window** | Runs started in the chosen window |
 | **Steps executed (metered)** | Steps counted for billing |
@@ -34,12 +34,12 @@ The cards use the **Window** you choose: **This month**, **This week** or **All 
 
 Below the cards, **Completed steps by type** breaks finished steps down by type, using the same names as the Studio canvas, such as **MCP**, **LLM** and **Human**.
 
-<Warning>
-  **A rejected approval counts as a success.** If a person rejects an approval and the run ends as **Success** (see [Human tasks](/workflows/human-tasks#on-reject)), **Success rate** counts it as a success. Five runs, three of them rejected, read **100%** with "5 ok / 0 not ok". The card also shows "ok / not ok (N terminal)" under the percentage.
-</Warning>
+<Note>
+  **A rejected approval is counted on its own.** If a person rejects an approval, the run is listed as **Rejected**, not as a success or a failure. **Success rate** leaves it out of the percentage, and the small print under the percentage shows it, for example "3 ok / 1 not ok / 2 rejected (6 terminal)". A rejected run does not count towards the 3 runs the percentage needs.
+</Note>
 
 <Note>
-  **Success rate** shows **-** while there are too few finished runs. In testing, one finished run showed **-** with "1 ok / 0 not ok (1 terminal)", and five finished runs showed 100%. The Console does not say what the minimum is.
+  **Success rate** shows **-** until at least 3 runs have passed or failed in the window. Under the dash the card says why, for example "Needs 3 finished runs. 2 ok / 0 not ok (2 terminal)". When some runs were rejected it adds "not counting rejected ones".
 </Note>
 
 <Note>
@@ -76,7 +76,7 @@ The same numbers are available from the API under `/v1/analytics/`, for example 
 | Problem | What to try |
 |---------|-------------|
 | **Analytics** is missing from the sidebar | Ask a workspace admin to check your role. |
-| Success rate shows **-** | There are too few finished runs in the window. Try **All time**. |
+| Success rate shows **-** | Fewer than 3 runs have passed or failed in the window (rejected runs do not count). The card says so under the dash. Try **All time**. |
 | Credits show 0 | No usage has been recorded in the window yet. |
 | Charts say "No runs in this range" | Run a workflow, or widen the range. |
 | A card says it is unavailable | Try again later, then contact [support](mailto:support@agentruntime.io). |

@@ -21,7 +21,7 @@ A **trigger** starts a workflow without anyone clicking **Run** in Studio. This 
 
 Every trigger sends its own **start values**: the starting input (`trigger_payload`, read as `{{input.*}}`), optional per-step values (`trigger_steps`), and optionally steps to leave out (`excluded_step_ids`). The workflow's saved **Save defaults** are not added at run time. See [Run setup](/workflows/run-setup).
 
-Each trigger also chooses **which version** to run: **Live**, **Last published**, or a fixed version. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+Each trigger also chooses **which version** to run: **Draft**, **Last published**, or a fixed version. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
 
 ## Cron schedules
 
@@ -40,7 +40,7 @@ Each trigger also chooses **which version** to run: **Live**, **Last published**
     Under **Entry step** and **Starting input**, choose the start step and type the starting input, the same as on the **Manual** tab. Leave **Run as** on **Workspace** unless you are running for Embedded Connect end users.
   </Step>
   <Step title="Choose the version and the key">
-    Under **Runs**, choose **Live** or **Last published**. Under **Automation API key**, pick the key the run starts under, or create one with the **Create API key** button (the **+** beside the list).
+    Under **Runs**, choose **Draft** or **Last published**. Under **Automation API key**, pick the key the run starts under, or create one with the **Create API key** button (the **+** beside the list).
   </Step>
   <Step title="Add the schedule">
     Click **Add schedule**.
@@ -122,7 +122,7 @@ The **API** tab in **Workflow setup** gives you a ready-made request for your la
 | Problem | What to try |
 |---|---|
 | A schedule did not run | Check **Active schedules** for the next run time and timezone. Check that the **Automation API key** is still active. |
-| The run uses old behaviour | The trigger runs **Last published** or a fixed version. Change **Runs** to **Live**, or publish and switch it. |
+| The run uses old behaviour | The trigger runs **Last published** or a fixed version. Change **Runs** to **Draft**, or publish and switch it. |
 | A webhook request was rejected | Check the signature secret, and that the sender includes the idempotency key. See [Inbound webhooks](/integrations/inbound-webhooks). |
 | An input is empty in the run | The trigger did not send it. Look at the run's **Events** and **Context** tabs to see the input it received. |
 

@@ -85,7 +85,7 @@ curl -sS -X POST "$AR_API/v1/workflows/WORKFLOW_ID/command" \
 
 **What you should see:** a `202` response with a `run_id` and a `status`. Steps read the values you sent as `{{input.customer_email}}`, `{{input.order_id}}`, and so on.
 
-By default a run uses the workflow's **Live** copy: the latest version you saved. To run a frozen version instead, add `"version": "published"` (the newest published version) or a number such as `"version": 3` next to `command`.
+By default a run uses the workflow's **Live** copy (the **draft** in the Console): the latest version you saved. To run a frozen version instead, add `"version": "published"` (the newest published version) or a number such as `"version": 3` next to `command`.
 
 ### Check on the run
 

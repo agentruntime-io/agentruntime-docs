@@ -47,6 +47,8 @@ Use AgentRuntime product terms consistently:
 | **MCP instance** | Installed tool server in the workspace (optionally project-scoped) |
 | **Connection** | Saved integration credentials |
 | **Run** | Single workflow execution |
+| **Draft** | The editable copy of a workflow, as the Console shows it (chip **Draft**, tab **Draft revisions**, the **Runs** choice **Draft**). The API and the Platform MCP call it **Live**; say "the draft (called Live in the API)" when a page covers both. Not "in production". |
+| **Published version** | A frozen, numbered copy of the draft. **Last published** is the newest one. |
 | **Autopilot** | Console copilot in Chat |
 | **PAT** | Personal access token for API access |
 
