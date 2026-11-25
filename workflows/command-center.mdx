@@ -38,6 +38,31 @@ There are three kinds of task:
 | **Reply needed** | Click **Reply**, write your message, and click **Send**. Use **Attach file** to add files. On a customer chat, **Hand back to the agent** returns the conversation to the agent without a reply, and the agent answers what the customer wrote meanwhile. **Don't reply** closes the task without sending anything, and those messages are not answered. |
 | **Question from the agent** | Click **Answer**, type your answer, and click **Send answer**. **End run** stops the run instead. |
 
+<Warning>
+  **Command Center does not show what you are approving.** An approval row and its side panel show the workflow name, the label **Approval** and a line such as **Approve this reply**. The text itself, for example the AI's draft reply, is not shown here today. To read it first, click **Open in Studio** in the side panel and use **View** next to the approval bar under the canvas, or answer from there. Two runs of the same workflow produce two rows that look identical, with no time or run ID.
+</Warning>
+
+#### What happens when you approve or reject
+
+- **Approve** continues the run. A short message appears: **Done** and **The workflow will continue running.** It does not say what the run did next.
+- **Reject** first turns the row into an optional **Reason (optional)** box with **Cancel** and a red **Reject**. Click **Reject** again to confirm. The message reads **Rejected** and says the run goes on according to the approval's **When rejected** setting.
+
+<Frame caption="Reject asks for an optional reason before it takes effect">
+  <img src="/images/workflows/command-center-reject-reason.png" alt="The Command Center approval row for Approve before it goes out after clicking Reject: the Approve button is gone, a Reason (optional) text box is shown with a Cancel link and a red Reject button, and the View button stays" />
+</Frame>
+
+<Warning>
+  **A rejected run ends as Success, not as failed or rejected.** The step after the approval is marked **Skipped** and the run's status is **Success**, in **Runs**, in Studio and in **Analytics**. What runs next after a rejection is set by the **When rejected** setting on the Human step. See [Human tasks](/workflows/human-tasks#on-reject).
+</Warning>
+
+<Note>
+  The side panel can stay open after you decide, with **Approve** and **Reject** still showing, while the list behind it says **Nothing needs your approval right now.** Close the panel. If you click **Approve** a second time, you see **Could not save your decision** and **this task was already completed.** Nothing is wrong: the first click worked. An approval cannot be undone.
+</Note>
+
+<Frame caption="After Approve: the toast, and the side panel still open">
+  <img src="/images/workflows/command-center-after-approve.png" alt="Command Center after an approval: the list behind reads 0 Needs you and Nothing needs your approval right now, the side panel for Approve before it goes out is still open with Approve and Reject buttons and a Recent activity list, and a Done toast says The workflow will continue running" />
+</Frame>
+
 To send a reply or an answer from the keyboard, press **Ctrl+Enter** (**Cmd+Enter** on a Mac) in the text box. See [Keyboard shortcuts and links](/platform/shortcuts-and-links#send-a-reply-from-the-keyboard).
 
 When the workflow ties a task to a screen of an app, its row also shows an **Open app** button, next to **View**. Click it to open that app screen. See [Apps](/platform/apps).
@@ -132,7 +157,7 @@ Click **View** to see the step-by-step events. See [Troubleshooting](/platform/t
 
 ## Look at a run
 
-**View** opens a side panel with the workflow name, how the run started (for example **Manual**), any task waiting on you (with its **Approve** and **Reject** buttons), and **Recent activity**, a short list of the latest run events. For runs that are in progress or have stopped, the panel also shows the status, any problem, and the run controls. Click **Open in Studio** to see the full run in the **Events** tab.
+**View** opens a side panel with the workflow name, how the run started (for example **Manual**), any task waiting on you (with its **Approve** and **Reject** buttons), and **Recent activity**, a short list of the latest run events (for example **Step scheduled**, **Step running**, **Human task created**). The panel does not show the text a task asks you to approve; that is only in Workflow Studio. For runs that are in progress or have stopped, the panel also shows the status, any problem, and the run controls. Click **Open in Studio** to see the full run in the **Events** tab.
 
 <Frame caption="The View panel of a run that is waiting for approval">
   <img src="/images/workflows/command-center-view-panel.png" alt="The run side panel with the workflow name, a Needs your approval task with Approve and Reject buttons, a Recent activity list, and an Open in Studio button" />

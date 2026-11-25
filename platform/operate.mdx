@@ -1,27 +1,27 @@
 ---
-title: Operate
+title: Runs
 description: Find runs across your workspace, stop paused runs, and manage cron schedules and inbound webhooks from one page.
 ---
 
-**Operate** is the Console page for the day-to-day running of your workflows. It has three tabs: **Runs**, **Schedules** and **Webhooks**. Above the tabs, a strip of three chips shows the health of your workspace at a glance.
+The **Runs** page is the Console page for the day-to-day running of your workflows. It has three tabs: **Runs**, **Schedules** and **Webhooks**. Above the tabs, a strip of three chips shows the health of your workspace at a glance.
 
-Open it from **Operate** in the Console sidebar, under **Core** (at `https://console.agentruntime.io/operate`).
+Open it from **Runs** in the **Run** group of the Console sidebar (at `https://console.agentruntime.io/operate`).
 
 **Who this is for:** people who keep workflows running in production. The **Schedules** and **Webhooks** tabs need the `project_contributor` role (or higher). With a lower role, those tabs show only the note "Contributors can manage schedules." or "Contributors can manage webhooks."
 
 **What you will do on this page:** find a run, deal with runs that stay paused, add and check schedules, and add an inbound webhook.
 
-## Operate, Command Center or Studio?
+## Runs, Command Center or Studio?
 
 Three places show runs. Pick the one that fits your question.
 
 | Place | Use it to | Scope |
 |---|---|---|
-| **Operate** | Find any run with filters (status, workflow, agent, source, dates, run ID). Stop old paused runs. Manage schedules and webhooks. | The whole workspace, or one project |
+| **Runs** page | Find any run with filters (status, workflow, agent, source, dates, run ID). Stop old paused runs. Manage schedules and webhooks. | The whole workspace, or one project |
 | [Command Center](/workflows/command-center) | Answer approvals and replies, follow up missed tasks, and pause or stop runs that are in progress | The whole workspace |
 | [Workflow Studio](/workflows/studio) run panel | Read one run step by step in **Events**, **Timeline**, **Context** and **Full Logs** | One workflow |
 
-A run row in **Operate** links to the other two: **Approve** opens the task in Command Center, and the workflow name and **Debug** open the run in Studio.
+A run row on the **Runs** page links to the other two: **Approve** opens the task in Command Center, and the workflow name and **Debug** open the run in Studio.
 
 ## What you see at the top
 
@@ -32,7 +32,7 @@ Under it, a hint tells you which projects you are looking at:
 - When a project is selected, it says "Showing runs and automation for project" and the project name.
 - When no project is selected, it says "Viewing all projects in this workspace" and offers **Filter to** your sidebar project.
 
-**Operate** opens on the project you picked in the sidebar. To see the whole workspace, choose **All projects** in the **Project** filter. Operate remembers that choice until you close the browser tab.
+The **Runs** page opens on the project you picked in the sidebar. To see the whole workspace, choose **All projects** in the **Project** filter. The page remembers that choice until you close the browser tab.
 
 ### The health strip
 
@@ -50,7 +50,7 @@ A count that ends in a plus sign, such as **100+**, means "at least this many". 
 
 <Steps>
   <Step title="Open the Runs tab">
-    Click **Operate** in the sidebar. The **Runs** tab is the first tab.
+    Click **Runs** in the sidebar. The **Runs** tab is the first tab.
   </Step>
   <Step title="Set the filters">
     Use the **Filter runs** section. See the table below. Each change updates the list. Every filter except **Run ID** is also saved in the address of the page.
@@ -60,7 +60,7 @@ A count that ends in a plus sign, such as **100+**, means "at least this many". 
   </Step>
 </Steps>
 
-<Frame caption="The Runs tab of Operate, showing all projects">
+<Frame caption="The Runs tab of the Runs page, showing all projects">
   <img src="/images/platform/operate-runs.png" alt="The Operate page with the Unfinished runs, Failed schedule fires and Inbound webhooks chips, the Runs tab selected, the Filter runs section with Project, Status, Workflow, Agent, Source, From and To filters, a Run ID box with Paused > 7 days and Copy link, and three successful runs with Debug buttons" />
 </Frame>
 
@@ -74,7 +74,7 @@ A count that ends in a plus sign, such as **100+**, means "at least this many". 
 | **Agent** | **All agents**, or one agent | |
 | **Source** | **All sources**, **Chat / Agent sessions**, **Cron**, **Webhook**, **API**, **Manual** | Choosing a source clears the **Workflow** filter. **Source** is locked to chat while **Workflow** is on **Agent sessions**. |
 | **From**, **To** | A date each | Limits the runs to a date range. |
-| **Run ID** | Part or all of a run ID | From 4 characters, Operate asks the server to find the run. With fewer characters it only filters the runs already loaded. |
+| **Run ID** | Part or all of a run ID | From 4 characters, the page asks the server to find the run. With fewer characters it only filters the runs already loaded. |
 
 Two buttons sit next to the filters:
 
@@ -110,7 +110,7 @@ A run can stay paused for days, for example when nobody answered a task. Use the
 
 <Steps>
   <Step title="Click Paused > 7 days">
-    The **Status** filter changes to **Paused** and the list shows only runs that have been paused for 7 days or more. Operate counts from the run's last progress, or from its start if it has none.
+    The **Status** filter changes to **Paused** and the list shows only runs that have been paused for 7 days or more. The page counts from the run's last progress, or from its start if it has none.
   </Step>
   <Step title="Load the runs you want to stop">
     If the list says there are more runs, click **Load more** until the runs you want are on screen.
@@ -130,7 +130,7 @@ Click **Paused > 7 days** again to turn the filter off.
 
 ### Share a filtered view
 
-Click **Copy link**. You see the message "Link copied". Send the link to a teammate. When they open it, **Operate** shows the same tab and filters.
+Click **Copy link**. You see the message "Link copied". Send the link to a teammate. When they open it, the **Runs** page shows the same tab and filters.
 
 The link keeps the project, status, workflow, agent, source, dates, and the **Paused > 7 days** setting. It does not keep the text in **Run ID**. The person who opens it needs access to the workspace and project. To build links by hand, see [Keyboard shortcuts and links](/platform/shortcuts-and-links#operate-links).
 
@@ -162,7 +162,7 @@ The **Schedules** tab lists the cron schedules of the project you selected (or o
 </Steps>
 
 <Frame caption="Adding a schedule on the Schedules tab">
-  <img src="/images/platform/operate-schedules.png" alt="The Schedules tab of Operate with the New schedule form: Project, Workflow, Preset, Cron, Timezone, Automation API key with a Create button, and Run as" />
+  <img src="/images/platform/operate-schedules.png" alt="The Schedules tab of the Runs page with the New schedule form: Project, Workflow, Preset, Cron, Timezone, Automation API key with a Create button, and Run as" />
 </Frame>
 
 ### Manage a schedule
@@ -187,6 +187,10 @@ Each row shows the workflow, the scheduled time, and the error. If the error is 
 ## Webhooks
 
 The **Webhooks** tab lists the inbound webhooks of the project you selected (or of all projects) and lets you add one. An inbound webhook is a web address that starts a run when an outside system calls it. For how the call must look, see [Inbound webhooks](/integrations/inbound-webhooks).
+
+<Frame caption="The New webhook form on the Webhooks tab">
+  <img src="/images/platform/runs-webhooks.png" alt="The Webhooks tab of the Runs page with the New webhook form: Project, Workflow, Label, Automation API key with a Create button, Vendor adapter set to Direct caller only, and a Create webhook button" />
+</Frame>
 
 ### Add a webhook
 
@@ -215,7 +219,7 @@ Each webhook under **Inbound webhooks** shows its label, its workflow and the da
 |---|---|
 | The **Runs** tab says "No runs in" a project, but you expect some | Runs from workflows in other projects are hidden while a project is selected. Click **Show all projects**. |
 | **Stop all in view** is not on the page | It shows only when paused runs older than 7 days are in the list. Click **Paused > 7 days**, then **Load more** if needed. |
-| A **Run ID** search finds nothing | Type at least 4 characters so Operate asks the server. With fewer, it only checks the runs already loaded. |
+| A **Run ID** search finds nothing | Type at least 4 characters so the page asks the server. With fewer, it only checks the runs already loaded. |
 | **Schedules** or **Webhooks** shows only a note | You need the `project_contributor` role or higher. See [Roles and permissions](/platform/roles-permissions). |
 | A schedule did not start a run | Click **Fires** on its row. Then check the **Failed schedule fires (24h)** list and that its **Automation API key** is still active. |
 
@@ -224,4 +228,4 @@ Each webhook under **Inbound webhooks** shows its label, its workflow and the da
 - [Command Center](/workflows/command-center): answer tasks and control runs that are in progress
 - [Runs and observability](/workflows/runs-and-command-center): the run lifecycle and step statuses
 - [External triggers](/workflows/external-triggers): schedules, webhooks and events in Workflow Studio
-- [Keyboard shortcuts and links](/platform/shortcuts-and-links): build a link to a filtered Operate view
+- [Keyboard shortcuts and links](/platform/shortcuts-and-links): build a link to a filtered Runs view

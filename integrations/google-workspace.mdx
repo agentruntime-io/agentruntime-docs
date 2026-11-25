@@ -54,7 +54,10 @@ Connectors with their own guide are linked from the [connector catalog](/integra
     Open **Connections** and click **Sign in with Google**. Enter a **Display name** (for example `Work Google`).
   </Step>
   <Step title="Pick the services">
-    Tick the services you need. **Select all** and **Clear all** are available. You must pick at least one.
+    Tick the services you need. **Select all** and **Clear all** are available. You must pick at least one. The dialog does not say whether a service is read-only or can also send, edit or delete. Tick only what your workflow needs.
+  </Step>
+  <Step title="Choose who can use it">
+    Under **Who can use it**, pick **Only me** (only you; agents use it when you ask them to, if the connector is set to each person's own account), **Specific people**, or **Everyone in this workspace** (teammates, agents and workflows; choose this for a shared account such as a team inbox). You can change permissions later from the account's details. See [Choose who can use a connection](/integrations/connections#choose-who-can-use-a-connection).
   </Step>
   <Step title="Continue to Google">
     Click **Continue to Google**, choose your account, and approve the permissions. You return to the Console, and the account appears under **Accounts**.
@@ -74,11 +77,15 @@ If **Sign in with Google** is missing or **Continue to Google** is disabled, Goo
 
 [Gmail](/connectors/gmail) has its own guide with tool details.
 
+<Frame caption="The Google sign-in dialog">
+  <img src="/images/integrations/connections-google-sign-in-dialog.png" alt="The Connect Google dialog with a Display name field, a list of Google services to tick with Select all and Clear all, a Who can use it choice, and a Continue to Google button that stays disabled until a service is ticked" />
+</Frame>
+
 ## Use your own Google app (optional)
 
 By default, Google's consent screen shows AgentRuntime's app. To show your own app name instead, you can register your own Google Cloud OAuth client:
 
-1. In the Console, open **Settings**, then **MCP & Integrations**.
+1. In the Console, open **Settings**, then **Integrations** (under **Developers**).
 2. Find **Google OAuth application**. Copy the authorized redirect URI shown there into your OAuth client in Google Cloud Console.
 3. Turn on **Use workspace OAuth app**, enter a **Display name**, your **OAuth client ID**, and **OAuth client secret**, and save.
 

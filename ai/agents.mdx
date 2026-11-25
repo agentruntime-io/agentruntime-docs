@@ -11,6 +11,20 @@ Agents are not the same as **Autopilot**. Autopilot is the assistant that helps 
 
 **What you will do on this page:** create an agent, choose when it replies and who can see it, add optional input and output schemas, and debug one of its runs.
 
+## The Agents page
+
+**Agents** lists the agents in the project on the left and the selected agent's details on the right: its name, "Configure how this agent replies in team chat.", and **Recent sessions**. Along the top are **Team chat**, **Browse marketplace** and **Create agent**. Each row in the list has three icon-only buttons: open in team chat, edit and delete.
+
+<Frame caption="The Agents page with the Workspace Copilot agent selected">
+  <img src="/images/ai/agents-list.png" alt="The Agents page for the project tim33 Default Project: the Team chat, Browse marketplace and Create agent buttons at the top, one agent, Workspace Copilot on openai / gpt-4o-mini with three small icon buttons, and on the right its details with Edit, All sessions and a menu button, and a Recent sessions box that says No sessions yet" />
+</Frame>
+
+<Note>
+  A new workspace already has one agent, **Workspace Copilot**, provided by AgentRuntime. It is the agent behind the Autopilot chat panel, and it is not something you created. Its row has a delete icon, so be careful before you click it. **Team chat** has an arrow icon because it opens a different app, [space.agentruntime.io](https://space.agentruntime.io), in a new tab. A page with **No sessions yet** sends you there to start a direct message.
+</Note>
+
+An agent here is a chat assistant that people reach in team chat. In a workflow the same agent is a step (see [Step types](/workflows/step-types#agent-run-an-agent)). In Workflow Studio you pick it as a **Catalog agent** on an **Agent** step.
+
 ## Create an agent
 
 <Steps>
@@ -87,6 +101,14 @@ For each field, click **Add field** and fill in:
 
 The **Input schema** describes structured input for the agent. The **Output schema** describes the fields the agent must reply with. In a workflow, an `agent` step whose agent has an output schema puts each field on the step result, so later steps can use it. See [Step types](/workflows/step-types#agent-run-an-agent).
 
+<Frame caption="The Create agent page">
+  <img src="/images/platform/agents-create-top.png" alt="The Create agent page with a Display name field, an On switch, a Model picker, Auto-reply and Visibility options, an Instructions (system prompt) box, Platform tool groups and Connectors" />
+</Frame>
+
+<Frame caption="The context budget on the Create agent page">
+  <img src="/images/platform/agents-create-context-budget.png" alt="The Context budget section of the Create agent page: a coloured bar and a legend for System and tools, Memory and summaries, Safety margin, Recent conversation, Reserved output and Free, with token counts and percentages, followed by collapsed Limits and Input and output schemas sections" />
+</Frame>
+
 ## Limits
 
 Limits stop an agent that is stuck in a loop from running for ever. They are a safety net, not a budget to tune tightly: the defaults let an agent do a lot of work in one step. Open the agent and find the **Limits** section.
@@ -130,11 +152,11 @@ Select an agent in the list. The panel on the right shows **Recent sessions**: u
 | **Failed** | The run failed. |
 | **Stopped** | The run was stopped. |
 
-Each row has the chat icon (**Open in team chat**) and a **Debug** button. **All sessions** opens the runs list in **Operate**, filtered to this agent. A new agent shows **No sessions yet**. Start a direct message with it in team chat.
+Each row has the chat icon (**Open in team chat**) and a **Debug** button. **All sessions** opens the runs list on the **Runs** page, filtered to this agent. A new agent shows **No sessions yet**. Start a direct message with it in team chat.
 
 ## Debug an agent run
 
-Click a row, or click **Debug**. The **Agent run debugger** opens in a side panel. Click **Open full debugger** at the bottom of the panel to open the same view as a page, titled **Agent run** and the agent's name. Its address is `/agents/<agent id>/runs/<run id>`. You can also open `/agent-runs/<run id>` directly. **Back** returns you to **Agents**, or to the runs list in **Operate** if the page has no agent.
+Click a row, or click **Debug**. The **Agent run debugger** opens in a side panel. Click **Open full debugger** at the bottom of the panel to open the same view as a page, titled **Agent run** and the agent's name. Its address is `/agents/<agent id>/runs/<run id>`. You can also open `/agent-runs/<run id>` directly. **Back** returns you to **Agents**, or to the runs list on the **Runs** page if the page has no agent.
 
 The top of the debugger shows the agent's name, the run ID, the run's status, and when it started. If the run has a problem, such as a failure, a red box describes it. While the run is active, the top also shows the controls to pause, resume or stop it.
 
@@ -162,7 +184,7 @@ Only runs that belong to an agent, to a conversation, or that a chat started hav
 | The agent never answers in a channel | Check **Auto-reply**. If it is **Never**, the agent does not reply on its own. With **When @mentioned**, @mention the agent. Also check that the agent is **On**. |
 | The agent is public but not in the Marketplace | Open the agent and click **Publish to catalog**. |
 | A session has no **Debug** button | The run does not belong to an agent or a conversation. |
-| The debugger page says it could not resolve the workflow | Open the run from **Agents** or **Operate**. Or add `workflow_id` to the address. |
+| The debugger page says it could not resolve the workflow | Open the run from **Agents** or **Runs**. Or add `workflow_id` to the address. |
 | The **Timeline** says "No run events yet." | The run may have just started. The tab refreshes while the run is active. |
 
 ## Next steps

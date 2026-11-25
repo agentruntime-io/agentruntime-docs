@@ -11,7 +11,7 @@ This page is for anyone using the Console. You do not need any setup beyond sign
 
 <Steps>
   <Step title="Open the chat panel">
-    In the [Console](https://console.agentruntime.io), click **Open chat** in the top bar. The chat panel opens beside the page you are on.
+    In the [Console](https://console.agentruntime.io), click the speech-bubble icon, **Open chat**, at the right end of the top bar. It is the last of three icons: the bell (notifications), a gauge (credits) and the speech bubble. None of them has a text label. The chat panel opens on the right and pushes the page content to the side.
   </Step>
   <Step title="Pick a mode">
     Below the message box, choose **Ask** or **Autopilot** (click the mode button to switch). See [Ask and Autopilot](#ask-and-autopilot).
@@ -21,7 +21,13 @@ This page is for anyone using the Console. You do not need any setup beyond sign
   </Step>
 </Steps>
 
-**What you should see:** the reply streams into the panel as it is written. In **Autopilot** mode, any action it takes (opening Workflow Studio, creating a workflow) appears in the conversation.
+**What you should see:** an empty chat titled **New chat** with **Console** under it, three starter chips under **What do you want to know?** (**Teach me workflows**, **What is a workflow?**, **Beginner example**), and a box that reads **Ask about workflows, settings, or how things work…**. Under the box are a mode button (**Ask** or **Autopilot**), a model picker, a microphone and a send button. The reply streams into the panel as it is written.
+
+<Note>
+  A starter chip does not send the words on the chip. For example, **What is a workflow?** sends a longer question ("What is a workflow and how do steps connect to each other?") and renames the chat after it. The first answers are general explanations: in testing they did not mention the user's own workflows or this product's step types. Ask about your own workspace by name to get answers about it.
+</Note>
+
+In **Autopilot** mode, any action it takes (opening Workflow Studio, creating a workflow) appears in the conversation.
 
 Autopilot knows which page, workspace, and project you are working in, so you can say "this workflow" when you have one open. It can only do what your role allows.
 
@@ -29,24 +35,26 @@ Autopilot knows which page, workspace, and project you are working in, so you ca
 
 | Mode | What it does |
 |------|--------------|
-| **Ask** | Answers questions only. It does not change anything |
-| **Autopilot** | Can also act: open pages, edit workflows, and run setup actions |
+| **Ask** | Answers questions only ("Answers only" on the button). It does not change anything |
+| **Autopilot** | Can also act on the workspace ("Can act on workspace…" on the button): open pages and run setup actions |
 
-Start in **Ask** if you want to explore. Switch to **Autopilot** when you want it to make changes.
+Start in **Ask** if you want to explore. Switch to **Autopilot** when you want it to make changes. The mode button is easy to miss: a chat can open in **Ask**, so a request to create or change something gets an answer instead of an action. If that happens, switch the mode and ask again.
 
 ## What Autopilot can do with workflows
 
+<Warning>
+  **Autopilot cannot add or change steps on the canvas yet.** On a blank canvas, the **Build it** button and the example chips (**Draft → approve → send**, **Summarize and notify**, **Simple 2-step starter**) send your description to this assistant. In testing, with both **GPT-4o mini** and **Claude Haiku 5.5**, no step was added. One answer said it had "navigated to the workflow section", and the app left the canvas for the workflow list. Another said its tools "can't add nodes or connect steps" and gave a five-step plan to build by hand. While it works, the canvas card says the assistant is adding steps. Treat that as a plan, not a result. To get steps, drag them from the palette or start from a recipe. See [Workflow Studio](/workflows/studio).
+</Warning>
+
 In **Autopilot** mode you can ask it to:
 
-- **Create a workflow** from a description, or start from a template
 - **Open** Workflow Studio, Command Center, or another page
-- **Edit** the workflow you have open
+- **Explain** how something works, or why a run failed
 - **Check** a workflow for errors before you run it
 - **Start, pause, resume, or stop** a run
 - **Publish** a version of a workflow
-- **Explain** why a run failed
 
-Always look at what it changed before you rely on it. You can undo changes from the workflow's history.
+The assistant's tool set also covers creating and editing workflows, but the canvas did not change in testing. Always look at what it changed before you rely on it. You can undo changes from the workflow's history.
 
 ## Conversations
 
@@ -59,7 +67,7 @@ Conversations belong to you and to the project you were in. They are separate fr
 
 ## Pick a model and use voice
 
-The message box has a model picker, which lists the models your workspace can use. See [LLM providers](/ai/llm-providers). A microphone button starts a voice session, where you talk to the assistant instead of typing.
+The message box has a model picker, which lists the models your workspace can use. The chat starts on **gpt-4o-mini**. Some models appear twice, once by display name (**Claude Haiku 5.5**) and once by raw ID with a tag (`claude-haiku-5-5 [Your key]`, which uses your own key). A warning triangle marks a model with no account for the selected source. See [LLM providers](/ai/llm-providers). A microphone button starts a voice session, where you talk to the assistant instead of typing.
 
 ## Open a chat in your IDE
 
@@ -81,8 +89,10 @@ The team workspace at [space.agentruntime.io](https://space.agentruntime.io) is 
 
 | Problem | What to do |
 |---------|------------|
-| I do not see **Open chat** | The chat panel may not be available in your workspace. Ask [support](mailto:support@agentruntime.io) |
+| I do not see **Open chat** | Look for the speech-bubble icon, the last of the three icons at the right of the top bar. If it is not there, the chat panel may not be available in your workspace. Ask [support](mailto:support@agentruntime.io) |
+| The Setup guide card covers the chat box | Collapse the Setup guide with its arrow, click **Remind me tomorrow**, or click **Don't show again** to hide it for good |
 | It answers but does not change anything | You are in **Ask** mode. Switch to **Autopilot** |
+| **Build it** left my canvas empty | The assistant cannot add steps yet. Drag steps from the palette or pick a recipe |
 | It cannot do something | It follows your role. A `project_viewer` cannot create or run workflows |
 | A reply is wrong or out of date | Tell it what is wrong, or check the page yourself. Assistants can make mistakes |
 

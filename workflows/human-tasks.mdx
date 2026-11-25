@@ -42,6 +42,14 @@ A **human task** pauses a run until a person responds. Use it before anything wi
 
     A person you list under **Required approvers** may always answer, including the person who started the run.
 
+    <Note>
+      **Who can approve by default.** The **Required approvers (user IDs)** box is a plain text area where you type IDs, not a picker from your member list. Its placeholder reads **Leave empty for open gate (any project editor)**, and the placeholder disappears once you type. The Human step in the first-run recipe is saved with `"approver": { "any_member": true, "allow_initiator": true }`, so any workspace member who can edit the project may approve, **including the person who started the run**. Command Center does not show this policy on the task. If you want a second person to approve, list their user IDs and remove `allow_initiator` in the step's JSON.
+    </Note>
+
+    <Frame caption="The Approve the reply step in the first-run recipe">
+      <img src="/images/workflows/studio-human-step-panel.png" alt="Workflow Studio with the Approve the reply step selected and its settings on the right: Required approvers (user IDs) with the placeholder Leave empty for open gate (any project editor), Designated agent approvers (agent IDs) with the placeholder agent:supervisor-1, Resolver policy set to Human only (delegation / on-behalf), If no response (timeout policy) set to Keep waiting, When rejected set to Stop this branch with the help text Steps after this approval are skipped, other branches go on and the run completes as rejected, and Gate tags (delegation scope) with the placeholder finance, legal (optional)" />
+    </Frame>
+
     The same settings panel also has **Designated agent approvers (agent IDs)**, **Resolver policy**, **Gate tags (delegation scope)**, **Reject requires direct human**, and **Delegation may**. These control who can answer on someone's behalf. Standing delegations are managed in **Settings → Delegation**.
 
     <Frame caption="The settings of a Human step">
@@ -77,7 +85,7 @@ Keep payloads short. Include enough for the reviewer to decide.
 
 In Command Center, the **Needs you** list shows each task. For an approval, click **Approve** or **Reject**. **Reject** opens an optional **Reason** box. You can also answer from the run panel in Workflow Studio. The full guide to the inbox is in [Command Center](/workflows/command-center).
 
-Click **View** on a task to see the run behind it before you decide. The side panel shows the task with its own **Approve** and **Reject** buttons, and a **Recent activity** list.
+Click **View** on a task to see the run behind it before you decide. The side panel shows the task with its own **Approve** and **Reject** buttons, and a **Recent activity** list. It does not show the text you are approving, such as the draft reply. That is in Studio: click **Open in Studio**, then **View** next to the approval bar under the canvas.
 
 <Frame caption="The View panel of a task waiting for approval">
   <img src="/images/workflows/command-center-view-panel.png" alt="The run side panel in Command Center with a Needs your approval task showing Approve and Reject buttons, and a Recent activity list" />
@@ -113,10 +121,16 @@ In Studio this is **When rejected**.
 
 | Setting | What happens |
 |---|---|
-| **Stop this branch** (default, `stop_branch`) | Steps after the approval are skipped. Other branches carry on. The run completes with the outcome "rejected". |
+| **Stop this branch** (default, `stop_branch`) | Steps after the approval are skipped. Other branches carry on. The run then finishes as **Success**, not as failed or rejected. See the warning below. |
 | **Fail the run** (`fail_run`) | The run fails with the reviewer's comment. |
 | **Run the reject path** (`reject_path`) | Steps marked **Run only when rejected** (`run_when: "rejected"`) run, and the others are skipped. If the task is approved it is the other way round. |
 | **Send back for changes** (`send_back`) | The reviewer's comment goes back to the drafting step (or the steps in **Send back to**), which runs again, and then the approval asks again. After **Max revisions** (default 3) a rejection stops the branch. The button then reads **Send back** instead of **Reject**. |
+
+<Warning>
+  **A rejected run ends as Success.** With the default **Stop this branch**, rejecting **Approve the reply** in the first-run recipe skips **Mark it sent** and finishes the run as a green **Success**. The step you rejected shows **Skipped**, the same label as a step that was never reached, and **Analytics** counts the run as a success. The help text under **When rejected** says the run "completes as rejected"; the Console does not currently show that status. If you need a rejection to show as a failure, choose **Fail the run**.
+</Warning>
+
+The reason a reviewer types when rejecting is under `comment` in the step result. Studio's canvas does not show it.
 
 ## When nobody answers: `timeout_policy`
 

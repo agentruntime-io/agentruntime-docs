@@ -166,10 +166,44 @@ The body runs first, then the condition is checked. In JSON, `while_iteration_ti
 | `input` | The child's start input. Values can be templates. |
 | `wait` | `true` (default) waits for the child. `false` starts it and moves on. |
 | `output_from` | Where the step's result comes from: a child step id, or `terminal` (the default). With `terminal`, the result is the child step marked `terminal: true`; if there is none, the child's last step (a step nothing depends on); if the child has several last steps, the one that finished last. |
-| `child_target` | Which version of the child to run: leave empty for Live, or `"published"`, or a version number |
+| `child_target` | Which version of the child to run: leave empty to run the child's draft, or `"published"`, or a version number |
 | `timeout_s` | Studio's default is 600. Only a `workflow` step inside a loop body stops waiting for the child after this many seconds. A top-level `workflow` step does not enforce it: it waits until the child run finishes. |
 
-While you build, leave `child_target` empty so the child's **Live** copy runs. Pin `"published"` or a number only for shared children that must stay stable. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+While you build, leave `child_target` empty so the child's **draft** runs. Pin `"published"` or a number only for shared children that must stay stable. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
+
+## What the Studio panels show
+
+Click one of the built-in items in the palette and Studio adds a step and opens its panel. The palette items carry no description, and one click always adds the step at the same spot, so several clicks stack steps on top of each other until you drag them apart or click **Auto layout**. This is what each panel asks for, with the defaults Studio fills in.
+
+| Step | Fields in the panel | Defaults and notes |
+|---|---|---|
+| **Lua** | **Lua script** (sandboxed Lua 5.1, ends with `return { ... }`) with **Check script (server)**, then **Execution** | Starts with a valid script that returns `{ ok = true }`. **Timeout** is **5** seconds, captioned "Lua script limit: 5 seconds". |
+| **Agent** | **Catalog agent**, **Prompt**, **Structured input** (an optional map, in an **Advanced JSON editor**), **Timeout (seconds)**, **Observation conversation (optional)**, **Talks in the conversation** | **Timeout** is 600. With no agent picked, the panel says **Select a catalog agent before publishing this workflow.** **Talks in the conversation** is off: switch it on for session workflows where the agent answers the contact and its reply goes out through the workflow's reply channel. **Observation conversation** takes a conversation UUID, and mirrors tool and status frames to that chat room while the turn runs. |
+| **For each** | **List source**, **Max parallel**, **Per-item timeout (seconds)**, **On item error**, **Body steps** with **+ Add body step** | **List source** starts as `{{steps.PREVIOUS_STEP.result.items}}`: replace `PREVIOUS_STEP` with a real step id. **Max parallel** is **10**: ten items can run at the same time, which matters for cost, rate limits and side effects such as ten emails. **On item error** is **Fail fast**. **Per-item timeout** is optional, up to 3600. |
+| **While** | **Mode** (**until** stops when the condition is true), **Max iterations**, **Per-iteration timeout**, **Stop condition** (**Template (while_condition)** or **Lua (while_eval_script)**), **Body steps** | **Max iterations** is **5**. If you fill in both stop conditions, the Lua one wins. A new **While** step comes with two body steps already in a dashed loop box. |
+| **Workflow** | **Child workflow**, **Wait for completion**, **Output from**, **Child trigger input**, **Timeout** | **Wait for completion** is on and **Output from** is **Terminal step**. **Timeout** is 600 seconds. Its caption reads "LLM API call time limit", which is a wrong label for this step. A sub-workflow is not a model call. |
+
+<Frame caption="The Agent step">
+  <img src="/images/workflows/studio-step-agent.png" alt="The settings of an Agent step: Catalog agent showing Select an agent in red with the message Select a catalog agent before publishing this workflow, Prompt, Structured input with an Advanced JSON editor, Timeout (seconds) set to 600, Observation conversation (optional) with a conversation UUID box, a Talks in the conversation switch that is off, and an Execution section with Step enabled on" />
+</Frame>
+
+<Frame caption="The For each step">
+  <img src="/images/workflows/studio-step-for-each.png" alt="The settings of a For each step: List source (for_each_items) holding {{steps.PREVIOUS_STEP.result.items}}, Max parallel set to 10, Per-item timeout (seconds) set to off, On item error set to Fail fast, Body steps with an mcp list and an Add body step button, and an Execution section with Step enabled on and a Skip when box" />
+</Frame>
+
+<Frame caption="The While step">
+  <img src="/images/workflows/studio-step-while.png" alt="The settings of a While step: Mode set to until, stop when condition is true, Max iterations set to 5, Per-iteration timeout (seconds) set to off, Stop condition with Template (while_condition) selected and Lua (while_eval_script, wins if both set) as the other choice, while_condition holding {{body.score.pass}}, Body steps with a lua list and an Add body step button, and an Execution section with a Skip when box" />
+</Frame>
+
+<Frame caption="The Workflow step">
+  <img src="/images/workflows/studio-step-workflow.png" alt="The settings of a Workflow step: Child workflow showing Select workflow, Wait for completion switched on, Output from set to Terminal step, Child trigger input, an Execution section with Step enabled and Skip when, a Timeout of 600 with s, m and h buttons whose caption reads LLM API call time limit: 600 seconds, and an Episode and handoffs section with a Require entry grant switch" />
+</Frame>
+
+A new **For each** step also comes with a body ("Process item") inside a dashed loop box. Drag **MCP**, **Lua**, **LLM**, **Agent** or **Sub-workflow** steps into the loop box, click an inner step to configure it, and wire **Step out** to run steps after the loop completes.
+
+Every panel repeats the **Execution** section (**Step enabled**, **Skip when**, **Timeout**) and an **Episode & handoffs** section: entry grants, episode close, and who may send input or a handoff to the step, with **Require entry grant**. You can leave **Episode & handoffs** alone in a simple, connected workflow. See [Autonomous episodes](/workflows/autonomous-episodes).
+
+The **LLM** panel is covered in [Workflow Studio](/workflows/studio#step-settings), and the **Human** panel in [Human tasks](/workflows/human-tasks).
 
 ## Read data from other steps
 

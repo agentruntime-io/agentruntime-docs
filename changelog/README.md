@@ -23,6 +23,7 @@ User-facing release notes — one file per release (or rollup). Portico discover
 | `2026-10-05.mdx` | v0.12.0 | Mid-turn messages, graph dry-run UX, Platform MCP skills |
 | `2026-10-08.mdx` | v0.13.0 | Sub-workflow step reliability (v0.14.0 on 2026-10-14 had no customer-facing changes) |
 | `2026-10-29.mdx` | — (per-service releases, no platform tag) | Channel files, session choices, Missed tab, package updates, member hand-over |
+| `2026-11-25.mdx` | — (per-service releases, no platform tag) | Two-factor authentication (authenticator app) on Profile, Security |
 | `_template.mdx` | — | Copy to start the next entry |
 
 **Source of truth:** GitHub release bodies (`gh release view`), cross-checked with git tags.

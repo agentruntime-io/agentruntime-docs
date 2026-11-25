@@ -18,30 +18,52 @@ AgentRuntime measures usage in **credits**. When your workflows run, they use cr
 
 Credits come from a free trial, from your plan, from top-ups you buy, and from referral rewards. Top-up credits do not expire. See [Plans and credits](/platform/plans-and-credits) for the details and the current numbers.
 
+On **Billing** the two kinds sit side by side as **Model credits** and **Platform credits**, each with a dollar amount, for example **$7.00** and **$14.99**. The page does not define them. A line under **Model credits**, such as "$5.00 included, expires Dec 3" and "$2.00 from your trial, expires Dec 3", can look like two separate pots. They are parts of the same model-credit balance.
+
+## Credits and dollars {#credits-and-dollars}
+
+The Console shows the same balance in two units:
+
+| Where | Unit | Example |
+|---|---|---|
+| **Billing** (**Overview**, **Usage**) | Dollars | **Model credits $7.00**, **Platform credits $14.99** |
+| Credits panel in the top bar (the middle of the three icons, a gauge) | Dollars | **General** `$0.0015` |
+| **Analytics** | Credits | **Credits used** `0.00015 credits` |
+
+**1 credit = $10 of face value**, so $0.0015 is 0.00015 credits. The two numbers are the same cost, not a mismatch.
+
+The credits panel (click the gauge icon, which has no text label) lists your **Model credits** and **Platform credits** and, for the last 30 days, **METERING DIMENSIONS**: **LLM** ("Model tokens and LLM-related actions") and **General** ("Workflows, MCP, storage, and other platform usage"), each with a count of events and a cost, and a **View full usage history** link. It rounds to whole cents, so a very small cost shows as **$0.00**.
+
+<Note>
+  **AI answers can look free.** AI model cost is charged only for models that have a price. In testing, only **Claude Haiku 5.5** had one. **GPT-4o mini**, the default model in the recipes and in Autopilot, was recorded but charged **$0.00**, so **LLM** read 0 events and **Model credits** did not change after it ran. Pick another model to see AI cost. See [Workflow Studio](/workflows/studio#choose-a-model).
+</Note>
+
 ## Where to manage billing
 
-Open **Settings** in the [Console](https://console.agentruntime.io). Billing has three tabs:
+Click **Billing** in the **Admin** group of the [Console](https://console.agentruntime.io) sidebar. The page has three tabs:
 
 | Tab | What you can do |
 |-----|-----------------|
-| **Billing Overview** | See your plan, credits and card, add credits, move credits, read your billing history, and see who is billed |
+| **Overview** | See your plan, credits and card, add credits, move credits, read your billing history, and see who is billed |
 | **Plans** | Compare plans, start a trial, subscribe, upgrade, downgrade or cancel. Enter a **Promo or referral code** here. |
-| **Usage & History** | See **Credits remaining** and the **Usage history** list |
+| **Usage** | See **Credits remaining** and the **Usage history** list |
 
-<Frame caption="Billing Overview: an alert about the trial, then your plan, credits and payment method">
-  <img src="/images/platform/billing-overview.png" alt="The top of the Billing Overview tab. An alert says the card is on file so the plan continues when the trial ends, with a Start billing now button. Below it are three boxes: Plan, showing the Plus plan with a Trial label, the trial end date and a Change plan button; Credits, showing the credit balance with an Add credits button; and Payment method, showing a Visa card with its expiry date and a Manage card button." />
+<Frame caption="Billing, Overview tab: an alert about the trial, then your plan, credits and payment method">
+  <img src="/images/platform/billing-overview.png" alt="The top of the Overview tab on the Billing page. An alert says the card is on file so the plan continues when the trial ends, with a Start billing now button. Below it are three boxes: Plan, showing the Plus plan with a Trial label, the trial end date and a Change plan button; Credits, showing the credit balance with an Add credits button; and Payment method, showing a Visa card with its expiry date and a Manage card button." />
 </Frame>
 
-**Billing Overview** has:
+The **Overview** tab has:
 
 - **An alert at the top**, only when something needs you: a payment that is past due, a payment waiting for your bank, a trial that is running or has ended, or a subscription that is ending.
 - **A summary row** with three boxes: **Plan** (the plan name, a status label such as **Active**, **Trial** or **Ending**, and the next date), **Credits** (your balance, with **Add credits**) and **Payment method** (your card, with **Add card** or **Manage card**). A line under it says who is billed.
 - **Billing history**, one line per payment. See [Billing history and invoices](/platform/billing-history-and-invoices).
 - **Billing contact and who pays**, a section you can open to see the billing contact and switch between workspace billing and personal billing.
 
-## Who can change billing
+## Who can change billing {#what-a-member-sees}
 
 Everyone with project access can look at plans and usage. Only workspace admins (`tenant_admin`) and people with billing write access can change plans, manage the card, add credits or apply codes. If the buttons are disabled, ask an admin.
+
+A workspace **Member** can open **Billing** and see your plan and trial end date, both credit balances, whether a card is on file, the billing history, and the line "Billed to *name*'s personal billing" with the name of the person who pays. For a **Member**, **Add credits**, **Move credits** and **Add card** are disabled. The reason ("Billing admin permission required") shows only when you hover over the button, so it does not appear on a touch screen. **Change plan** is not disabled for a **Member**. Whether the server refuses it was not tested.
 
 ## Billing guide
 
@@ -83,7 +105,11 @@ Everyone with project access can look at plans and usage. Only workspace admins 
 
 ## See what you used
 
-Open **Settings → Usage & History**. **Credits remaining** shows your balance. **Usage history** lists each charge with its date.
+Open **Billing → Usage**. **Credits remaining** shows your balance. **Usage history** lists each charge with its date.
+
+<Frame caption="Billing, Usage tab: credits remaining, usage over time, usage history">
+  <img src="/images/platform/billing-usage.png" alt="The Usage tab showing Credits remaining for Model credits and Platform credits with Add credits and Move credits buttons, a Usage over time bar chart with Credits used and List price toggles, and a Usage history list with one charge per row" />
+</Frame>
 
 **Analytics** also shows credits used over time, next to your run counts. See [Analytics](/platform/analytics).
 

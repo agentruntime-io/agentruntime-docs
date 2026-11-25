@@ -11,7 +11,7 @@ A **run** is one execution of a workflow. This page explains how runs start, wha
 
 | From | How |
 |---|---|
-| **Workflow Studio** | Click **Run**. It runs your **Live** copy with the input from **Workflow setup**. |
+| **Workflow Studio** | Click **Run**. It runs your **draft** with the input from **Workflow setup**. |
 | **API** | `POST /v1/workflows/{id}/command` with `"command": "start"`. See the [API reference](/api/reference). |
 | **Schedule** | A cron schedule you add in **Workflow setup → Cron** |
 | **Inbound webhook** | An outside system sends a signed request. See [Inbound webhooks](/integrations/inbound-webhooks). |
@@ -19,7 +19,7 @@ A **run** is one execution of a workflow. This page explains how runs start, wha
 | **Conversation** | A message from a contact joins or starts a [conversation session](/workflows/conversation-sessions) |
 | **Autopilot** | Ask Autopilot in Chat to run a workflow by name |
 
-Each trigger chooses which version it runs: **Live**, **Last published**, or a fixed version. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions). A run keeps the version it started with, even if you edit the workflow later.
+Each trigger chooses which version it runs: **Draft**, **Last published**, or a fixed version. See [Draft and published versions](/workflows/studio#draft-and-published-versions). A run keeps the version it started with, even if you edit the workflow later.
 
 ## Watch a run
 

@@ -25,7 +25,7 @@ Most apps work with a workflow, so have one ready. A **Show data** or **Start bl
 
 <Steps>
   <Step title="Open the Apps page">
-    In the [Console](https://console.agentruntime.io) sidebar, click **Apps**. When you have no apps yet, the page says **Build your first app**. Click **Create app**. The **Create an app** dialog opens.
+    In the [Console](https://console.agentruntime.io) sidebar, click **Apps**. When you have no apps yet, the page says **Build your first app** and shows three numbered cards: **Design a screen**, **Bind your data** and **Run it with your team**. Click **Create app**. The **Create an app** dialog opens.
   </Step>
   <Step title="Pick a starter">
     Under **What's this app for?**, choose a starter. The **We'll build** box shows what you will get. See the table below.
@@ -41,13 +41,25 @@ Most apps work with a workflow, so have one ready. A **Show data** or **Start bl
 | Starter | Use it to | What you choose | What you get |
 |---------|-----------|-----------------|--------------|
 | **Collect requests** | Show a form that starts a workflow | The workflow the form starts | A **Submit request** screen with one field for each input the workflow lists (or, if it lists none, each value its steps read) and a **Submit** button that starts it. A **Request status** screen follows, with a **New request** button. If the workflow neither lists nor reads inputs, the form starts with **Title** and **Details** fields. |
-| **Review and approve** | Let approvers decide when a run waits | The workflow that waits, and **The step that waits** if it has more than one approval step | A **Review** screen with the step's editable fields and two buttons, **Approve** and **Send back**. The screen is already linked to the waiting step. |
+| **Review and approve** | Let approvers decide when a run waits | The workflow that waits, and **The step that waits** if it has more than one approval step | A **Review** screen with two buttons, **Approve** and **Send back**, and the step's editable fields if it has any. The screen is already linked to the waiting step, so it opens in Command Center whenever a run waits there. |
 | **Show data** | Show a table from your database | A **Database** and a **Table** | One screen with a heading and a read-only table. You can add filters or edit the SQL later in **Data**. |
 | **Start blank** | Build everything yourself | Nothing | One empty screen named **Main**. |
 
 <Note>
   Nothing is picked for you in the workflow list. After you pick one, the list labels workflows that message people or call outside services. If the picker says the workflow has no saved version, you can still create the app. Its buttons will not run until the workflow has a saved version.
 </Note>
+
+<Frame caption="Create an app, Review and approve">
+  <img src="/images/platform/apps-create-review-and-approve.png" alt="The Create an app dialog with Review and approve selected in the WHAT'S THIS APP FOR list (Collect requests, Review and approve, Show data, Start blank). The App name box says Choose below and we'll suggest one, and Which workflow waits for a decision lists Approve before it goes out with nothing picked. Under WE'LL BUILD a Review screen with an Approve tag is shown with the note Linked to the waiting step, so it opens in Command Center whenever a run waits there. Import app JSON, Cancel and a greyed-out Create app are at the bottom" />
+</Frame>
+
+<Warning>
+  **The generated approval screen does not show the thing being approved.** In testing, the **Review** screen from **Review and approve** read only "*workflow name* is waiting for your decision", with **Approve** and **Send back** under it. It did not show the AI's draft reply. To show it, add a **Text** or **Table** component to the screen and fill it from the waiting step's output (see [Fill a component with data](#fill-a-component-with-data)). Check this before you send approvers to the screen. **Send back** is this screen's name for what Command Center and Studio call **Reject**.
+</Warning>
+
+<Frame caption="The generated Review screen in App Studio">
+  <img src="/images/platform/app-studio-review-screen.png" alt="App Studio for the app Approve before it goes out reviews, showing the Review screen. The phone-shaped canvas has the heading Approve the reply, the text Approve before it goes out is waiting for your decision, and two buttons, Approve and Send back. There is no reply text on the screen. The header says Saved, not shared yet, with Data, Settings, Try it and Share buttons, and the screen settings on the right show Name Review and Opens first switched on" />
+</Frame>
 
 **Review and approve** only works with a workflow that has an approval step. If the workflow has none, the dialog says so. Add a human approval step in [Workflow Studio](/workflows/studio), or pick another workflow.
 

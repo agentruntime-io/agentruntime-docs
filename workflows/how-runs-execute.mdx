@@ -15,7 +15,7 @@ A step starts when **every step in its `depends_on` has finished**: succeeded, b
 
 - **Steps that don't depend on each other run at the same time.** Two tool calls of 30 seconds each, side by side, finish in about 30 seconds.
 - **A step that joins several branches waits for all of them.**
-- **A run keeps the workflow version it started with.** Editing or publishing the workflow later does not change a run in progress. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+- **A run keeps the workflow version it started with.** Editing or publishing the workflow later does not change a run in progress. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
 
 Each step moves through these events, which you see in the **Events** tab and the [events API](/api/reference#run-event-types): `step_scheduled` (its dependencies are done), `step_dispatched` (handed to a worker), `step_execution_started`, then `step_completed`, `step_failed`, `step_skipped` or `step_cancelled`.
 

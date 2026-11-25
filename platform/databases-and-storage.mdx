@@ -36,20 +36,34 @@ If you cannot create databases, the **Create database** button is greyed out. Se
     Enter a **Display name**, such as `Sales CRM`. The Console suggests a **Database ID** from it, such as `db_sales_crm`. You can change it. Click **Continue**.
   </Step>
   <Step title="Schema">
-    Define your tables and columns. Use **Visual editor** and click **Add table** and **Add column**. For many tables, switch to **Import JSON**. There you can paste a schema and click **Apply JSON**, click **Load example**, or click **Upload file**. Click **Continue**.
+    Define your tables and columns. A new database starts with one table, `items` (**Items**), with the columns `id` (the primary key, a UUID that fills itself in), `title` (text, required), `updated_at` and `updated_by`. Each table has an **On duplicate** setting (**Fail on duplicate** by default). The column grid has the headers **Name**, **Type**, **Dims**, **PK**, **Req**, **Unq**, **Auto** and **Foreign key**: primary key, required, unique, auto-filled and a reference to another table. Primary key columns lock their name and type. Use **Visual editor** and click **Add table** and **Add column**. For many tables, switch to **Import JSON**. There you can paste a schema and click **Apply JSON**, click **Load example**, or click **Upload file**. Click **Continue**.
   </Step>
   <Step title="Review">
     Check the tables. Click **Create database**.
   </Step>
 </Steps>
 
-You should see "Database and workflow MCP instance created" and the new database. If you see "Database created, but workflow MCP setup failed", the database exists but workflows cannot reach it yet. Open its **Overview** and click **Provision MCP**.
+Creating takes a few seconds and shows no progress indicator. You should see "Database and workflow MCP instance created" and the new database. The Console connects the database to your workflows for you: its **Agent access** card says **Connected** and you do not register an MCP instance yourself. If you see "Database created, but workflow MCP setup failed", the database exists but workflows cannot reach it yet. Open its **Overview** and click **Provision MCP**.
+
+<Frame caption="The Basics step of Create database">
+  <img src="/images/platform/databases-wizard-basics.png" alt="The Create database page on step 1 of 3, Basics, with Schema and Review as the next steps. It has a required Display name box with the placeholder Sales CRM, a required Database ID box with db_sales_crm and the help text Used as tenantdata_database_id in MCP profiles, and a Continue button" />
+</Frame>
+
+<Frame caption="The Schema step with the starter table">
+  <img src="/images/platform/databases-wizard-schema.png" alt="The Schema step of Create database with the Visual editor and Import JSON switch and an Add table button. The starter table has the table name items and display name Items, 4 columns, On duplicate set to Fail on duplicate, and a column grid with the headers Name, Type, Dims, PK, Req, Unq, Auto and Foreign key listing id (UUID, primary key and auto ticked), title (Text, required ticked), updated_at (Date and time) and updated_by (Text). A footnote says PK columns lock name and type, and Back and Continue buttons follow" />
+</Frame>
 
 <Frame caption="The Schema step of Create database">
   <img src="/images/platform/databases-create-schema.png" alt="The Schema step of Create database with a refunds table and its columns id, customer, updated_at and updated_by, with type, primary key, required, unique, auto and foreign key settings" />
 </Frame>
 
 ### Find your way around a database
+
+<Note>
+  The text at the top of the **Databases** list page still says Databases need a `tenantdata` MCP instance registered "with the matching `tenantdata_database_id`". The Console now does this when you create the database, so you can ignore that text. The database page also asks you to map the instance's ID in Studio when you import a workflow. See [How workflows use databases and storage](#how-workflows-use-databases-and-storage).
+</Note>
+
+The database page has a **Publish to marketplace** button at the top right. The Console does not say there what becomes public (the schema, or the rows too). Do not click it until you know.
 
 Click a database in the list to open it. The left panel has:
 
@@ -70,6 +84,10 @@ On **Overview** the **Agent access** card says **Connected** when workflows can 
 
 <Frame caption="The Data tab">
   <img src="/images/platform/databases-data-tab.png" alt="The Data tab of a refunds table with Data, Schema, SQL and Data API tabs, a toolbar with search, Columns, Filter, refresh, Live, CSV and Insert row, and two rows" />
+</Frame>
+
+<Frame caption="An empty table on the Data tab">
+  <img src="/images/platform/databases-table-data.png" alt="The Data tab of the Items table in the database Customers Demo, with the Data, Schema, SQL and Data API tabs, a Publish to marketplace button at the top right, and a toolbar with Search rows, Columns, Filter, a refresh button, Live, CSV and Insert row. The grid shows only the column headers id, title, updated_at and updated_by, no rows, and 0 rows at the bottom with a New row link" />
 </Frame>
 
 The **Data** tab shows a table's rows in a grid. Above the grid:
@@ -100,6 +118,12 @@ Click **Filter**, then **Add condition**. Pick a column, an operator (**equals**
 - **Primary key columns** cannot be edited.
 - **Long values** show an expand icon when you hover. A cell that links to another table shows an icon that opens the matching row there.
 - **Add a row:** click **+ New row** under the grid, type values, and press Enter or click **Save**. Or click **Insert row** and fill in the form. Empty fields are skipped.
+
+  The **Insert row** form shows `updated_at` and `updated_by` as editable boxes, but the Console fills them in: it stores the current time and `console:` followed by your user ID, and a value you type there is overwritten without a message. A table with no rows shows only the column headers and a blank grid, with no "no rows yet" text.
+
+  <Frame caption="The Insert row form">
+    <img src="/images/platform/databases-insert-row.png" alt="The Insert row dialog for the Items table with three empty boxes, title (text), updated_at (timestamptz) and updated_by (text), and Cancel and Insert buttons, over the empty Data tab" />
+  </Frame>
 - **Duplicate or delete a row:** hover over the row and use the icons at its right. Deleting asks you to confirm.
 - **Delete many rows:** tick the checkboxes at the left, then click **Delete (N)**.
 
@@ -208,11 +232,23 @@ The example uses a placeholder (`YOUR_TOKEN_HERE`) in place of a real key. Repla
   </Step>
 </Steps>
 
+<Frame caption="Storage in a new workspace">
+  <img src="/images/platform/storage-empty.png" alt="The Storage page with the text No files yet and an Upload your first file button" />
+</Frame>
+
+<Frame caption="Storage after an upload">
+  <img src="/images/platform/storage-file-listed.png" alt="The Storage page with one file listed, showing its name, size, type, when it was added and an ID chip, with download and trash icons on the row" />
+</Frame>
+
 | Task | How |
 |------|-----|
 | **Search** | Type in **Search by name, type, or ID…**. It matches the file name, the type, and the ID. |
 | **Download** | Click the download icon on a file's row. The file opens in a new tab. |
-| **Delete** | Click the trash icon on a file's row. The file is removed straight away, and you are not asked to confirm. You should see "File removed". |
+| **Delete** | Click the trash icon on a file's row. The file is removed straight away. **There is no confirmation and no undo.** |
+
+<Warning>
+  **Deleting a file cannot be undone, and nothing asks you first.** The download and trash buttons are icon-only and sit next to each other on the row. Agents and workflows read the files here, so removing one by mistake can break a running automation. Check which workflows use a file before you delete it. A **File uploaded** message appears about eight seconds after an upload, and **File removed** after a delete, but the delete message has no **Undo**.
+</Warning>
 
 Each row shows the file name, its size, its type, and when it was added, plus a short ID chip. The list shows up to 200 files.
 
