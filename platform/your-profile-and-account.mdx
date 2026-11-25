@@ -16,7 +16,7 @@ Open your profile in the Console (the page is at `/profile`). The tabs are **Gen
 |---|---|
 | **General** | See your name, email, and user ID. Change your username with **Save username**. Restart the **Product tours**. |
 | **Preferences** | Choose **Light**, **Dark**, or **System** under **Appearance**. See [Dark theme and preferences](/platform/dark-theme-and-preferences). |
-| **Security** | Change your password. See where two-factor authentication stands. |
+| **Security** | Change your password. Turn two-factor authentication on or off. |
 | **Privacy** | Download your data. Delete your account. |
 
 <Note>
@@ -41,16 +41,45 @@ Open your profile in the Console (the page is at `/profile`). The tabs are **Gen
   The password form is for email and password sign-in. If you sign in with Google, this page may not apply to you. The Console does not describe what a Google-only account sees here.
 </Note>
 
-<Frame caption="Profile, Security tab: password change and two-factor authentication (coming soon)">
-  <img src="/images/platform/profile-security-tab.png" alt="The Profile page on the Security tab: a Password section with Current password, New password (at least 8 characters) and Confirm new password fields and a Forgot your current password link, and below it Two-Factor Authentication with the text 2FA is currently disabled and This feature is coming soon" />
-</Frame>
-
 ## Two-factor authentication
 
-The **Security** tab has a **Two-Factor Authentication** section. It reads "2FA is currently disabled" and "This feature is coming soon." The **Enable 2FA** button is shown, but the feature is not available yet.
+Two-factor authentication asks for a 6-digit code from an authenticator app (for example Google Authenticator or Microsoft Authenticator) when you sign in with your email and password. It is **off** until you turn it on, and it applies to your own account only.
+
+The **Two-factor authentication** card is on the **Security** tab, below the password form. It shows one of these:
+
+| What the card shows | What it means |
+|---|---|
+| **Off** and a **Set up** button | Two-factor is available and not turned on. |
+| **On**, with your authenticator listed (and the date you added it) and a **Remove** button | Signing in with your email and password asks for a code. |
+| **You sign in with Google** | Your account has no password. Google's 2-Step Verification protects it, and you manage that in your Google Account security settings. |
+| **Not available yet** | Two-factor cannot be turned on right now. Try again later. |
+
+<Steps>
+  <Step title="Click Set up">
+    On **Security**, click **Set up** on the **Two-factor authentication** card. You go to AgentRuntime's secure sign-in page, which asks you to sign in again to confirm it is you.
+  </Step>
+  <Step title="Scan the QR code">
+    Open your authenticator app and scan the QR code on the page. Type the 6-digit code the app shows. You can give the device a name; if you leave it empty it shows as **Authenticator app**. Click **Submit**.
+  </Step>
+  <Step title="Check the card">
+    **You should see:** back on your profile, a message that two-factor authentication is on, and the card showing **On**. Setting it up also signs you out of your other sessions.
+  </Step>
+</Steps>
+
+### Signing in with two-factor on
+
+Type your email on the sign-in page. The Console tells you that the account uses two-factor authentication and offers **Continue** to the secure sign-in page. There you enter your password and then the 6-digit code from your app.
+
+<Note>
+  The code protects signing in with your email and password. Signing in with Google uses Google's own security and does not ask for the code.
+</Note>
+
+### Turn it off
+
+Click **Remove** next to your authenticator on the **Security** tab and confirm on the secure sign-in page. When it is off, signing in asks for your password only.
 
 <Warning>
-  Two-factor authentication is **coming soon**. Do not rely on it to protect your account yet. Use a strong, unique password.
+  If you lose access to your authenticator app, you cannot get back in by yourself today. Contact AgentRuntime support to have two-factor reset on your account. Keep your authenticator app backed up on your devices.
 </Warning>
 
 The Security tab does not list your active sessions and has no **Sign out everywhere** control.
