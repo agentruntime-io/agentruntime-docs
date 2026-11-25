@@ -22,7 +22,7 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
   <Step title="Create the workflow">
     In the Console sidebar, open **Workflows**, then click **Create workflow**. If Studio opens the last workflow you worked on instead of the list, click the back arrow in the toolbar (**Back to all workflows**) first. The **Find a workflow recipe** dialog opens. Type a name in **Workflow name** if you want one, then click **Blank canvas** for an empty canvas (or pick a recipe to start from).
 
-    You should see the canvas, a toolbar along the top, and a green chip that reads **Live** with a "saved" time. **Live** is the copy you are editing, not a sign that the workflow is in use. See [Live copy and published versions](#live-copy-and-published-versions).
+    You should see the canvas, a toolbar along the top, and a grey chip that reads **Draft** with a "saved" time. **Draft** is the copy you are editing, not a sign that the workflow is in use. See [Draft and published versions](#draft-and-published-versions).
 
     On a blank canvas, a card asks **What should this workflow do?** with a text box, a **Build it** button, example chips (**Draft → approve → send**, **Summarize and notify**, **Simple 2-step starter**) and an **or pick a recipe** link.
 
@@ -62,7 +62,7 @@ New to workflows? Follow the step-by-step tutorial [Build your first workflow](/
     Click **Setup** to open **Workflow setup**. See [The Setup dialog](#the-setup-dialog) below and [Run setup](/workflows/run-setup).
   </Step>
   <Step title="Run it">
-    Click **Run**. Studio saves your latest edits first, then starts a run of your **Live** copy. Watch the steps in the **Events** and **Timeline** tabs of the run panel. Click **Run** once and wait: a double-click starts two runs in the same second, and any approval step then creates two tasks.
+    Click **Run**. Studio saves your latest edits first, then starts a run of your **draft**. Watch the steps in the **Events** and **Timeline** tabs of the run panel. While a step is running, its line in **Events** reads **Processing…** with how long it has been running and its time limit, for example "Processing… (12s) · times out after 60s". If the step goes past its limit the line says so, and if the run starts a step again it adds the attempt number. Click **Run** once and wait: a double-click starts two runs in the same second, and any approval step then creates two tasks.
   </Step>
 </Steps>
 
@@ -115,7 +115,7 @@ Click a step to open its settings on the right. An **llm** step shows:
 - **Prompt**: the task text. It supports `{{steps.*}}` and `{{input.*}}` templates. Under it, Studio counts the variables it found, and the `(x)` button inserts one.
 - **System prompt (optional)**.
 
-Studio saves a change within about a second. **Save** stays greyed out and the chip reads **Live · saved just now**.
+Studio saves a change within about a second. **Save** stays greyed out and the chip reads **Draft · saved just now**.
 
 <Frame caption="Step settings for the Draft a reply step">
   <img src="/images/workflows/studio-step-settings-llm.png" alt="Workflow Studio with the Draft a reply step selected. The right panel shows the model GPT-4o mini with Billing: Platform default, Temperature 0.7, Max output tokens 1024 and the prompt text with two variables detected" />
@@ -196,7 +196,7 @@ In the **Run** view:
 | Button | What it does |
 |---|---|
 | **Fork** | Makes a new workflow from this run's graph and run setup, and opens it. You see "Workflow forked from run". |
-| **Restore** | Asks "Restore workflow from this run?". Click **Restore workflow** to replace your **Live** copy with the graph from this run. Studio saves your unsaved edits first. |
+| **Restore** | Asks "Restore workflow from this run?". Click **Restore workflow** to replace your **draft** with the graph from this run. Studio saves your unsaved edits first. |
 
 ## Fix a stale tool step
 
@@ -213,37 +213,37 @@ On the canvas, a step with an out-of-date tool also shows an **Update** badge. I
 
 Studio saves your edits automatically, so the fix is kept. Run the dry-run again to check that the banner is gone.
 
-## Live copy and published versions
+## Draft and published versions
 
-Every workflow has one editable copy, called **Live**, and any number of frozen **published versions** (v1, v2, and so on).
+Every workflow has one editable copy, called the **draft**, and any number of frozen **published versions** (v1, v2, and so on). The API and the Platform MCP call the draft **Live**.
 
 | | What it is | How it changes |
 |---|---|---|
-| **Live** | The copy you edit. Studio **Run** uses it. | Every save changes it. |
-| **Published version** | A frozen snapshot of Live with an optional note. | Never changes. |
+| **Draft** | The copy you edit. Studio **Run** uses it. | Every save changes it. |
+| **Published version** | A frozen snapshot of the draft with an optional note. | Never changes. |
 
-Each place that starts a workflow can choose what to run: **Live**, **Last published** (your newest published version), or a specific version such as **v3**. You see this choice as **Runs** on schedules, webhooks, and event triggers, and in the Share menu. Starting a run from Studio always runs Live.
+Each place that starts a workflow can choose what to run: **Draft**, **Last published** (your newest published version), or a specific version such as **v3**. You see this choice as **Runs** on schedules, webhooks, and event triggers, and in the Share menu. Starting a run from Studio always runs the draft.
 
 A run that has already started keeps the version it started with. Later edits never change a run in progress.
 
 <Note>
-  **The toolbar badge `Live` means "the copy you are editing", not "in production".** A chip such as **Live · saved 10s ago** appears as soon as Studio auto-saves an edit, and a workflow you have never published shows it too. Nothing is published, shared or used by anyone else until you **Publish**. History says it directly: **Live** is the copy you edit, **Studio Run** and anything set to **Live** use it, and publishing freezes Live as a numbered version that never changes.
+  **The toolbar chip `Draft` means "the copy you are editing", not "in production".** A grey chip such as **Draft · saved 10s ago** appears as soon as Studio auto-saves an edit, and a workflow you have never published shows it too. When the workflow has a published version and your draft has changes that are not in it, the chip adds **· unpublished changes** (on a narrow toolbar an amber dot stands for it; point at the chip for the full text). Only the **Published vN** chip is green. Nothing is published, shared or used by anyone else until you **Publish**. History says it directly: your draft is the copy you edit, **Studio Run** and anything set to run the draft use it, and publishing freezes the draft as a numbered version that never changes.
 </Note>
 
 ### Publish a version
 
 <Steps>
   <Step title="Open History">
-    Click **History** in the toolbar (in a narrow window it is an icon). It has two tabs, **Live revisions** and **Published versions**, and a **Publish…** button. The **Publish** button in the toolbar opens the same dialog directly.
+    Click **History** in the toolbar (in a narrow window it is an icon). It has two tabs, **Draft revisions** and **Published versions**, and a **Publish…** button. The **Publish** button in the toolbar opens the same dialog directly.
   </Step>
   <Step title="Publish">
-    Click **Publish…**, add a note such as "Added the refund check" if you like, and click **Publish vN**. The dialog reads **Publish vN**: it freezes Live as that version, a published version never changes, and Live stays editable. Anything set to run Live, including Studio **Run**, keeps running Live.
+    Click **Publish…**, add a note such as "Added the refund check" if you like, and click **Publish vN**. The dialog reads **Publish vN**: it freezes the draft as that version, a published version never changes, and the draft stays editable. Anything set to run the draft, including Studio **Run**, keeps running the draft.
 
     <Frame>
       <img src="/images/workflows/studio-history.png" alt="The History dialog with Live revisions and Published versions tabs, Catalog package… and Publish… buttons, and a list of revisions with Restore buttons" />
     </Frame>
 
-    You should see a message "vN published". If some triggers still run Live, Studio asks whether to switch them: **Keep on Live** or **Switch to Last published**.
+    You should see a message "vN published". If some triggers still run the draft, Studio asks whether to switch them: **Keep on draft** or **Switch to Last published**.
   </Step>
 </Steps>
 
@@ -261,13 +261,13 @@ A run that has already started keeps the version it started with. Later edits ne
 
 In **History** you can also:
 
-- **Restore** (Live revisions tab, then **Restore into Live**) to bring an earlier saved state back into Live as a new revision. Nothing is lost: restoring copies a revision into Live as a new one. Saves are grouped into revisions, listed as **Rev 3 Current**, **Rev 2** and so on, with the source (for example **Studio** or **API**), who saved it and when. A revision does not say what changed.
-- Open **Published versions** to see your versions. Before the first publish it reads that runs use Live until you publish.
-- **View** or **Compare with Live** on a published version.
-- **Edit from vN** to copy a published version back into Live.
+- **Restore** (Draft revisions tab, then **Restore into draft**) to bring an earlier saved state back into your draft as a new revision. Nothing is lost: restoring copies a revision into your draft as a new one. Saves are grouped into revisions, listed as **Rev 3 Current**, **Rev 2** and so on, with the source (for example **Studio** or **API**), who saved it and when. A revision does not say what changed.
+- Open **Published versions** to see your versions. Before the first publish it reads that runs use your draft until you publish.
+- **View** or **Compare with draft** on a published version.
+- **Edit from vN** to copy a published version back into your draft.
 - **Copy link** to share the link of a published version.
 
-The `Published vN` chip next to the **Live** chip shows your newest published version. Anything set to **Last published** runs it.
+The `Published vN` chip next to the **Draft** chip shows your newest published version. Anything set to **Last published** runs it.
 
 ## Import, export, and JSON
 
@@ -290,13 +290,13 @@ In a narrower window these fold into **More** (the `⋯` button). **More** has *
 
 Open **Share** in the toolbar, then **Share settings…**. The **Share workflow** dialog asks who you are sharing with:
 
-- **Outside your org:** an unlisted share link, not on the Marketplace. The person signs in to AgentRuntime and adds their own copy to their workspace. The link installs your newest **published** version, never unpublished Live edits. The URL stays the same.
+- **Outside your org:** an unlisted share link, not on the Marketplace. The person signs in to AgentRuntime and adds their own copy to their workspace. The link installs your newest **published** version, never unpublished draft edits. The URL stays the same.
 - **Your team:** the Studio link for people who already have access to the project, with **Copy studio link**.
 - **API / script:** a ready-made request that starts the workflow, in **cURL**, **PowerShell**, **Python**, **Go** or **TypeScript**. It uses a `workflow:run` key from **Settings → API keys** and does not share the workflow itself. The example sends no input, so the run uses your saved defaults from **Setup**.
 - **More options:** **List on Marketplace** or **Export as JSON file**.
 
 <Warning>
-  **Create share link & copy publishes your workflow.** If Live changed since your last publish, creating the **Outside your org** link publishes Live as a new version, and that is the version the other person gets. Check what the workflow contains first: its prompts, step settings and saved sample input (such as a customer name and message) are part of what they install.
+  **Create share link & copy publishes your workflow.** If your draft changed since your last publish, creating the **Outside your org** link publishes the draft as a new version, and that is the version the other person gets. Check what the workflow contains first: its prompts, step settings and saved sample input (such as a customer name and message) are part of what they install.
 </Warning>
 
 The **Share** menu also has **Copy Studio link (same tenant)**, which does the same as **Copy studio link** on the **Your team** tab.
@@ -305,16 +305,16 @@ The **Share** menu also has **Copy Studio link (same tenant)**, which does the s
 
 A workflow you added from a shared package shows **Installed from `<package>` vN** in the header. When the publisher releases a new version, a pill such as **v1 → v2** appears. Click it to open **Update to vN**, which shows what the publisher changed, what you changed, and any databases or child workflows that need a choice.
 
-- **Update Live** merges the update into Live as a new revision. Your triggers, webhooks, connections, and run history stay.
+- **Update draft** merges the update into your draft as a new revision. Your triggers, webhooks, connections, and run history stay.
 - **Update and publish** does the same and publishes a version straight away.
 - **Add as a new copy instead** leaves this copy untouched.
-- **Replace with theirs** replaces Live with the publisher's version.
+- **Replace with theirs** replaces your draft with the publisher's version.
 - **Undo** (in the message after an update) puts back the revision from before.
-- **Keep this up to date** can be **Off**, **Update Live automatically**, or **Update and publish automatically**.
+- **Keep this up to date** can be **Off**, **Update draft automatically**, or **Update and publish automatically**.
 
 ## Pin and rename a workflow
 
-The workflow list is the page you see in **Workflow Studio** before you open a workflow. It shows your workflows on the left and, for the selected one, the number of steps ("nodes on canvas"), **Latest run**, **Open workflow**, **Archive**, **Share** and a **Recent runs** table.
+The workflow list is the page you see in **Workflow Studio** before you open a workflow. It shows your workflows on the left and, for the selected one, the number of steps ("nodes on canvas"), **Latest run**, **Open workflow**, **Archive**, **Share** and a **Recent runs** table. On a phone the list fills the screen: tap a workflow to open its details in a sheet at the bottom.
 
 <Frame caption="The workflow list">
   <img src="/images/workflows/workflows-list.png" alt="The Workflow Studio list for the project tim33 Default Project: a Create workflow button and a search box above one workflow, Approve before it goes out. On the right, a detail card says 3 nodes on canvas with a green Latest run: Success label, the buttons Open workflow, Archive and Share, and a Recent runs table with one successful manual run" />
@@ -344,8 +344,8 @@ In the workflow list, select a workflow and click **Archive**. The workflow is h
 | Problem | What to try |
 |---|---|
 | **Run** is greyed out | The canvas is empty, or your role cannot run workflows (`project_viewer` can only look). |
-| A trigger runs old behaviour after you edited | The trigger is set to **Last published** or a fixed version. Change **Runs** to **Live**, or publish and switch it to **Last published**. |
-| Studio says "Live changed somewhere else" | Another tab, an agent, or the API saved a newer revision. Autosave pauses so it does not overwrite it. Click **Reload Live** (this drops unsaved edits in the current tab). |
+| A trigger runs old behaviour after you edited | The trigger is set to **Last published** or a fixed version. Change **Runs** to **Draft**, or publish and switch it to **Last published**. |
+| Studio says "The draft changed somewhere else" | Another tab, an agent, or the API saved a newer revision. Autosave pauses so it does not overwrite it. Click **Reload draft** (this drops unsaved edits in the current tab). |
 | A `{{…}}` value is empty at run time | Check the step id in the template. See [Template intellisense](/workflows/template-intellisense). |
 | Studio says "Run inspect is read-only" | The canvas is on the **Run** view. Click **Editing** at the top left of the canvas. See [See a run on the canvas](#see-a-run-on-the-canvas). |
 | A step shows **Stale MCP URL on this step** or **Stale MCP tool on this step** | The step points at an old URL or a tool that is no longer published. See [Fix a stale tool step](#fix-a-stale-tool-step). |

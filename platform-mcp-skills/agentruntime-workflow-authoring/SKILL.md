@@ -54,7 +54,7 @@ Optional request fields: `mapper_fixtures`, `mock_lua_scopes`, `mock_step_output
 
 ## Live, published versions and what runs
 
-Every workflow has one editable copy, **Live**, plus any number of frozen **published versions** (v1, v2, …).
+Every workflow has one editable copy, **Live** (the Console shows it as **Draft**), plus any number of frozen **published versions** (v1, v2, …).
 
 | Do | How |
 |----|-----|

@@ -166,10 +166,10 @@ The body runs first, then the condition is checked. In JSON, `while_iteration_ti
 | `input` | The child's start input. Values can be templates. |
 | `wait` | `true` (default) waits for the child. `false` starts it and moves on. |
 | `output_from` | Where the step's result comes from: a child step id, or `terminal` (the default). With `terminal`, the result is the child step marked `terminal: true`; if there is none, the child's last step (a step nothing depends on); if the child has several last steps, the one that finished last. |
-| `child_target` | Which version of the child to run: leave empty for Live, or `"published"`, or a version number |
+| `child_target` | Which version of the child to run: leave empty to run the child's draft, or `"published"`, or a version number |
 | `timeout_s` | Studio's default is 600. Only a `workflow` step inside a loop body stops waiting for the child after this many seconds. A top-level `workflow` step does not enforce it: it waits until the child run finishes. |
 
-While you build, leave `child_target` empty so the child's **Live** copy runs. Pin `"published"` or a number only for shared children that must stay stable. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+While you build, leave `child_target` empty so the child's **draft** runs. Pin `"published"` or a number only for shared children that must stay stable. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
 
 ## What the Studio panels show
 

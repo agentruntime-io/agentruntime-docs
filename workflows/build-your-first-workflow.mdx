@@ -40,7 +40,7 @@ This workflow needs no connections and no AI model key, so it runs in a brand-ne
       <img src="/images/workflows/build-first-create-recipe-dialog.png" alt="The Find a workflow recipe dialog with Refund request approval typed in the Workflow name field" />
     </Frame>
 
-    **You should see:** an empty canvas with a toolbar along the top and a green **Live** chip. A card in the middle asks **What should this workflow do?** It can build steps from a description. You do not need it for this tutorial.
+    **You should see:** an empty canvas with a toolbar along the top and a grey **Draft** chip. A card in the middle asks **What should this workflow do?** It can build steps from a description. You do not need it for this tutorial.
 
     <Frame>
       <img src="/images/workflows/build-first-empty-canvas.png" alt="An empty Workflow Studio canvas with the step palette on the left and the What should this workflow do? card" />
@@ -111,10 +111,10 @@ This workflow needs no connections and no AI model key, so it runs in a brand-ne
     </Frame>
   </Step>
   <Step title="Save it">
-    Studio saves your edits automatically after a couple of seconds; the chip next to the workflow name shows **Live · saved**. You can also click the **Save** button (the disk icon) in the toolbar. There is nothing to publish yet: **Run** always runs your latest saved edits, which are called **Live**. See [Live copy and published versions](/workflows/studio#live-copy-and-published-versions).
+    Studio saves your edits automatically after a couple of seconds; the chip next to the workflow name shows **Draft · saved**. You can also click the **Save** button (the disk icon) in the toolbar. There is nothing to publish yet: **Run** always runs your latest saved edits, which are called your **draft**. See [Draft and published versions](/workflows/studio#draft-and-published-versions).
   </Step>
   <Step title="Run it">
-    Click the green **Run** button in the toolbar. Studio starts a run of your **Live** copy, and the run panel at the bottom (**Run logs and metrics**) lists the new run. Click the run, then the **Events** tab.
+    Click the green **Run** button in the toolbar. Studio starts a run of your **draft**, and the run panel at the bottom (**Run logs and metrics**) lists the new run. Click the run, then the **Events** tab.
 
     **You should see:** **Draft the summary** with the status **Success**, **Approve the refund** waiting, and the run marked **Paused**. This is expected: the run is waiting for a person, not stuck. While it waits, the toolbar shows **Resume** and **Stop**. You do not need either: the run continues on its own when someone answers the task.
 
@@ -165,13 +165,13 @@ This workflow needs no connections and no AI model key, so it runs in a brand-ne
     **You should see:** in the run's **Events**, **Approve the refund** marked **Skipped · Approval rejected**, with `"approved": false` and your reason as `comment` in its output. **Record the decision** never runs. This is what **When rejected: Stop this branch** does: the steps after the approval are skipped. The run itself still finishes with the status **Success**. Other choices, such as sending the work back for changes, are in [Human tasks](/workflows/human-tasks#on-reject).
   </Step>
   <Step title="Publish a version (optional)">
-    When you want a frozen copy that does not change while you keep editing, click **Publish** in the toolbar. The **Publish v1** dialog explains that a published version never changes and that Live stays editable. Add a note and click **Publish v1**, then **Done**.
+    When you want a frozen copy that does not change while you keep editing, click **Publish** in the toolbar. The **Publish v1** dialog explains that a published version never changes and that the draft stays editable. Add a note and click **Publish v1**, then **Done**.
 
     <Frame>
       <img src="/images/workflows/build-first-publish-dialog.png" alt="The Publish v1 dialog with a Note field and the Publish v1 button" />
     </Frame>
 
-    Triggers such as schedules and webhooks can then run **Last published** instead of **Live**. Studio's **Run** button always runs Live. See [Workflow Studio](/workflows/studio#publish-a-version).
+    Triggers such as schedules and webhooks can then run **Last published** instead of **Draft**. Studio's **Run** button always runs the draft. See [Workflow Studio](/workflows/studio#publish-a-version).
   </Step>
 </Steps>
 
@@ -200,7 +200,7 @@ An LLM step fails the run if the model call fails, so check the failed step's er
 
 So far you started the run by clicking **Run**. A workflow can also start on its own. Each way is set up in **Setup** in the Workflow Studio toolbar. The **Workflow setup** dialog lists them on the left under **Triggers**: **Manual**, **Inbound**, **Events**, **Cron**, **Sessions**, **API** and **Apps**.
 
-- **On a schedule.** Open **Setup**, then **Cron**. Pick a **Preset** or type a **Cron (5-field)** expression, choose a **Timezone**, choose which version **Runs** (for example **Live**), and pick an **Automation API key** (or click **Create API key**). Then click **Add schedule**. The shortest repeat is every minute. See [Cron schedules](/workflows/external-triggers#cron-schedules).
+- **On a schedule.** Open **Setup**, then **Cron**. Pick a **Preset** or type a **Cron (5-field)** expression, choose a **Timezone**, choose which version **Runs** (for example **Draft**), and pick an **Automation API key** (or click **Create API key**). Then click **Add schedule**. The shortest repeat is every minute. See [Cron schedules](/workflows/external-triggers#cron-schedules).
 
   <Frame>
     <img src="/images/workflows/build-first-cron-tab.png" alt="The Cron tab of Workflow setup with Preset, Cron (5-field), Timezone, Run as, Runs and Automation API key fields" />
@@ -234,7 +234,7 @@ Starting a run any of these ways still stops at the **Approve the refund** step 
 | Reading a step that is not connected | The template stays as literal `{{…}}` text, or dry-run reports `template_missing_dependency` | Draw a line from that step, so it runs first |
 | Using the step's display name in a template | The value is empty | Use the step's ID. Type `{{` and pick a suggestion |
 | Expecting **Approve** to edit the draft | Later steps still see the original text | Read the draft from the step that wrote it |
-| Editing after publishing and expecting triggers to change | A schedule or webhook set to **Last published** or a fixed version keeps running the old copy | Set its **Runs** choice to **Live**, or publish again |
+| Editing after publishing and expecting triggers to change | A schedule or webhook set to **Last published** or a fixed version keeps running the old copy | Set its **Runs** choice to **Draft**, or publish again |
 | Expecting a failed step to retry | A failed step fails the run | Fix the cause and start a new run. See [Run recovery](/workflows/run-recovery) |
 
 ## The workflow as JSON
